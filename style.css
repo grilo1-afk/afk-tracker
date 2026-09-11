@@ -94,6 +94,32 @@ button.btn-secondary {
   font-size: 12px;
 }
 button.btn-secondary:hover { background-color: #2a2f38; border-color: var(--text-light); color: white; }
+.input-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-with-toggle input {
+  padding-right: 44px;
+}
+.btn-eye {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  min-height: 40px;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: manipulation;
+}
+.btn-eye:hover { color: var(--gold); background: transparent; }
 .hidden { display: none !important; }
 .screen-header {
   display: flex;
