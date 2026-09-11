@@ -111,7 +111,7 @@ function getCurrentMonthId() {
 }
 
 // ── PERSISTENCE (Google Apps Script Web App) ─────────────────────────────────
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzuqAXeuipdRn6Owz7yr-koVvFIWGtZClBkWOj1ocyEeSwsA7s4GXXaPJfgPXOpdLcr/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
 
 async function saveState() {
   try {
