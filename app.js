@@ -396,6 +396,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
     // Fazendo POST para evitar o redirecionamento 302 do Google
     const res = await fetch(GAS_URL, {
       method: "POST",
+      redirect: "follow",
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
       },
