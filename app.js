@@ -392,13 +392,16 @@ document.getElementById("btn-login").addEventListener("click", async () => {
 
   try {
     const hashed = await hashPassword(p);
-    const authUrl =
-      GAS_URL +
-      "?action=auth&user=" +
-      encodeURIComponent(u) +
-      "&pass=" +
-      hashed;
-    const res = await fetch(authUrl);
+
+    // Fazendo POST para evitar o redirecionamento 302 do Google
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      body: JSON.stringify({ action: "auth", user: u, pass: hashed }),
+    });
+
     const json = await res.json();
 
     if (!json.ok) {
