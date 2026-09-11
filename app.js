@@ -333,16 +333,8 @@ function deleteExpense(expId) {
 
 // ── EVENT LISTENERS ───────────────────────────────────────────────────────────
 
-// Login
-document.getElementById("btn-login").addEventListener("click", async () => {
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value;
-  const valid = USERS.some((x) => x.username === u && x.password === p);
-  if (!valid) {
-    alert("Invalid credentials! Access denied.");
-    return;
-  }
-
+// Shared login flow (used by manual login AND auto-login on page load)
+async function doLogin() {
   const btnLogin = document.getElementById("btn-login");
   btnLogin.textContent = "Loading...";
   btnLogin.disabled = true;
@@ -355,6 +347,16 @@ document.getElementById("btn-login").addEventListener("click", async () => {
 
   btnLogin.textContent = "Login";
   btnLogin.disabled = false;
+}
+
+// Login
+document.getElementById("btn-login").addEventListener("click", async () => {
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value;
+  const valid = USERS.some((x) => x.username === u && x.password === p);
+  if (!valid) { alert("Invalid credentials! Access denied."); return; }
+  localStorage.setItem("afk_logged_in", "true");
+  await doLogin();
 });
 
 // Allow Enter key on login
