@@ -4,36 +4,46 @@ let state = { months: [] };
 let activeMonthId = null;
 
 const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // ── CREDENTIALS (extend to multi-user array if needed) ──────────────────────
 const USERS = [{ username: "arian", password: "arianthebest1@" }];
 
 // ── DOM REFS ────────────────────────────────────────────────────────────────
-const loginScreen    = document.getElementById("login-screen");
-const historyScreen  = document.getElementById("history-screen");
-const monthScreen    = document.getElementById("month-screen");
-const monthList      = document.getElementById("month-list");
+const loginScreen = document.getElementById("login-screen");
+const historyScreen = document.getElementById("history-screen");
+const monthScreen = document.getElementById("month-screen");
+const monthList = document.getElementById("month-list");
 const monthViewTitle = document.getElementById("month-view-title");
 
-const budgetSetupBox    = document.getElementById("budget-setup-box");
-const statsSection      = document.getElementById("stats-section");
+const budgetSetupBox = document.getElementById("budget-setup-box");
+const statsSection = document.getElementById("stats-section");
 const addExpenseSection = document.getElementById("add-expense-section");
-const budgetInput       = document.getElementById("budget-input");
-const btnSetBudget      = document.getElementById("btn-set-budget");
-const displayBudget     = document.getElementById("display-budget");
-const displaySpent      = document.getElementById("display-spent");
-const displayRemaining  = document.getElementById("display-remaining");
+const budgetInput = document.getElementById("budget-input");
+const btnSetBudget = document.getElementById("btn-set-budget");
+const displayBudget = document.getElementById("display-budget");
+const displaySpent = document.getElementById("display-spent");
+const displayRemaining = document.getElementById("display-remaining");
 
-const descInput     = document.getElementById("desc");
-const valInput      = document.getElementById("val");
+const descInput = document.getElementById("desc");
+const valInput = document.getElementById("val");
 
 // ── MONTH PICKER MODAL ────────────────────────────────────────────────────────
-const pickerOverlay  = document.getElementById("month-picker-overlay");
-const pickMonthSel   = document.getElementById("pick-month");
-const pickYearSel    = document.getElementById("pick-year");
+const pickerOverlay = document.getElementById("month-picker-overlay");
+const pickMonthSel = document.getElementById("pick-month");
+const pickYearSel = document.getElementById("pick-year");
 
 // Populate month dropdown
 MONTH_NAMES.forEach((name, i) => {
@@ -58,7 +68,7 @@ MONTH_NAMES.forEach((name, i) => {
 function openMonthPicker() {
   const now = new Date();
   pickMonthSel.value = now.getMonth();
-  pickYearSel.value  = now.getFullYear();
+  pickYearSel.value = now.getFullYear();
   pickerOverlay.classList.remove("hidden");
 }
 
@@ -66,8 +76,12 @@ function closeMonthPicker() {
   pickerOverlay.classList.add("hidden");
 }
 
-document.getElementById("btn-pick-cancel").addEventListener("click", closeMonthPicker);
-pickerOverlay.addEventListener("click", e => { if (e.target === pickerOverlay) closeMonthPicker(); });
+document
+  .getElementById("btn-pick-cancel")
+  .addEventListener("click", closeMonthPicker);
+pickerOverlay.addEventListener("click", (e) => {
+  if (e.target === pickerOverlay) closeMonthPicker();
+});
 
 document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   const m = parseInt(pickMonthSel.value, 10);
@@ -76,12 +90,19 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
 
   // Prevent duplicate months (use year-month as natural id for calendar months)
   const calId = y + "-" + m;
-  if (state.months.find(x => x.id === calId || x.name === name)) {
+  if (state.months.find((x) => x.id === calId || x.name === name)) {
     alert(name + " already exists.");
     return;
   }
 
-  const newMonth = { id: calId, name, year: y, month: m, budget: null, expenses: [] };
+  const newMonth = {
+    id: calId,
+    name,
+    year: y,
+    month: m,
+    budget: null,
+    expenses: [],
+  };
   state.months.push(newMonth);
   sortMonths();
   saveState();
@@ -90,7 +111,7 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   openMonth(calId);
 });
 const btnAddExpense = document.getElementById("btn-add-expense");
-const tableBody     = document.getElementById("expense-table-body");
+const tableBody = document.getElementById("expense-table-body");
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
 function uid() {
@@ -102,7 +123,7 @@ function fmt(n) {
 }
 
 function getActiveMonth() {
-  return state.months.find(m => m.id === activeMonthId) || null;
+  return state.months.find((m) => m.id === activeMonthId) || null;
 }
 
 function getCurrentMonthId() {
@@ -111,30 +132,32 @@ function getCurrentMonthId() {
 }
 
 // ── PERSISTENCE (Google Apps Script Web App) ─────────────────────────────────
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
 
 async function saveState() {
   try {
     await fetch(GAS_URL, {
       method: "POST",
-      body: JSON.stringify(state)
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8", // Evita requisições de preflight complexas do CORS no Google Apps Script
+      },
+      body: JSON.stringify(state),
     });
-  } catch (err) {
-    console.error("saveState failed:", err);
-    // UI continues working — next save will overwrite
+  } catch (e) {
+    console.error("Error saving state to cloud:", e);
   }
 }
 
 async function loadState() {
   try {
-    const res = await fetch(GAS_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    if (data && Array.isArray(data.months)) {
+    const response = await fetch(GAS_URL);
+    const data = await response.json();
+    if (data && data.months) {
       state = data;
     }
-  } catch (err) {
-    console.error("loadState failed:", err);
+  } catch (e) {
+    console.error("Error loading state from cloud:", e);
     state = { months: [] };
   }
 }
@@ -144,15 +167,15 @@ async function loadState() {
 // because ensureCurrentMonth is called inline during login flow.
 async function ensureCurrentMonth() {
   const now = new Date();
-  const id  = getCurrentMonthId();
-  if (!state.months.find(m => m.id === id)) {
+  const id = getCurrentMonthId();
+  if (!state.months.find((m) => m.id === id)) {
     state.months.unshift({
       id,
       name: MONTH_NAMES[now.getMonth()] + " " + now.getFullYear(),
       year: now.getFullYear(),
       month: now.getMonth(),
       budget: null,
-      expenses: []
+      expenses: [],
     });
     await saveState();
   }
@@ -163,15 +186,17 @@ function showScreen(name) {
   loginScreen.classList.add("hidden");
   historyScreen.classList.add("hidden");
   monthScreen.classList.add("hidden");
-  if (name === "login")   loginScreen.classList.remove("hidden");
+  if (name === "login") loginScreen.classList.remove("hidden");
   if (name === "history") historyScreen.classList.remove("hidden");
-  if (name === "month")   monthScreen.classList.remove("hidden");
+  if (name === "month") monthScreen.classList.remove("hidden");
 }
 
 // ── HISTORY SCREEN ────────────────────────────────────────────────────────────
 function sortMonths() {
   // Newest first: sort by year desc, then month desc
-  state.months.sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
+  state.months.sort((a, b) =>
+    b.year !== a.year ? b.year - a.year : b.month - a.month,
+  );
 }
 
 function renderHistory() {
@@ -179,17 +204,21 @@ function renderHistory() {
   monthList.innerHTML = "";
 
   if (state.months.length === 0) {
-    monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
+    monthList.innerHTML =
+      '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
     return;
   }
 
-  state.months.forEach(m => {
+  state.months.forEach((m) => {
     const isCurrent = m.id === currentId;
     const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
-    const hasBudget  = m.budget !== null;
+    const hasBudget = m.budget !== null;
 
-    const metaText  = hasBudget
-      ? "Budget: " + fmt(m.budget) + " &nbsp;&bull;&nbsp; Spent: " + fmt(totalSpent)
+    const metaText = hasBudget
+      ? "Budget: " +
+        fmt(m.budget) +
+        " &nbsp;&bull;&nbsp; Spent: " +
+        fmt(totalSpent)
       : "Budget not set yet";
     const metaClass = hasBudget ? "" : "needs-setup";
 
@@ -208,12 +237,12 @@ function renderHistory() {
     monthList.appendChild(card);
   });
 
-  monthList.querySelectorAll(".month-card-clickable").forEach(el => {
+  monthList.querySelectorAll(".month-card-clickable").forEach((el) => {
     el.addEventListener("click", () => openMonth(el.dataset.id));
   });
 
-  monthList.querySelectorAll(".btn-delete-month").forEach(btn => {
-    btn.addEventListener("click", e => {
+  monthList.querySelectorAll(".btn-delete-month").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
       deleteMonth(btn.dataset.id);
     });
@@ -221,10 +250,15 @@ function renderHistory() {
 }
 
 function deleteMonth(id) {
-  const m = state.months.find(x => x.id === id);
+  const m = state.months.find((x) => x.id === id);
   if (!m) return;
-  if (!confirm('Delete "' + m.name + '" and all its expenses? This cannot be undone.')) return;
-  state.months = state.months.filter(x => x.id !== id);
+  if (
+    !confirm(
+      'Delete "' + m.name + '" and all its expenses? This cannot be undone.',
+    )
+  )
+    return;
+  state.months = state.months.filter((x) => x.id !== id);
   saveState();
   renderHistory();
 }
@@ -253,10 +287,10 @@ function openMonth(id) {
 }
 
 function renderStats(m) {
-  const spent     = m.expenses.reduce((s, e) => s + e.val, 0);
+  const spent = m.expenses.reduce((s, e) => s + e.val, 0);
   const remaining = m.budget - spent;
-  displayBudget.textContent    = fmt(m.budget);
-  displaySpent.textContent     = fmt(spent);
+  displayBudget.textContent = fmt(m.budget);
+  displaySpent.textContent = fmt(spent);
   displayRemaining.textContent = fmt(remaining);
   displayRemaining.classList.toggle("over-budget", remaining < 0);
 }
@@ -264,10 +298,11 @@ function renderStats(m) {
 function renderExpenses(m) {
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
-    tableBody.innerHTML = '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
+    tableBody.innerHTML =
+      '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
     return;
   }
-  m.expenses.forEach(exp => {
+  m.expenses.forEach((exp) => {
     const tr = document.createElement("tr");
     tr.className = "expense-row";
     tr.innerHTML = `
@@ -281,7 +316,7 @@ function renderExpenses(m) {
     tableBody.appendChild(tr);
   });
 
-  tableBody.querySelectorAll(".btn-del-expense").forEach(btn => {
+  tableBody.querySelectorAll(".btn-del-expense").forEach((btn) => {
     btn.addEventListener("click", () => deleteExpense(btn.dataset.id));
   });
 }
@@ -290,7 +325,7 @@ function deleteExpense(expId) {
   const m = getActiveMonth();
   if (!m) return;
   if (!confirm("Remove this expense?")) return;
-  m.expenses = m.expenses.filter(e => e.id !== expId);
+  m.expenses = m.expenses.filter((e) => e.id !== expId);
   saveState();
   renderStats(m);
   renderExpenses(m);
@@ -302,8 +337,11 @@ function deleteExpense(expId) {
 document.getElementById("btn-login").addEventListener("click", async () => {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value;
-  const valid = USERS.some(x => x.username === u && x.password === p);
-  if (!valid) { alert("Invalid credentials! Access denied."); return; }
+  const valid = USERS.some((x) => x.username === u && x.password === p);
+  if (!valid) {
+    alert("Invalid credentials! Access denied.");
+    return;
+  }
 
   const btnLogin = document.getElementById("btn-login");
   btnLogin.textContent = "Loading...";
@@ -320,7 +358,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
 });
 
 // Allow Enter key on login
-document.getElementById("password").addEventListener("keydown", e => {
+document.getElementById("password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
@@ -348,14 +386,19 @@ document.getElementById("btn-back").addEventListener("click", () => {
 });
 
 // Create new month (prompts for a custom month or uses today if already exists)
-document.getElementById("btn-create-month").addEventListener("click", openMonthPicker);
+document
+  .getElementById("btn-create-month")
+  .addEventListener("click", openMonthPicker);
 
 // Set budget
 btnSetBudget.addEventListener("click", () => {
   const m = getActiveMonth();
   if (!m) return;
   const val = parseFloat(budgetInput.value);
-  if (!val || val <= 0) { alert("Enter a valid budget amount."); return; }
+  if (!val || val <= 0) {
+    alert("Enter a valid budget amount.");
+    return;
+  }
   m.budget = val;
   saveState();
   budgetSetupBox.classList.add("hidden");
@@ -368,20 +411,25 @@ btnSetBudget.addEventListener("click", () => {
 
 // Add expense
 btnAddExpense.addEventListener("click", addExpense);
-valInput.addEventListener("keydown", e => { if (e.key === "Enter") addExpense(); });
+valInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") addExpense();
+});
 
 function addExpense() {
   const m = getActiveMonth();
   if (!m) return;
   const desc = descInput.value.trim();
-  const val  = parseFloat(valInput.value);
-  if (!desc || !val || val <= 0) { alert("Enter a description and a valid amount."); return; }
+  const val = parseFloat(valInput.value);
+  if (!desc || !val || val <= 0) {
+    alert("Enter a description and a valid amount.");
+    return;
+  }
   const today = new Date().toLocaleDateString("en-US");
   m.expenses.push({ id: uid(), desc, val, date: today });
   saveState();
   renderStats(m);
   renderExpenses(m);
   descInput.value = "";
-  valInput.value  = "";
+  valInput.value = "";
   descInput.focus();
 }
