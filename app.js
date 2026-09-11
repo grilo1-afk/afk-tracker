@@ -179,9 +179,11 @@ async function saveState() {
 
 async function loadState() {
   try {
-    const response = await fetch(GAS_URL);
-    const data = await response.json();
-    if (data && data.months) {
+    // GAS returns MimeType.TEXT — must parse manually, not via .json()
+    const response = await fetch(GAS_URL, { redirect: "follow" });
+    const text = await response.text();
+    const data = JSON.parse(text);
+    if (data && Array.isArray(data.months)) {
       state = data;
     }
   } catch (e) {
@@ -393,17 +395,15 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   try {
     const hashed = await hashPassword(p);
 
-    // Fazendo POST para evitar o redirecionamento 302 do Google
-    const res = await fetch(GAS_URL, {
-      method: "POST",
-      redirect: "follow",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify({ action: "auth", user: u, pass: hashed }),
-    });
-
-    const json = await res.json();
+    // Use GET — GAS doGet handles ?action=auth without the 302 redirect
+    // that POST requests trigger from cross-origin clients.
+    const authUrl = GAS_URL
+      + "?action=auth"
+      + "&user=" + encodeURIComponent(u)
+      + "&pass=" + hashed;
+    const res  = await fetch(authUrl, { redirect: "follow" });
+    const text = await res.text();
+    const json = JSON.parse(text);
 
     if (!json.ok) {
       alert("Invalid credentials! Access denied.");
