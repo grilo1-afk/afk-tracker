@@ -110,22 +110,39 @@ function getCurrentMonthId() {
   return now.getFullYear() + "-" + now.getMonth();
 }
 
-// ── PERSISTENCE ──────────────────────────────────────────────────────────────
-function saveState() {
-  localStorage.setItem("afk_tavern_state", JSON.stringify(state));
+// ── PERSISTENCE (Google Apps Script Web App) ─────────────────────────────────
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzuqAXeuipdRn6Owz7yr-koVvFIWGtZClBkWOj1ocyEeSwsA7s4GXXaPJfgPXOpdLcr/exec";
+
+async function saveState() {
+  try {
+    await fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify(state)
+    });
+  } catch (err) {
+    console.error("saveState failed:", err);
+    // UI continues working — next save will overwrite
+  }
 }
 
-function loadState() {
+async function loadState() {
   try {
-    const raw = localStorage.getItem("afk_tavern_state");
-    if (raw) state = JSON.parse(raw);
-  } catch (e) {
+    const res = await fetch(GAS_URL);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data && Array.isArray(data.months)) {
+      state = data;
+    }
+  } catch (err) {
+    console.error("loadState failed:", err);
     state = { months: [] };
   }
 }
 
 // ── ENSURE CURRENT MONTH EXISTS ──────────────────────────────────────────────
-function ensureCurrentMonth() {
+// NOTE: callers must await saveState() where needed; here we fire-and-forget
+// because ensureCurrentMonth is called inline during login flow.
+async function ensureCurrentMonth() {
   const now = new Date();
   const id  = getCurrentMonthId();
   if (!state.months.find(m => m.id === id)) {
@@ -137,7 +154,7 @@ function ensureCurrentMonth() {
       budget: null,
       expenses: []
     });
-    saveState();
+    await saveState();
   }
 }
 
@@ -282,19 +299,24 @@ function deleteExpense(expId) {
 // ── EVENT LISTENERS ───────────────────────────────────────────────────────────
 
 // Login
-document.getElementById("btn-login").addEventListener("click", () => {
+document.getElementById("btn-login").addEventListener("click", async () => {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value;
   const valid = USERS.some(x => x.username === u && x.password === p);
-  if (valid) {
-    loadState();
-    ensureCurrentMonth();
-    sortMonths();
-    renderHistory();
-    showScreen("history");
-  } else {
-    alert("Invalid credentials! Access denied.");
-  }
+  if (!valid) { alert("Invalid credentials! Access denied."); return; }
+
+  const btnLogin = document.getElementById("btn-login");
+  btnLogin.textContent = "Loading...";
+  btnLogin.disabled = true;
+
+  await loadState();
+  await ensureCurrentMonth();
+  sortMonths();
+  renderHistory();
+  showScreen("history");
+
+  btnLogin.textContent = "Login";
+  btnLogin.disabled = false;
 });
 
 // Allow Enter key on login
