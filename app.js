@@ -437,6 +437,29 @@ function addExpense() {
 // ── AUTO-LOGIN ON PAGE LOAD ───────────────────────────────────────────────────
 (async function init() {
   if (localStorage.getItem("afk_logged_in") === "true") {
+    // Hide login immediately (synchronous) so it never flashes
+    loginScreen.classList.add("hidden");
+
+    // Show a minimal loading overlay while the GAS fetch runs
+    const overlay = document.createElement("div");
+    overlay.id = "init-loading";
+    overlay.style.cssText = [
+      "position:fixed", "inset:0",
+      "background:#0b0c10",
+      "display:flex", "align-items:center", "justify-content:center",
+      "flex-direction:column", "gap:12px",
+      "z-index:999", "color:#d4af37",
+      "font-family:'Segoe UI',sans-serif",
+      "font-size:14px", "letter-spacing:2px", "text-transform:uppercase"
+    ].join(";");
+    overlay.innerHTML = `
+      <div style="font-size:22px;font-weight:bold;">AFK Tavern</div>
+      <div style="color:#c5c6c7;font-size:12px;">Loading your data...</div>
+    `;
+    document.body.appendChild(overlay);
+
     await doLogin();
+
+    overlay.remove();
   }
 })();
