@@ -362,21 +362,19 @@ document.getElementById("password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
-// Logout (history screen)
-document.getElementById("btn-logout").addEventListener("click", () => {
+function doLogout() {
+  localStorage.removeItem("afk_logged_in");
   activeMonthId = null;
   document.getElementById("username").value = "";
   document.getElementById("password").value = "";
   showScreen("login");
-});
+}
+
+// Logout (history screen)
+document.getElementById("btn-logout").addEventListener("click", doLogout);
 
 // Logout (month screen)
-document.getElementById("btn-logout-2").addEventListener("click", () => {
-  activeMonthId = null;
-  document.getElementById("username").value = "";
-  document.getElementById("password").value = "";
-  showScreen("login");
-});
+document.getElementById("btn-logout-2").addEventListener("click", doLogout);
 
 // Back to history
 document.getElementById("btn-back").addEventListener("click", () => {
@@ -430,6 +428,13 @@ function addExpense() {
   renderStats(m);
   renderExpenses(m);
   descInput.value = "";
-  valInput.value = "";
+  valInput.value  = "";
   descInput.focus();
 }
+
+// ── AUTO-LOGIN ON PAGE LOAD ───────────────────────────────────────────────────
+(async function init() {
+  if (localStorage.getItem("afk_logged_in") === "true") {
+    await doLogin();
+  }
+})();
