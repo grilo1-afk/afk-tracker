@@ -18,8 +18,15 @@ const MONTH_NAMES = [
   "December",
 ];
 
-// ── CREDENTIALS (extend to multi-user array if needed) ──────────────────────
-const USERS = [{ username: "arian", password: "arianthebest1@" }];
+// ── CRYPTO ───────────────────────────────────────────────────────────────────
+async function hashPassword(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hashBuf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join(""); // lowercase hex
+}
 
 // ── DOM REFS ────────────────────────────────────────────────────────────────
 const loginScreen = document.getElementById("login-screen");
@@ -353,8 +360,40 @@ async function doLogin() {
 document.getElementById("btn-login").addEventListener("click", async () => {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value;
-  const valid = USERS.some((x) => x.username === u && x.password === p);
-  if (!valid) { alert("Invalid credentials! Access denied."); return; }
+  if (!u || !p) {
+    alert("Enter your username and password.");
+    return;
+  }
+
+  const btnLogin = document.getElementById("btn-login");
+  btnLogin.textContent = "Authenticating...";
+  btnLogin.disabled = true;
+
+  try {
+    const hashed = await hashPassword(p);
+    const authUrl =
+      GAS_URL +
+      "?action=auth&user=" +
+      encodeURIComponent(u) +
+      "&pass=" +
+      hashed;
+    const res = await fetch(authUrl);
+    const json = await res.json();
+
+    if (!json.ok) {
+      alert("Invalid credentials! Access denied.");
+      btnLogin.textContent = "Login";
+      btnLogin.disabled = false;
+      return;
+    }
+  } catch (err) {
+    console.error("Auth check failed:", err);
+    alert("Could not reach the server. Check your connection.");
+    btnLogin.textContent = "Login";
+    btnLogin.disabled = false;
+    return;
+  }
+
   localStorage.setItem("afk_logged_in", "true");
   await doLogin();
 });
@@ -430,7 +469,7 @@ function addExpense() {
   renderStats(m);
   renderExpenses(m);
   descInput.value = "";
-  valInput.value  = "";
+  valInput.value = "";
   descInput.focus();
 }
 
@@ -444,17 +483,24 @@ function addExpense() {
     const overlay = document.createElement("div");
     overlay.id = "init-loading";
     overlay.style.cssText = [
-      "position:fixed", "inset:0",
+      "position:fixed",
+      "inset:0",
       "background:#0b0c10",
-      "display:flex", "align-items:center", "justify-content:center",
-      "flex-direction:column", "gap:12px",
-      "z-index:999", "color:#d4af37",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "flex-direction:column",
+      "gap:12px",
+      "z-index:999",
+      "color:#d4af37",
       "font-family:'Segoe UI',sans-serif",
-      "font-size:14px", "letter-spacing:2px", "text-transform:uppercase"
+      "font-size:14px",
+      "letter-spacing:2px",
+      "text-transform:uppercase",
     ].join(";");
     overlay.innerHTML = `
       <div style="font-size:22px;font-weight:bold;">AFK Tavern</div>
-      <div style="color:#c5c6c7;font-size:12px;">Loading your data...</div>
+      <div style="color:#c5c6c7;font-size:12px;">Loading...</div>
     `;
     document.body.appendChild(overlay);
 
