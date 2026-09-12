@@ -4,18 +4,9 @@ let state = { months: [] };
 let activeMonthId = null;
 
 const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March",    "April",
+  "May",     "June",     "July",     "August",
+  "September","October", "November", "December",
 ];
 
 // ── CRYPTO ───────────────────────────────────────────────────────────────────
@@ -29,23 +20,25 @@ async function hashPassword(plain) {
 }
 
 // ── DOM REFS ────────────────────────────────────────────────────────────────
-const loginScreen = document.getElementById("login-screen");
-const historyScreen = document.getElementById("history-screen");
-const monthScreen = document.getElementById("month-screen");
-const monthList = document.getElementById("month-list");
+const loginScreen    = document.getElementById("login-screen");
+const historyScreen  = document.getElementById("history-screen");
+const monthScreen    = document.getElementById("month-screen");
+const monthList      = document.getElementById("month-list");
 const monthViewTitle = document.getElementById("month-view-title");
 
-const budgetSetupBox = document.getElementById("budget-setup-box");
-const statsSection = document.getElementById("stats-section");
+const budgetSetupBox    = document.getElementById("budget-setup-box");
+const statsSection      = document.getElementById("stats-section");
 const addExpenseSection = document.getElementById("add-expense-section");
-const budgetInput = document.getElementById("budget-input");
-const btnSetBudget = document.getElementById("btn-set-budget");
-const displayBudget = document.getElementById("display-budget");
-const displaySpent = document.getElementById("display-spent");
-const displayRemaining = document.getElementById("display-remaining");
+const budgetInput       = document.getElementById("budget-input");
+const btnSetBudget      = document.getElementById("btn-set-budget");
+const displayBudget     = document.getElementById("display-budget");
+const displaySpent      = document.getElementById("display-spent");
+const displayRemaining  = document.getElementById("display-remaining");
 
-const descInput = document.getElementById("desc");
-const valInput = document.getElementById("val");
+const descInput     = document.getElementById("desc");
+const valInput      = document.getElementById("val");
+const btnAddExpense = document.getElementById("btn-add-expense");
+const tableBody     = document.getElementById("expense-table-body");
 
 // ── PASSWORD TOGGLE ───────────────────────────────────────────────────────────
 document.getElementById("btn-toggle-password").addEventListener("click", () => {
@@ -138,8 +131,6 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   renderHistory();
   openMonth(calId);
 });
-const btnAddExpense = document.getElementById("btn-add-expense");
-const tableBody = document.getElementById("expense-table-body");
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
 function uid() {
@@ -165,11 +156,10 @@ const GAS_URL =
 
 async function saveState() {
   try {
+    // text/plain avoids a CORS preflight — GAS handles it without an extra OPTIONS round-trip
     await fetch(GAS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8", // Evita requisições de preflight complexas do CORS no Google Apps Script
-      },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(state),
     });
   } catch (e) {
@@ -193,8 +183,6 @@ async function loadState() {
 }
 
 // ── ENSURE CURRENT MONTH EXISTS ──────────────────────────────────────────────
-// NOTE: callers must await saveState() where needed; here we fire-and-forget
-// because ensureCurrentMonth is called inline during login flow.
 async function ensureCurrentMonth() {
   const now = new Date();
   const id = getCurrentMonthId();
@@ -212,13 +200,11 @@ async function ensureCurrentMonth() {
 }
 
 // ── SCREEN ROUTING ────────────────────────────────────────────────────────────
+const SCREENS = { login: loginScreen, history: historyScreen, month: monthScreen };
+
 function showScreen(name) {
-  loginScreen.classList.add("hidden");
-  historyScreen.classList.add("hidden");
-  monthScreen.classList.add("hidden");
-  if (name === "login") loginScreen.classList.remove("hidden");
-  if (name === "history") historyScreen.classList.remove("hidden");
-  if (name === "month") monthScreen.classList.remove("hidden");
+  Object.values(SCREENS).forEach((s) => s.classList.add("hidden"));
+  SCREENS[name]?.classList.remove("hidden");
 }
 
 // ── HISTORY SCREEN ────────────────────────────────────────────────────────────
@@ -403,7 +389,6 @@ document.getElementById("btn-login").addEventListener("click", async () => {
       + "&pass=" + hashed;
     const res  = await fetch(authUrl, { redirect: "follow" });
     const text = await res.text();
-    console.log("[auth] raw response:", text);
     const json = JSON.parse(text);
 
     if (!json.ok) {

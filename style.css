@@ -1,3 +1,49 @@
+/* ── DESIGN TOKENS ── */
+:root {
+  /* Dark fantasy palette — pairs with AFK Arena character art */
+  --bg-color:   #0a0c12;   /* Near-black void background */
+  --panel-bg:   #141824;   /* Deep navy panel surface */
+  --gold:       #e8b84b;   /* Warm antique gold — matches the logo */
+  --gold-hover: #f5d06a;   /* Brighter gold on hover */
+  --text-light: #d4cfc8;   /* Warm off-white — easy on eyes against dark art */
+  --danger:     #e05252;   /* Muted red for spend / delete */
+  --success:    #4ade80;   /* Emerald green for remaining budget */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-light);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── CONTAINER ── */
+/* Also serves as the stacking context for character art */
+.container {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--panel-bg);
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 660px;
+  box-shadow: 0 0 15px rgba(232, 184, 75, 0.2);
+}
+/* All direct children sit above the character art */
+.container > *:not(.char-art) {
+  position: relative;
+  z-index: 1;
+}
+
 /* ── LOGO ── */
 .logo-wrap {
   text-align: center;
@@ -24,9 +70,8 @@
   width: 100%;
   height: auto;
   display: block;
-  /* No grayscale — keep the original art colours */
 }
-/* Fade the bottom edge into the panel so it blends cleanly */
+/* Fade the feet into the panel background */
 .char-art::after {
   content: "";
   position: absolute;
@@ -39,52 +84,6 @@
 }
 .char-art-left  { left: -10px; }
 .char-art-right { right: -10px; transform: scaleX(-1); }
-
-/* Container is the stacking context; content sits above the art */
-.container {
-  position: relative;
-  overflow: hidden;
-}
-/* Ensure all direct content inside containers sits above the art */
-.container > *:not(.char-art) {
-  position: relative;
-  z-index: 1;
-}
-
-:root {
-  /* Dark fantasy palette — pairs with AFK Arena character art */
-  --bg-color:   #0a0c12;   /* Near-black void background */
-  --panel-bg:   #141824;   /* Deep navy panel surface */
-  --gold:       #e8b84b;   /* Warm antique gold — matches the logo */
-  --gold-hover: #f5d06a;   /* Brighter gold on hover */
-  --text-light: #d4cfc8;   /* Warm off-white — easier on eyes against dark art */
-  --danger:     #e05252;   /* Muted red for spend / delete */
-  --success:    #4ade80;   /* Emerald green for remaining budget */
-}
-* {
-  box-sizing: border-box;
-}
-body {
-  background-color: var(--bg-color);
-  color: var(--text-light);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  padding: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  -webkit-tap-highlight-color: transparent;
-}
-.container {
-  background-color: var(--panel-bg);
-  border: 2px solid var(--gold);
-  border-radius: 10px;
-  padding: 24px 20px;
-  width: 100%;
-  max-width: 660px;
-  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
-}
 h1,
 h2,
 h3 {
@@ -346,6 +345,8 @@ button.btn-secondary:hover {
 .stat-box.remaining strong.over-budget {
   color: var(--danger);
 }
+.stat-box--editable { position: relative; }
+
 .btn-edit-budget {
   position: absolute;
   top: 4px;
