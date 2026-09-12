@@ -33,13 +33,14 @@
 .container { position: relative; overflow: hidden; }
 
 :root {
-  --bg-main: #0b0f17; /* Fundo geral bem escuro e imersivo */
-  --bg-surface: #151b28; /* Cards e superfícies de painel */
-  --accent-gold: #f3c65d; /* Dourado inspirado no logo para títulos e destaques */
-  --accent-cyan: #4ce0d2; /* Ciano vibrante para detalhes secundários e links */
-  --accent-orange: #ff7b54; /* Laranja de fogo para alertas ou botões principais */
-  --text-main: #e2e8f0; /* Texto principal claro */
-  --text-muted: #94a3b8; /* Texto secundário */
+  /* Dark fantasy palette — pairs with AFK Arena character art */
+  --bg-color:   #0a0c12;   /* Near-black void background */
+  --panel-bg:   #141824;   /* Deep navy panel surface */
+  --gold:       #e8b84b;   /* Warm antique gold — matches the logo */
+  --gold-hover: #f5d06a;   /* Brighter gold on hover */
+  --text-light: #d4cfc8;   /* Warm off-white — easier on eyes against dark art */
+  --danger:     #e05252;   /* Muted red for spend / delete */
+  --success:    #4ade80;   /* Emerald green for remaining budget */
 }
 * {
   box-sizing: border-box;
