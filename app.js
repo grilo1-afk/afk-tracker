@@ -566,6 +566,16 @@ function closeProfileModal() {
   profileOverlay.classList.add("hidden");
 }
 
+// Eye-toggle buttons inside the profile modal (shared handler via data-target)
+document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    input.type = input.type === "password" ? "text" : "password";
+    btn.style.opacity = input.type === "text" ? "1" : "0.5";
+  });
+});
+
 document.getElementById("btn-profile").addEventListener("click",   openProfileModal);
 document.getElementById("btn-profile-2").addEventListener("click", openProfileModal);
 document.getElementById("btn-profile-close").addEventListener("click", closeProfileModal);

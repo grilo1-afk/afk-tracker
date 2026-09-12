@@ -291,6 +291,14 @@ select.is-invalid {
   text-align: left;
   flex: 1;
 }
+#welcome-name {
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 2px;
+  opacity: 0.85;
+}
 .header-actions {
   display: flex;
   gap: 8px;
