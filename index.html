@@ -44,10 +44,14 @@
         <button id="btn-logout" class="btn-sm btn-secondary">Logout</button>
       </div>
     </div>
-    <div class="month-list" id="month-list">
-      <div class="empty-history">No months recorded yet. Create your first month below.</div>
+    <div class="scroll-content">
+      <div class="month-list" id="month-list">
+        <div class="empty-history">No months recorded yet. Create your first month below.</div>
+      </div>
     </div>
-    <button id="btn-create-month">+ Create New Month</button>
+    <div class="screen-footer">
+      <button id="btn-create-month">+ Create New Month</button>
+    </div>
   </div>
 
   <!-- MONTH PICKER MODAL -->
@@ -83,65 +87,67 @@
       </div>
     </div>
 
-    <!-- Budget Setup (shown only when budget not yet set) -->
-    <div id="budget-setup-box" class="budget-setup-box hidden">
-      <h3>Set Monthly Budget</h3>
-      <p>Warning: Once confirmed, this budget is locked for this month.</p>
-      <div class="budget-setup-row">
-        <input type="number" id="budget-input" placeholder="$ 0.00" min="0" step="0.01"/>
-        <button id="btn-set-budget">Confirm</button>
-      </div>
-    </div>
-
-    <!-- Stats (shown once budget is set) -->
-    <div id="stats-section" class="stats-grid hidden">
-      <div class="stat-box" style="position:relative;">
-        <span>Budget</span>
-        <strong id="display-budget">$ 0.00</strong>
-        <button id="btn-edit-budget" class="btn-edit-budget" title="Edit budget">&#9998;</button>
-      </div>
-      <div class="stat-box">
-        <span>Spent</span>
-        <strong id="display-spent" style="color:var(--danger)">$ 0.00</strong>
-      </div>
-      <div class="stat-box remaining">
-        <span>Remaining</span>
-        <strong id="display-remaining">$ 0.00</strong>
-      </div>
-    </div>
-
-    <!-- Add Expense + Table (shown once budget is set) -->
-    <div id="add-expense-section" class="hidden">
-      <div class="section-title">New Expense</div>
-      <div class="expense-inputs">
-        <div>
-          <label for="desc">Description</label>
-          <input type="text" id="desc" placeholder="e.g. Premium Pass"/>
-        </div>
-        <div>
-          <label for="val">Amount ($)</label>
-          <input type="number" id="val" placeholder="0.00" min="0" step="0.01"/>
-        </div>
-        <div style="padding-top:18px;">
-          <button id="btn-add-expense">OK</button>
+    <div class="scroll-content">
+      <!-- Budget Setup (shown only when budget not yet set) -->
+      <div id="budget-setup-box" class="budget-setup-box hidden">
+        <h3>Set Monthly Budget</h3>
+        <p>Warning: Once confirmed, this budget is locked for this month.</p>
+        <div class="budget-setup-row">
+          <input type="number" id="budget-input" placeholder="$ 0.00" min="0" step="0.01"/>
+          <button id="btn-set-budget">Confirm</button>
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th style="text-align:right">Amount</th>
-            <th class="action-col"></th>
-          </tr>
-        </thead>
-        <tbody id="expense-table-body">
-          <tr class="expense-row">
-            <td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Stats (shown once budget is set) -->
+      <div id="stats-section" class="stats-grid hidden">
+        <div class="stat-box" style="position:relative;">
+          <span>Budget</span>
+          <strong id="display-budget">$ 0.00</strong>
+          <button id="btn-edit-budget" class="btn-edit-budget" title="Edit budget">&#9998;</button>
+        </div>
+        <div class="stat-box">
+          <span>Spent</span>
+          <strong id="display-spent" style="color:var(--danger)">$ 0.00</strong>
+        </div>
+        <div class="stat-box remaining">
+          <span>Remaining</span>
+          <strong id="display-remaining">$ 0.00</strong>
+        </div>
+      </div>
+
+      <!-- Add Expense + Table (shown once budget is set) -->
+      <div id="add-expense-section" class="hidden">
+        <div class="section-title">New Expense</div>
+        <div class="expense-inputs">
+          <div>
+            <label for="desc">Description</label>
+            <input type="text" id="desc" placeholder="e.g. Premium Pass"/>
+          </div>
+          <div>
+            <label for="val">Amount ($)</label>
+            <input type="number" id="val" placeholder="0.00" min="0" step="0.01"/>
+          </div>
+          <div style="padding-top:18px;">
+            <button id="btn-add-expense">OK</button>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th style="text-align:right">Amount</th>
+              <th class="action-col"></th>
+            </tr>
+          </thead>
+          <tbody id="expense-table-body">
+            <tr class="expense-row">
+              <td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
