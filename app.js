@@ -455,7 +455,7 @@ document
   .getElementById("btn-create-month")
   .addEventListener("click", openMonthPicker);
 
-// Set budget
+// Set / update budget
 btnSetBudget.addEventListener("click", () => {
   const m = getActiveMonth();
   if (!m) return;
@@ -471,7 +471,17 @@ btnSetBudget.addEventListener("click", () => {
   addExpenseSection.classList.remove("hidden");
   renderStats(m);
   renderExpenses(m);
-  // Refresh the history card meta when we go back
+});
+
+// Edit budget — re-shows the setup box pre-filled with current value
+document.getElementById("btn-edit-budget").addEventListener("click", () => {
+  const m = getActiveMonth();
+  if (!m) return;
+  budgetInput.value = m.budget !== null ? m.budget : "";
+  budgetSetupBox.classList.remove("hidden");
+  statsSection.classList.add("hidden");
+  addExpenseSection.classList.add("hidden");
+  budgetInput.focus();
 });
 
 // Add expense
