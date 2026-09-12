@@ -17,32 +17,66 @@ body {
   color: var(--text-light);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
-  padding: 16px;
+  padding: 0;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
+  align-items: stretch;
+  min-height: 100dvh;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* ── CONTAINER ── */
-/* Also serves as the stacking context for character art */
+/* Full-height shell on all screen sizes — keeps the gold border */
 .container {
   position: relative;
   overflow: hidden;
   background-color: var(--panel-bg);
-  border: 2px solid var(--gold);
-  border-radius: 10px;
-  padding: 24px 20px;
+  border-left: 2px solid var(--gold);
+  border-right: 2px solid var(--gold);
+  border-top: none;
+  border-bottom: 2px solid var(--gold);
+  border-radius: 0;
+  padding: 0;
   width: 100%;
   max-width: 660px;
-  box-shadow: 0 0 15px rgba(232, 184, 75, 0.2);
+  box-shadow: 0 0 20px rgba(232, 184, 75, 0.15);
+  display: flex;
+  flex-direction: column;
 }
 /* All direct children sit above the character art */
 .container > *:not(.char-art) {
   position: relative;
   z-index: 1;
 }
+
+/* Login: vertically centred column with its own padding */
+#login-screen {
+  justify-content: center;
+  padding: 40px 32px;
+}
+
+/* Scrollable area for history list and month content */
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 24px;
+}
+
+/* Locked header */
+.screen-header {
+  flex-shrink: 0;
+}
+
+/* Locked footer (create-month button) */
+.screen-footer {
+  flex-shrink: 0;
+  padding: 14px 24px 20px;
+  background: var(--panel-bg);
+  border-top: 1px solid rgba(232, 184, 75, 0.2);
+}
+.screen-footer button,
+#btn-create-month { margin-top: 0; }
 
 /* ── LOGO ── */
 .logo-wrap {
@@ -476,92 +510,41 @@ th {
   flex-direction: column;
   gap: 8px;
 }
+/* Desktop: give screen-header its padding */
+.screen-header { padding: 16px 24px 14px; }
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
-  body {
-    padding: 0;
-    align-items: stretch;
-    background-color: var(--bg-color);
-  }
-
-  /* Container becomes a full-viewport fixed shell */
+  /* Pin container to viewport — prevents scroll of the shell itself */
   .container {
     position: fixed;
     inset: 0;
-    height: 100dvh;          /* dynamic viewport height — safe on iOS Safari */
+    height: 100dvh;
     max-width: 100%;
-    border-radius: 0;
     border-left: none;
     border-right: none;
-    border-top: none;
-    border-bottom: 2px solid var(--gold);
-    padding: 0;
-    display: flex;
-    flex-direction: column;
     box-shadow: none;
   }
 
-  /* Login screen: centred column with padding */
-  #login-screen {
-    justify-content: center;
-    padding: 32px 24px;
-    border: none;
-  }
+  #login-screen { padding: 32px 20px; border: none; }
 
-  /* Header stays locked at the top */
-  .screen-header {
-    flex-shrink: 0;
-    margin-bottom: 0;
-    padding: 14px 18px 12px;
-    border-bottom: 1px solid var(--gold);
-  }
+  .screen-header { padding: 14px 18px 12px; }
+  .scroll-content { padding: 14px 18px; }
+  .screen-footer  { padding: 10px 18px 20px; }
 
-  /* Scrollable content fills remaining space */
-  .scroll-content {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 16px 18px;
-    /* Prevent content from hiding behind character art */
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Footer button stays locked at the bottom */
-  .screen-footer {
-    flex-shrink: 0;
-    padding: 12px 18px 20px;
-    background: var(--panel-bg);
-    border-top: 1px solid rgba(212,175,55,0.2);
-    position: relative;
-    z-index: 1;
-  }
-  .screen-footer button { margin-top: 0; }
-  #btn-create-month { margin-top: 0; }
-
-  /* Character art: anchored to the fixed shell bottom, larger now */
-  .char-art {
-    width: 140px;
-    opacity: 0.22;
-    z-index: 0;
-  }
+  /* Character art smaller on narrow screens */
+  .char-art { width: 140px; opacity: 0.22; }
   .char-art-left  { left: -10px; }
   .char-art-right { right: -10px; }
 
-  /* Compact the month list */
   .month-list { margin-bottom: 0; }
 
-  .expense-inputs {
-    grid-template-columns: 1fr 1fr;
-  }
-  .expense-inputs > div:last-child {
-    grid-column: 1 / -1;
-  }
+  .expense-inputs { grid-template-columns: 1fr 1fr; }
+  .expense-inputs > div:last-child { grid-column: 1 / -1; }
   .expense-inputs button { width: 100%; }
 
   .stats-grid { gap: 6px; }
   .stat-box strong { font-size: 16px; }
-
   th, td { padding: 8px 6px; font-size: 12px; }
   .month-card-name { font-size: 13px; }
   .badge-current { display: none; }

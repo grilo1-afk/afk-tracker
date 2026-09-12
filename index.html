@@ -41,6 +41,7 @@
     <div class="screen-header">
       <h2>&#9733; Month History</h2>
       <div class="header-actions">
+        <button id="btn-profile" class="btn-sm btn-secondary" title="Profile">&#9881;</button>
         <button id="btn-logout" class="btn-sm btn-secondary">Logout</button>
       </div>
     </div>
@@ -83,6 +84,7 @@
       <h2 id="month-view-title">Month</h2>
       <div class="header-actions">
         <button id="btn-back" class="btn-sm btn-secondary">&#8592; Back</button>
+        <button id="btn-profile-2" class="btn-sm btn-secondary" title="Profile">&#9881;</button>
         <button id="btn-logout-2" class="btn-sm btn-secondary">Logout</button>
       </div>
     </div>
@@ -147,6 +149,26 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profile-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>&#9881; Profile</h3>
+      <div class="form-group">
+        <label for="display-name-input">Display Name</label>
+        <input type="text" id="display-name-input" placeholder="e.g. Arian"/>
+      </div>
+      <div class="form-group" style="border-top:1px solid #2a2f38;padding-top:16px;margin-top:4px;">
+        <label>Change Password</label>
+        <input type="password" id="new-pass-input" placeholder="New password" style="margin-bottom:8px;"/>
+        <input type="password" id="confirm-pass-input" placeholder="Confirm new password"/>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button id="btn-profile-save">Save Changes</button>
+        <button id="btn-profile-close" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>

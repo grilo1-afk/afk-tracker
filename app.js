@@ -494,6 +494,91 @@ function addExpense() {
   descInput.focus();
 }
 
+// ── PROFILE MODAL ────────────────────────────────────────────────────────────
+const profileOverlay   = document.getElementById("profile-overlay");
+const displayNameInput = document.getElementById("display-name-input");
+const newPassInput     = document.getElementById("new-pass-input");
+const confirmPassInput = document.getElementById("confirm-pass-input");
+
+function getDisplayName() {
+  return localStorage.getItem("afk_display_name") || "User";
+}
+
+function setDisplayName(name) {
+  localStorage.setItem("afk_display_name", name.trim() || "User");
+}
+
+function openProfileModal() {
+  displayNameInput.value = getDisplayName();
+  newPassInput.value     = "";
+  confirmPassInput.value = "";
+  profileOverlay.classList.remove("hidden");
+}
+
+function closeProfileModal() {
+  profileOverlay.classList.add("hidden");
+}
+
+document.getElementById("btn-profile").addEventListener("click",   openProfileModal);
+document.getElementById("btn-profile-2").addEventListener("click", openProfileModal);
+document.getElementById("btn-profile-close").addEventListener("click", closeProfileModal);
+profileOverlay.addEventListener("click", (e) => { if (e.target === profileOverlay) closeProfileModal(); });
+
+document.getElementById("btn-profile-save").addEventListener("click", async () => {
+  const newName    = displayNameInput.value.trim();
+  const newPass    = newPassInput.value;
+  const confirmPass = confirmPassInput.value;
+  const btn        = document.getElementById("btn-profile-save");
+
+  // Save display name immediately (local only)
+  if (newName) setDisplayName(newName);
+
+  // Password change is optional — only attempt if the user filled in the fields
+  if (newPass || confirmPass) {
+    if (newPass !== confirmPass) {
+      alert("Passwords do not match.");
+      return;
+    }
+    if (newPass.length < 6) {
+      alert("New password must be at least 6 characters.");
+      return;
+    }
+
+    btn.textContent = "Saving...";
+    btn.disabled    = true;
+
+    try {
+      const username   = document.getElementById("username").value.trim() || "arian";
+      const newHashed  = await hashPassword(newPass);
+      const url = GAS_URL
+        + "?action=updatePass"
+        + "&user="    + encodeURIComponent(username)
+        + "&newPass=" + newHashed;
+      const res  = await fetch(url, { redirect: "follow" });
+      const text = await res.text();
+      const json = JSON.parse(text);
+      if (!json.ok) {
+        alert("Failed to update password. Try again.");
+        btn.textContent = "Save Changes";
+        btn.disabled    = false;
+        return;
+      }
+      alert("Password updated successfully.");
+    } catch (err) {
+      console.error("Password update failed:", err);
+      alert("Could not reach the server. Check your connection.");
+      btn.textContent = "Save Changes";
+      btn.disabled    = false;
+      return;
+    }
+
+    btn.textContent = "Save Changes";
+    btn.disabled    = false;
+  }
+
+  closeProfileModal();
+});
+
 // ── AUTO-LOGIN ON PAGE LOAD ───────────────────────────────────────────────────
 (async function init() {
   if (localStorage.getItem("afk_logged_in") === "true") {
