@@ -112,7 +112,9 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   // Prevent duplicate months (use year-month as natural id for calendar months)
   const calId = y + "-" + m;
   if (state.months.find((x) => x.id === calId || x.name === name)) {
-    alert(name + " already exists.");
+    // Show error inside the modal picker
+    const existing = document.getElementById("pick-error");
+    if (existing) existing.textContent = name + " already exists.";
     return;
   }
 
@@ -139,6 +141,47 @@ function uid() {
 
 function fmt(n) {
   return "$ " + parseFloat(n).toFixed(2);
+}
+
+// ── INLINE VALIDATION ────────────────────────────────────────────────────────
+function showFieldError(inputEl, spanId, message) {
+  inputEl.classList.add("is-invalid");
+  const span = document.getElementById(spanId);
+  if (span) span.textContent = message;
+}
+
+function clearFieldError(inputEl, spanId) {
+  inputEl.classList.remove("is-invalid");
+  const span = document.getElementById(spanId);
+  if (span) span.textContent = "";
+}
+
+function showBanner(bannerId, message) {
+  const el = document.getElementById(bannerId);
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+
+function clearBanner(bannerId) {
+  const el = document.getElementById(bannerId);
+  if (!el) return;
+  el.textContent = "";
+  el.classList.add("hidden");
+}
+
+// Clear errors on user input — login fields
+["username", "password"].forEach((id) => {
+  document.getElementById(id)?.addEventListener("input", () => {
+    clearFieldError(document.getElementById(id), "err-" + id);
+    clearBanner("login-error");
+  });
+});
+
+// ── DISPLAY NAME ─────────────────────────────────────────────────────────────
+function renderWelcomeName() {
+  const el = document.getElementById("welcome-name");
+  if (el) el.textContent = getDisplayName();
 }
 
 function getActiveMonth() {
@@ -268,12 +311,7 @@ function renderHistory() {
 function deleteMonth(id) {
   const m = state.months.find((x) => x.id === id);
   if (!m) return;
-  if (
-    !confirm(
-      'Delete "' + m.name + '" and all its expenses? This cannot be undone.',
-    )
-  )
-    return;
+  // No confirm dialog — delete is immediate (the button is explicit enough)
   state.months = state.months.filter((x) => x.id !== id);
   saveState();
   renderHistory();
@@ -340,7 +378,6 @@ function renderExpenses(m) {
 function deleteExpense(expId) {
   const m = getActiveMonth();
   if (!m) return;
-  if (!confirm("Remove this expense?")) return;
   m.expenses = m.expenses.filter((e) => e.id !== expId);
   saveState();
   renderStats(m);
@@ -359,6 +396,7 @@ async function doLogin() {
   await ensureCurrentMonth();
   sortMonths();
   renderHistory();
+  renderWelcomeName();
   showScreen("history");
 
   btnLogin.textContent = "Login";
@@ -367,22 +405,26 @@ async function doLogin() {
 
 // Login
 document.getElementById("btn-login").addEventListener("click", async () => {
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value;
-  if (!u || !p) {
-    alert("Enter your username and password.");
-    return;
-  }
+  const uEl = document.getElementById("username");
+  const pEl = document.getElementById("password");
+  const u   = uEl.value.trim();
+  const p   = pEl.value;
+
+  clearFieldError(uEl, "err-username");
+  clearFieldError(pEl, "err-password");
+  clearBanner("login-error");
+
+  let valid = true;
+  if (!u) { showFieldError(uEl, "err-username", "Username is required."); valid = false; }
+  if (!p) { showFieldError(pEl, "err-password", "Password is required."); valid = false; }
+  if (!valid) return;
 
   const btnLogin = document.getElementById("btn-login");
   btnLogin.textContent = "Authenticating...";
   btnLogin.disabled = true;
 
   try {
-    const hashed = await hashPassword(p);
-
-    // Use GET — GAS doGet handles ?action=auth without the 302 redirect
-    // that POST requests trigger from cross-origin clients.
+    const hashed  = await hashPassword(p);
     const authUrl = GAS_URL
       + "?action=auth"
       + "&user=" + encodeURIComponent(u)
@@ -392,14 +434,15 @@ document.getElementById("btn-login").addEventListener("click", async () => {
     const json = JSON.parse(text);
 
     if (!json.ok) {
-      alert("Invalid credentials! Access denied.");
+      showFieldError(pEl, "err-password", "Invalid credentials.");
+      uEl.classList.add("is-invalid");
       btnLogin.textContent = "Login";
       btnLogin.disabled = false;
       return;
     }
   } catch (err) {
     console.error("Auth check failed:", err);
-    alert("Could not reach the server. Check your connection.");
+    showBanner("login-error", "Could not reach the server. Check your connection.");
     btnLogin.textContent = "Login";
     btnLogin.disabled = false;
     return;
@@ -446,9 +489,11 @@ btnSetBudget.addEventListener("click", () => {
   if (!m) return;
   const val = parseFloat(budgetInput.value);
   if (!val || val <= 0) {
-    alert("Enter a valid budget amount.");
+    budgetInput.classList.add("is-invalid");
+    budgetInput.setAttribute("placeholder", "Enter a valid amount");
     return;
   }
+  budgetInput.classList.remove("is-invalid");
   m.budget = val;
   saveState();
   budgetSetupBox.classList.add("hidden");
@@ -480,10 +525,10 @@ function addExpense() {
   if (!m) return;
   const desc = descInput.value.trim();
   const val = parseFloat(valInput.value);
-  if (!desc || !val || val <= 0) {
-    alert("Enter a description and a valid amount.");
-    return;
-  }
+  if (!desc) { descInput.classList.add("is-invalid"); return; }
+  if (!val || val <= 0) { valInput.classList.add("is-invalid"); return; }
+  descInput.classList.remove("is-invalid");
+  valInput.classList.remove("is-invalid");
   const today = new Date().toLocaleDateString("en-US");
   m.expenses.push({ id: uid(), desc, val, date: today });
   saveState();
@@ -539,15 +584,15 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
   const currentPass = currentPassInput.value;
   if (currentPass || newPass || confirmPass) {
     if (!currentPass) {
-      alert("Enter your current password to change it.");
+      showFieldError(currentPassInput, "err-current-pass", "Current password is required.");
       return;
     }
     if (newPass !== confirmPass) {
-      alert("New passwords do not match.");
+      showFieldError(confirmPassInput, "err-confirm-pass", "Passwords do not match.");
       return;
     }
     if (newPass.length < 6) {
-      alert("New password must be at least 6 characters.");
+      showFieldError(newPassInput, "err-new-pass", "Minimum 6 characters.");
       return;
     }
 
@@ -567,15 +612,24 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
       const text = await res.text();
       const json = JSON.parse(text);
       if (!json.ok) {
-        alert("Failed to update password. Try again.");
+        showFieldError(currentPassInput, "err-current-pass", "Current password is incorrect.");
         btn.textContent = "Save Changes";
         btn.disabled    = false;
         return;
       }
-      alert("Password updated successfully.");
+      // Success: clear password fields and show inline confirmation
+      currentPassInput.value = "";
+      newPassInput.value     = "";
+      confirmPassInput.value = "";
+      const successEl = document.getElementById("err-confirm-pass");
+      if (successEl) {
+        successEl.style.color = "var(--success)";
+        successEl.textContent = "Password updated.";
+        setTimeout(() => { successEl.textContent = ""; successEl.style.color = ""; }, 3000);
+      }
     } catch (err) {
       console.error("Password update failed:", err);
-      alert("Could not reach the server. Check your connection.");
+      showFieldError(newPassInput, "err-new-pass", "Could not reach the server.");
       btn.textContent = "Save Changes";
       btn.disabled    = false;
       return;

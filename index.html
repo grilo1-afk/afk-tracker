@@ -15,9 +15,11 @@
       <img src="images/logo.png" alt="AFK Arena Tracker" class="site-logo"/>
     </div>
     <p style="text-align:center;color:#888;font-size:13px;margin-bottom:20px;">Restricted Area &mdash; Expense Tracker</p>
+    <div id="login-error" class="error-banner hidden"></div>
     <div class="form-group">
       <label for="username">Username</label>
       <input type="text" id="username" placeholder="Enter your username"/>
+      <span class="field-error" id="err-username"></span>
     </div>
     <div class="form-group">
       <label for="password">Password</label>
@@ -30,6 +32,7 @@
           </svg>
         </button>
       </div>
+      <span class="field-error" id="err-password"></span>
     </div>
     <button id="btn-login">Login</button>
   </div>
@@ -39,7 +42,10 @@
     <div class="char-art char-art-left"  aria-hidden="true"><img src="images/Fawkes.webp"  alt=""/></div>
     <div class="char-art char-art-right" aria-hidden="true"><img src="images/elthara.webp" alt=""/></div>
     <div class="screen-header">
-      <h2>&#9733; Month History</h2>
+      <div>
+        <h2>&#9733; Month History</h2>
+        <div id="welcome-name" style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-top:2px;"></div>
+      </div>
       <div class="header-actions">
         <button id="btn-profile" class="btn-sm btn-secondary" title="Profile">&#9881;</button>
         <button id="btn-logout" class="btn-sm btn-secondary">Logout</button>
@@ -69,6 +75,7 @@
           <select id="pick-year"></select>
         </div>
       </div>
+      <span class="field-error" id="pick-error" style="text-align:center;display:block;margin-bottom:8px;"></span>
       <div class="modal-actions">
         <button id="btn-pick-confirm">Create Month</button>
         <button id="btn-pick-cancel" class="btn-secondary">Cancel</button>
@@ -163,9 +170,12 @@
       </div>
       <div class="form-group" style="border-top:1px solid #2a2f38;padding-top:16px;margin-top:4px;">
         <label>Change Password</label>
-        <input type="password" id="current-pass-input" placeholder="Current password" style="margin-bottom:8px;"/>
-        <input type="password" id="new-pass-input" placeholder="New password" style="margin-bottom:8px;"/>
-        <input type="password" id="confirm-pass-input" placeholder="Confirm new password"/>
+        <input type="password" id="current-pass-input" placeholder="Current password" style="margin-bottom:4px;"/>
+        <span class="field-error" id="err-current-pass"></span>
+        <input type="password" id="new-pass-input" placeholder="New password" style="margin-top:6px;margin-bottom:4px;"/>
+        <span class="field-error" id="err-new-pass"></span>
+        <input type="password" id="confirm-pass-input" placeholder="Confirm new password" style="margin-top:6px;"/>
+        <span class="field-error" id="err-confirm-pass"></span>
       </div>
       <div class="modal-actions" style="margin-top:16px;">
         <button id="btn-profile-save">Save Changes</button>

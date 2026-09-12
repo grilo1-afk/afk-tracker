@@ -248,6 +248,31 @@ button.btn-secondary:hover {
   color: var(--gold);
   background: transparent;
 }
+/* ── INLINE VALIDATION ── */
+.field-error {
+  display: block;
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 4px;
+  min-height: 14px;
+}
+input.is-invalid,
+select.is-invalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.2);
+}
+/* Top-of-screen error banner */
+.error-banner {
+  background: rgba(224, 82, 82, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: 5px;
+  color: var(--danger);
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
 .hidden {
   display: none !important;
 }
