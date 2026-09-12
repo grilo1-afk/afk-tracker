@@ -14,23 +14,42 @@
 .char-art {
   position: absolute;
   bottom: 0;
-  width: 160px;
+  width: 200px;
   pointer-events: none;
   user-select: none;
-  opacity: 0.07;
-  overflow: hidden;
+  opacity: 0.28;
+  z-index: 0;
 }
 .char-art img {
   width: 100%;
   height: auto;
   display: block;
-  filter: grayscale(30%);
+  /* No grayscale — keep the original art colours */
 }
-.char-art-left  { left: -20px; }
-.char-art-right { right: -20px; transform: scaleX(-1); }
+/* Fade the bottom edge into the panel so it blends cleanly */
+.char-art::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  background: linear-gradient(to top, var(--panel-bg), transparent);
+  pointer-events: none;
+}
+.char-art-left  { left: -10px; }
+.char-art-right { right: -10px; transform: scaleX(-1); }
 
-/* Make .container position:relative so char-art is clipped to it */
-.container { position: relative; overflow: hidden; }
+/* Container is the stacking context; content sits above the art */
+.container {
+  position: relative;
+  overflow: hidden;
+}
+/* Ensure all direct content inside containers sits above the art */
+.container > *:not(.char-art) {
+  position: relative;
+  z-index: 1;
+}
 
 :root {
   /* Dark fantasy palette — pairs with AFK Arena character art */
