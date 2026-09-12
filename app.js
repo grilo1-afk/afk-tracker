@@ -226,7 +226,7 @@ async function loadState() {
 }
 
 // ── ENSURE CURRENT MONTH EXISTS ──────────────────────────────────────────────
-async function ensureCurrentMonth() {
+function ensureCurrentMonth() {
   const now = new Date();
   const id = getCurrentMonthId();
   if (!state.months.find((m) => m.id === id)) {
@@ -238,7 +238,7 @@ async function ensureCurrentMonth() {
       budget: null,
       expenses: [],
     });
-    await saveState();
+    saveState(); // fire-and-forget — don't block login flow
   }
 }
 
@@ -393,7 +393,7 @@ async function doLogin() {
   btnLogin.disabled = true;
 
   await loadState();
-  await ensureCurrentMonth();
+  ensureCurrentMonth();
   sortMonths();
   renderHistory();
   renderWelcomeName();
@@ -577,8 +577,11 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
   const confirmPass = confirmPassInput.value;
   const btn        = document.getElementById("btn-profile-save");
 
-  // Save display name immediately (local only)
-  if (newName) setDisplayName(newName);
+  // Save display name and update the UI immediately
+  if (newName) {
+    setDisplayName(newName);
+    renderWelcomeName();
+  }
 
   // Password change is optional — only attempt if the user filled in the fields
   const currentPass = currentPassInput.value;
@@ -617,10 +620,15 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
         btn.disabled    = false;
         return;
       }
-      // Success: clear password fields and show inline confirmation
-      currentPassInput.value = "";
-      newPassInput.value     = "";
-      confirmPassInput.value = "";
+      // Success: clear all password fields and errors, show green confirmation
+      [currentPassInput, newPassInput, confirmPassInput].forEach((el) => {
+        el.value = "";
+        el.classList.remove("is-invalid");
+      });
+      ["err-current-pass","err-new-pass","err-confirm-pass"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ""; el.style.color = ""; }
+      });
       const successEl = document.getElementById("err-confirm-pass");
       if (successEl) {
         successEl.style.color = "var(--success)";
@@ -637,8 +645,11 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
 
     btn.textContent = "Save Changes";
     btn.disabled    = false;
+    // Don't close modal on success — leave the green confirmation visible for 3s
+    return;
   }
 
+  // No password change requested — just close after saving display name
   closeProfileModal();
 });
 
