@@ -495,10 +495,11 @@ function addExpense() {
 }
 
 // ── PROFILE MODAL ────────────────────────────────────────────────────────────
-const profileOverlay   = document.getElementById("profile-overlay");
-const displayNameInput = document.getElementById("display-name-input");
-const newPassInput     = document.getElementById("new-pass-input");
-const confirmPassInput = document.getElementById("confirm-pass-input");
+const profileOverlay    = document.getElementById("profile-overlay");
+const displayNameInput  = document.getElementById("display-name-input");
+const currentPassInput  = document.getElementById("current-pass-input");
+const newPassInput      = document.getElementById("new-pass-input");
+const confirmPassInput  = document.getElementById("confirm-pass-input");
 
 function getDisplayName() {
   return localStorage.getItem("afk_display_name") || "User";
@@ -509,9 +510,10 @@ function setDisplayName(name) {
 }
 
 function openProfileModal() {
-  displayNameInput.value = getDisplayName();
-  newPassInput.value     = "";
-  confirmPassInput.value = "";
+  displayNameInput.value  = getDisplayName();
+  currentPassInput.value  = "";
+  newPassInput.value      = "";
+  confirmPassInput.value  = "";
   profileOverlay.classList.remove("hidden");
 }
 
@@ -534,9 +536,14 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
   if (newName) setDisplayName(newName);
 
   // Password change is optional — only attempt if the user filled in the fields
-  if (newPass || confirmPass) {
+  const currentPass = currentPassInput.value;
+  if (currentPass || newPass || confirmPass) {
+    if (!currentPass) {
+      alert("Enter your current password to change it.");
+      return;
+    }
     if (newPass !== confirmPass) {
-      alert("Passwords do not match.");
+      alert("New passwords do not match.");
       return;
     }
     if (newPass.length < 6) {
@@ -548,11 +555,13 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
     btn.disabled    = true;
 
     try {
-      const username   = document.getElementById("username").value.trim() || "arian";
-      const newHashed  = await hashPassword(newPass);
+      const username     = document.getElementById("username").value.trim() || "arian";
+      const oldHashed    = await hashPassword(currentPass);
+      const newHashed    = await hashPassword(newPass);
       const url = GAS_URL
         + "?action=updatePass"
         + "&user="    + encodeURIComponent(username)
+        + "&oldPass=" + oldHashed
         + "&newPass=" + newHashed;
       const res  = await fetch(url, { redirect: "follow" });
       const text = await res.text();
