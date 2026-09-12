@@ -4,14 +4,17 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AFK Arena - Tavern Tracker</title>
+  <link rel="icon" type="image/png" href="images/favicon.png"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
   <!-- LOGIN SCREEN -->
   <div id="login-screen" class="container">
-    <h1>AFK Tavern</h1>
-    <p style="text-align:center;color:#888;font-size:14px;">Restricted Area &mdash; Expense Tracker</p>
+    <div class="logo-wrap">
+      <img src="images/logo.png" alt="AFK Arena Tracker" class="site-logo"/>
+    </div>
+    <p style="text-align:center;color:#888;font-size:13px;margin-bottom:20px;">Restricted Area &mdash; Expense Tracker</p>
     <div class="form-group">
       <label for="username">Username</label>
       <input type="text" id="username" placeholder="Enter your username"/>
@@ -33,6 +36,8 @@
 
   <!-- HISTORY SCREEN -->
   <div id="history-screen" class="container hidden">
+    <div class="char-art char-art-left"  aria-hidden="true"><img src="images/Fawkes.webp"  alt=""/></div>
+    <div class="char-art char-art-right" aria-hidden="true"><img src="images/elthara.webp" alt=""/></div>
     <div class="screen-header">
       <h2>&#9733; Month History</h2>
       <div class="header-actions">
@@ -68,6 +73,8 @@
 
   <!-- MONTH VIEW SCREEN -->
   <div id="month-screen" class="container hidden">
+    <div class="char-art char-art-left"  aria-hidden="true"><img src="images/ody.webp"  alt=""/></div>
+    <div class="char-art char-art-right" aria-hidden="true"><img src="images/sion.webp" alt=""/></div>
     <div class="screen-header">
       <h2 id="month-view-title">Month</h2>
       <div class="header-actions">

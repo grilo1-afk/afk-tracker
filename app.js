@@ -403,6 +403,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
       + "&pass=" + hashed;
     const res  = await fetch(authUrl, { redirect: "follow" });
     const text = await res.text();
+    console.log("[auth] raw response:", text);
     const json = JSON.parse(text);
 
     if (!json.ok) {
