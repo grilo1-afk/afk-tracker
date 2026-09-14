@@ -180,6 +180,13 @@ function clearBanner(bannerId) {
   el.classList.add("hidden");
 }
 
+// ── ESCAPE KEY — close any open modal overlay ────────────────────────────────
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!pickerOverlay.classList.contains("hidden")) { closeMonthPicker(); return; }
+  if (!profileOverlay.classList.contains("hidden")) { closeProfileModal(); return; }
+});
+
 // Clear errors on user input — login fields
 ["username", "password"].forEach((id) => {
   document.getElementById(id)?.addEventListener("input", () => {

@@ -202,7 +202,7 @@ select {
   padding: 12px 10px;
   border: 1px solid var(--gold);
   background-color: var(--bg-color);
-  color: white;
+  color: var(--text-light);
   border-radius: 5px;
   font-size: 16px;
   font-family: inherit;
@@ -227,7 +227,7 @@ button {
   font-weight: bold;
   font-size: 15px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.15s;
   text-transform: uppercase;
   letter-spacing: 1px;
   min-height: 44px;
@@ -235,6 +235,12 @@ button {
 }
 button:hover {
   background-color: var(--gold-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 184, 75, 0.35);
+}
+button:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 button.btn-sm {
   width: auto;
@@ -453,7 +459,7 @@ select.is-invalid {
   display: block;
   font-size: 18px;
   margin-top: 5px;
-  color: white;
+  color: var(--text-light);
 }
 .stat-box.remaining strong {
   color: var(--success);
