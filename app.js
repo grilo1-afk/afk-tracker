@@ -40,25 +40,35 @@ const valInput      = document.getElementById("val");
 const btnAddExpense = document.getElementById("btn-add-expense");
 const tableBody     = document.getElementById("expense-table-body");
 
-// ── PASSWORD TOGGLE ───────────────────────────────────────────────────────────
+// ── THEME ────────────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("afk_theme", theme);
+  const icon = theme === "dark" ? "light_mode" : "dark_mode";
+  document.querySelectorAll(".theme-icon").forEach((el) => { el.textContent = icon; });
+}
+
+function getPreferredTheme() {
+  const saved = localStorage.getItem("afk_theme");
+  if (saved) return saved;
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+document.getElementById("btn-theme").addEventListener("click",   toggleTheme);
+document.getElementById("btn-theme-2").addEventListener("click", toggleTheme);
+
+// ── PASSWORD TOGGLE (login field) ─────────────────────────────────────────────
 document.getElementById("btn-toggle-password").addEventListener("click", () => {
-  const pwd = document.getElementById("password");
+  const pwd  = document.getElementById("password");
   const icon = document.getElementById("eye-icon");
-  if (pwd.type === "password") {
-    pwd.type = "text";
-    // Switch to eye-off icon (line through the eye)
-    icon.innerHTML = `
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    `;
-  } else {
-    pwd.type = "password";
-    icon.innerHTML = `
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    `;
-  }
+  const isHidden = pwd.type === "password";
+  pwd.type = isHidden ? "text" : "password";
+  icon.textContent = isHidden ? "visibility_off" : "visibility";
 });
 
 // ── MONTH PICKER MODAL ────────────────────────────────────────────────────────
@@ -465,11 +475,7 @@ function doLogout() {
   showScreen("login");
 }
 
-// Logout (history screen)
-document.getElementById("btn-logout").addEventListener("click", doLogout);
-
-// Logout (month screen)
-document.getElementById("btn-logout-2").addEventListener("click", doLogout);
+// Logout lives inside the profile modal (wired further below)
 
 // Back to history
 document.getElementById("btn-back").addEventListener("click", () => {
@@ -566,18 +572,15 @@ function closeProfileModal() {
   profileOverlay.classList.add("hidden");
 }
 
-// Eye-toggle buttons inside the profile modal — swap SVG to match login page
-const EYE_OPEN = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
-const EYE_OFF  = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
-
+// Eye-toggle buttons inside the profile modal (Material Symbols — just swap text)
 document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
   btn.addEventListener("click", () => {
     const input = document.getElementById(btn.dataset.target);
     if (!input) return;
     const isHidden = input.type === "password";
     input.type = isHidden ? "text" : "password";
-    const svg = btn.querySelector("svg");
-    if (svg) svg.innerHTML = isHidden ? EYE_OFF : EYE_OPEN;
+    const icon = btn.querySelector(".material-symbols-outlined");
+    if (icon) icon.textContent = isHidden ? "visibility_off" : "visibility";
   });
 });
 
@@ -585,6 +588,9 @@ document.getElementById("btn-profile").addEventListener("click",   openProfileMo
 document.getElementById("btn-profile-2").addEventListener("click", openProfileModal);
 document.getElementById("btn-profile-close").addEventListener("click", closeProfileModal);
 profileOverlay.addEventListener("click", (e) => { if (e.target === profileOverlay) closeProfileModal(); });
+
+// Logout now lives inside the profile modal
+document.getElementById("btn-logout").addEventListener("click", doLogout);
 
 document.getElementById("btn-profile-save").addEventListener("click", async () => {
   const newName    = displayNameInput.value.trim();
@@ -670,6 +676,9 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
 
 // ── AUTO-LOGIN ON PAGE LOAD ───────────────────────────────────────────────────
 (async function init() {
+  // Apply saved theme (or system preference) before any content renders
+  applyTheme(getPreferredTheme());
+
   if (localStorage.getItem("afk_logged_in") === "true") {
     // Hide login immediately (synchronous) so it never flashes
     loginScreen.classList.add("hidden");
