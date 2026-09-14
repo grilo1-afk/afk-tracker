@@ -1,5 +1,5 @@
 // -- STATE
-// Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date}] }] }
+// Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
 let state = { months: [] };
 let activeMonthId = null;
 
@@ -159,7 +159,7 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   const m    = parseInt(pickMonthSel.value, 10);
   const y    = parseInt(pickYearSel.value, 10);
   const name = MONTH_NAMES[m] + " " + y;
-  const calId = y + "-" + m;
+  const calId = y + "-" + String(m + 1).padStart(2, "0");
   if (state.months.find((x) => x.id === calId || x.name === name)) {
     const existing = document.getElementById("pick-error");
     if (existing) existing.textContent = name + " already exists.";
@@ -236,7 +236,7 @@ function getActiveMonth() {
 
 function getCurrentMonthId() {
   const now = new Date();
-  return now.getFullYear() + "-" + now.getMonth();
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
 }
 
 // -- PERSISTENCE (session-authenticated GAS Web App)
@@ -411,6 +411,15 @@ function renderStats(m) {
   displayRemaining.classList.toggle("over-budget", remaining < 0);
 }
 
+function formatExpenseDate(isoDate) {
+  if (!isoDate) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    const [y, mo, d] = isoDate.split("-").map(Number);
+    return new Date(y, mo - 1, d).toLocaleDateString("en-US");
+  }
+  return isoDate; // unmigrated fallback — display as-is
+}
+
 function renderExpenses(m) {
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
@@ -422,7 +431,7 @@ function renderExpenses(m) {
     tr.className = "expense-row";
 
     const tdDate = document.createElement("td");
-    tdDate.textContent = exp.date;
+    tdDate.textContent = formatExpenseDate(exp.date);
 
     const tdDesc = document.createElement("td");
     tdDesc.textContent = exp.desc;
@@ -627,8 +636,8 @@ function addExpense() {
   if (!val || val <= 0) { valInput.classList.add("is-invalid"); return; }
   descInput.classList.remove("is-invalid");
   valInput.classList.remove("is-invalid");
-  const today = new Date().toLocaleDateString("en-US");
-  m.expenses.push({ id: uid(), desc, val, date: today });
+  const today = new Date().toISOString().slice(0, 10); // "2026-09-05"
+  m.expenses.push({ id: uid(), desc, val, date: today, createdAt: new Date().toISOString() });
   saveState();
   renderStats(m);
   renderExpenses(m);
