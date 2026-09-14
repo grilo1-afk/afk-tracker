@@ -768,29 +768,9 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
   `;
   document.body.appendChild(overlay);
 
-  try {
-    // Validate session server-side -- do NOT trust locally stored expiresAt
-    const vJson = await apiRequest({ action: "validateSession", token: session.token });
-    if (!vJson.ok) {
-      const errCode = vJson.error || "";
-      clearSession();
-      overlay.remove();
-      loginScreen.classList.remove("hidden");
-      if (errCode === "ACCOUNT_INACTIVE") {
-        showBanner("login-error", "Your account has been deactivated. Contact support.");
-      } else {
-        showBanner("login-error", "Your session has expired. Please log in again.");
-      }
-      return;
-    }
-    // Session is valid -- update stored expiresAt from server response
-    storeSession(session.token, vJson.username, vJson.expiresAt);
-  } catch (e) {
-    // Network error -- session may still be valid; proceed optimistically
-    console.error("validateSession network error:", e);
-  }
-
-  const btnLogin = document.getElementById("btn-login");
+  // Go directly to getState -- it authenticates server-side and returns SESSION_INVALID
+  // if the token is expired/revoked/account-inactive, which handleSessionInvalid() handles.
+  // This eliminates the redundant validateSession round-trip.
   try {
     await doLogin();
   } catch (e) {
