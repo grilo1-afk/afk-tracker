@@ -397,7 +397,7 @@ select.is-invalid {
 }
 .month-card-name {
   font-weight: bold;
-  color: white;
+  color: var(--text-light);
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 1px;
