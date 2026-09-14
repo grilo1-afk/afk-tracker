@@ -324,31 +324,52 @@ function renderHistory() {
     const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
     const hasBudget = m.budget !== null;
     const metaText = hasBudget
-      ? "Budget: " + fmt(m.budget) + " &nbsp;&bull;&nbsp; Spent: " + fmt(totalSpent)
+      ? "Budget: " + fmt(m.budget) + " \u2022 Spent: " + fmt(totalSpent)
       : "Budget not set yet";
     const metaClass = hasBudget ? "" : "needs-setup";
+
     const card = document.createElement("div");
     card.className = "month-card";
-    card.innerHTML = `
-      <div class="month-card-clickable month-card-info" data-id="${m.id}">
-        <div class="month-card-name">${m.name}</div>
-        <div class="month-card-meta ${metaClass}">${metaText}</div>
-      </div>
-      <div class="month-card-right">
-        ${isCurrent ? '<span class="badge-current">Current</span>' : ""}
-        <button class="btn-danger btn-delete-month" data-id="${m.id}">Delete</button>
-      </div>
-    `;
-    monthList.appendChild(card);
-  });
-  monthList.querySelectorAll(".month-card-clickable").forEach((el) => {
-    el.addEventListener("click", () => openMonth(el.dataset.id));
-  });
-  monthList.querySelectorAll(".btn-delete-month").forEach((btn) => {
+
+    const clickable = document.createElement("div");
+    clickable.className = "month-card-clickable month-card-info";
+    clickable.dataset.id = m.id;
+    clickable.addEventListener("click", () => openMonth(m.id));
+
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "month-card-name";
+    nameDiv.textContent = m.name;
+
+    const metaDiv = document.createElement("div");
+    metaDiv.className = "month-card-meta" + (metaClass ? " " + metaClass : "");
+    metaDiv.textContent = metaText;
+
+    clickable.appendChild(nameDiv);
+    clickable.appendChild(metaDiv);
+
+    const rightDiv = document.createElement("div");
+    rightDiv.className = "month-card-right";
+
+    if (isCurrent) {
+      const badge = document.createElement("span");
+      badge.className = "badge-current";
+      badge.textContent = "Current";
+      rightDiv.appendChild(badge);
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "btn-danger btn-delete-month";
+    btn.dataset.id = m.id;
+    btn.textContent = "Delete";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      deleteMonth(btn.dataset.id);
+      deleteMonth(m.id);
     });
+    rightDiv.appendChild(btn);
+
+    card.appendChild(clickable);
+    card.appendChild(rightDiv);
+    monthList.appendChild(card);
   });
 }
 
@@ -399,18 +420,32 @@ function renderExpenses(m) {
   m.expenses.forEach((exp) => {
     const tr = document.createElement("tr");
     tr.className = "expense-row";
-    tr.innerHTML = `
-      <td>${exp.date}</td>
-      <td>${exp.desc}</td>
-      <td class="value-col">${fmt(exp.val)}</td>
-      <td class="action-col">
-        <button class="btn-danger btn-del-expense" data-id="${exp.id}">Del</button>
-      </td>
-    `;
+
+    const tdDate = document.createElement("td");
+    tdDate.textContent = exp.date;
+
+    const tdDesc = document.createElement("td");
+    tdDesc.textContent = exp.desc;
+
+    const tdVal = document.createElement("td");
+    tdVal.className = "value-col";
+    tdVal.textContent = fmt(exp.val);
+
+    const tdAction = document.createElement("td");
+    tdAction.className = "action-col";
+
+    const btn = document.createElement("button");
+    btn.className = "btn-danger btn-del-expense";
+    btn.dataset.id = exp.id;
+    btn.textContent = "Del";
+    btn.addEventListener("click", () => deleteExpense(exp.id));
+
+    tdAction.appendChild(btn);
+    tr.appendChild(tdDate);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdVal);
+    tr.appendChild(tdAction);
     tableBody.appendChild(tr);
-  });
-  tableBody.querySelectorAll(".btn-del-expense").forEach((btn) => {
-    btn.addEventListener("click", () => deleteExpense(btn.dataset.id));
   });
 }
 
