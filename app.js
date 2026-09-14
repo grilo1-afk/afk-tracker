@@ -1,4 +1,4 @@
-// ── STATE ──────────────────────────────────────────────────────────────────
+// -- STATE
 // Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date}] }] }
 let state = { months: [] };
 let activeMonthId = null;
@@ -9,17 +9,62 @@ const MONTH_NAMES = [
   "September","October", "November", "December",
 ];
 
-// ── CRYPTO ───────────────────────────────────────────────────────────────────
-async function hashPassword(plain) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  const hashBuf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join(""); // lowercase hex
+// -- GAS API URL
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
+
+// -- SESSION HELPERS
+const SESSION_KEY = "afk_session";
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || typeof s.token !== "string" || !s.token) return null;
+    return s; // { token, username, expiresAt }
+  } catch (_) {
+    return null;
+  }
 }
 
-// ── DOM REFS ────────────────────────────────────────────────────────────────
+function storeSession(token, username, expiresAt) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ token, username, expiresAt }));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("afk_logged_in");
+}
+
+// -- CENTRALIZED API REQUEST
+async function apiRequest(payload) {
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    redirect: "follow",
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  return JSON.parse(text);
+}
+
+// -- SESSION INVALIDATION HANDLER
+function handleSessionInvalid(errorCode) {
+  clearSession();
+  state = { months: [] };
+  activeMonthId = null;
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  showScreen("login");
+  if (errorCode === "ACCOUNT_INACTIVE") {
+    showBanner("login-error", "Your account has been deactivated. Contact support.");
+  } else {
+    showBanner("login-error", "Your session has expired. Please log in again.");
+  }
+}
+
+// -- DOM REFS
 const loginScreen    = document.getElementById("login-screen");
 const historyScreen  = document.getElementById("history-screen");
 const monthScreen    = document.getElementById("month-screen");
@@ -40,7 +85,7 @@ const valInput      = document.getElementById("val");
 const btnAddExpense = document.getElementById("btn-add-expense");
 const tableBody     = document.getElementById("expense-table-body");
 
-// ── THEME ────────────────────────────────────────────────────────────────────
+// -- THEME
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("afk_theme", theme);
@@ -62,7 +107,7 @@ function toggleTheme() {
 document.getElementById("btn-theme").addEventListener("click",   toggleTheme);
 document.getElementById("btn-theme-2").addEventListener("click", toggleTheme);
 
-// ── PASSWORD TOGGLE (login field) ─────────────────────────────────────────────
+// -- PASSWORD TOGGLE (login field)
 document.getElementById("btn-toggle-password").addEventListener("click", () => {
   const pwd  = document.getElementById("password");
   const icon = document.getElementById("eye-icon");
@@ -71,12 +116,11 @@ document.getElementById("btn-toggle-password").addEventListener("click", () => {
   icon.textContent = isHidden ? "visibility_off" : "visibility";
 });
 
-// ── MONTH PICKER MODAL ────────────────────────────────────────────────────────
+// -- MONTH PICKER MODAL
 const pickerOverlay = document.getElementById("month-picker-overlay");
-const pickMonthSel = document.getElementById("pick-month");
-const pickYearSel = document.getElementById("pick-year");
+const pickMonthSel  = document.getElementById("pick-month");
+const pickYearSel   = document.getElementById("pick-year");
 
-// Populate month dropdown
 MONTH_NAMES.forEach((name, i) => {
   const opt = document.createElement("option");
   opt.value = i;
@@ -84,7 +128,6 @@ MONTH_NAMES.forEach((name, i) => {
   pickMonthSel.appendChild(opt);
 });
 
-// Populate year dropdown: 2 years back → 2 years ahead
 (function populateYears() {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -99,7 +142,7 @@ MONTH_NAMES.forEach((name, i) => {
 function openMonthPicker() {
   const now = new Date();
   pickMonthSel.value = now.getMonth();
-  pickYearSel.value = now.getFullYear();
+  pickYearSel.value  = now.getFullYear();
   pickerOverlay.classList.remove("hidden");
 }
 
@@ -107,35 +150,22 @@ function closeMonthPicker() {
   pickerOverlay.classList.add("hidden");
 }
 
-document
-  .getElementById("btn-pick-cancel")
-  .addEventListener("click", closeMonthPicker);
+document.getElementById("btn-pick-cancel").addEventListener("click", closeMonthPicker);
 pickerOverlay.addEventListener("click", (e) => {
   if (e.target === pickerOverlay) closeMonthPicker();
 });
 
 document.getElementById("btn-pick-confirm").addEventListener("click", () => {
-  const m = parseInt(pickMonthSel.value, 10);
-  const y = parseInt(pickYearSel.value, 10);
+  const m    = parseInt(pickMonthSel.value, 10);
+  const y    = parseInt(pickYearSel.value, 10);
   const name = MONTH_NAMES[m] + " " + y;
-
-  // Prevent duplicate months (use year-month as natural id for calendar months)
   const calId = y + "-" + m;
   if (state.months.find((x) => x.id === calId || x.name === name)) {
-    // Show error inside the modal picker
     const existing = document.getElementById("pick-error");
     if (existing) existing.textContent = name + " already exists.";
     return;
   }
-
-  const newMonth = {
-    id: calId,
-    name,
-    year: y,
-    month: m,
-    budget: null,
-    expenses: [],
-  };
+  const newMonth = { id: calId, name, year: y, month: m, budget: null, expenses: [] };
   state.months.push(newMonth);
   sortMonths();
   saveState();
@@ -144,7 +174,7 @@ document.getElementById("btn-pick-confirm").addEventListener("click", () => {
   openMonth(calId);
 });
 
-// ── UTILS ────────────────────────────────────────────────────────────────────
+// -- UTILS
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
@@ -153,7 +183,7 @@ function fmt(n) {
   return "$ " + parseFloat(n).toFixed(2);
 }
 
-// ── INLINE VALIDATION ────────────────────────────────────────────────────────
+// -- INLINE VALIDATION
 function showFieldError(inputEl, spanId, message) {
   inputEl.classList.add("is-invalid");
   const span = document.getElementById(spanId);
@@ -180,14 +210,13 @@ function clearBanner(bannerId) {
   el.classList.add("hidden");
 }
 
-// ── ESCAPE KEY — close any open modal overlay ────────────────────────────────
+// -- ESCAPE KEY
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!pickerOverlay.classList.contains("hidden")) { closeMonthPicker(); return; }
   if (!profileOverlay.classList.contains("hidden")) { closeProfileModal(); return; }
 });
 
-// Clear errors on user input — login fields
 ["username", "password"].forEach((id) => {
   document.getElementById(id)?.addEventListener("input", () => {
     clearFieldError(document.getElementById(id), "err-" + id);
@@ -195,7 +224,7 @@ document.addEventListener("keydown", (e) => {
   });
 });
 
-// ── DISPLAY NAME ─────────────────────────────────────────────────────────────
+// -- DISPLAY NAME
 function renderWelcomeName() {
   const el = document.getElementById("welcome-name");
   if (el) el.textContent = getDisplayName();
@@ -210,39 +239,48 @@ function getCurrentMonthId() {
   return now.getFullYear() + "-" + now.getMonth();
 }
 
-// ── PERSISTENCE (Google Apps Script Web App) ─────────────────────────────────
-const GAS_URL =
-  "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
+// -- PERSISTENCE (session-authenticated GAS Web App)
 
 async function saveState() {
+  const session = getStoredSession();
+  if (!session) return;
   try {
-    // text/plain avoids a CORS preflight — GAS handles it without an extra OPTIONS round-trip
-    await fetch(GAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(state),
+    const json = await apiRequest({
+      action: "saveState",
+      token: session.token,
+      data: state,
     });
+    if (!json.ok) {
+      const err = json.error || "";
+      if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
+        handleSessionInvalid(err);
+      }
+    }
   } catch (e) {
     console.error("Error saving state to cloud:", e);
   }
 }
 
 async function loadState() {
-  try {
-    // GAS returns MimeType.TEXT — must parse manually, not via .json()
-    const response = await fetch(GAS_URL, { redirect: "follow" });
-    const text = await response.text();
-    const data = JSON.parse(text);
-    if (data && Array.isArray(data.months)) {
-      state = data;
+  const session = getStoredSession();
+  if (!session) throw new Error("NO_SESSION");
+  const json = await apiRequest({
+    action: "getState",
+    token: session.token,
+  });
+  if (!json.ok) {
+    const err = json.error || "SERVER_ERROR";
+    if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
+      handleSessionInvalid(err);
     }
-  } catch (e) {
-    console.error("Error loading state from cloud:", e);
-    state = { months: [] };
+    throw new Error(err);
+  }
+  if (json.data && Array.isArray(json.data.months)) {
+    state = json.data;
   }
 }
 
-// ── ENSURE CURRENT MONTH EXISTS ──────────────────────────────────────────────
+// -- ENSURE CURRENT MONTH EXISTS
 function ensureCurrentMonth() {
   const now = new Date();
   const id = getCurrentMonthId();
@@ -255,11 +293,11 @@ function ensureCurrentMonth() {
       budget: null,
       expenses: [],
     });
-    saveState(); // fire-and-forget — don't block login flow
+    saveState();
   }
 }
 
-// ── SCREEN ROUTING ────────────────────────────────────────────────────────────
+// -- SCREEN ROUTING
 const SCREENS = { login: loginScreen, history: historyScreen, month: monthScreen };
 
 function showScreen(name) {
@@ -267,9 +305,8 @@ function showScreen(name) {
   SCREENS[name]?.classList.remove("hidden");
 }
 
-// ── HISTORY SCREEN ────────────────────────────────────────────────────────────
+// -- HISTORY SCREEN
 function sortMonths() {
-  // Newest first: sort by year desc, then month desc
   state.months.sort((a, b) =>
     b.year !== a.year ? b.year - a.year : b.month - a.month,
   );
@@ -278,26 +315,18 @@ function sortMonths() {
 function renderHistory() {
   const currentId = getCurrentMonthId();
   monthList.innerHTML = "";
-
   if (state.months.length === 0) {
-    monthList.innerHTML =
-      '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
+    monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
     return;
   }
-
   state.months.forEach((m) => {
     const isCurrent = m.id === currentId;
     const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
     const hasBudget = m.budget !== null;
-
     const metaText = hasBudget
-      ? "Budget: " +
-        fmt(m.budget) +
-        " &nbsp;&bull;&nbsp; Spent: " +
-        fmt(totalSpent)
+      ? "Budget: " + fmt(m.budget) + " &nbsp;&bull;&nbsp; Spent: " + fmt(totalSpent)
       : "Budget not set yet";
     const metaClass = hasBudget ? "" : "needs-setup";
-
     const card = document.createElement("div");
     card.className = "month-card";
     card.innerHTML = `
@@ -312,11 +341,9 @@ function renderHistory() {
     `;
     monthList.appendChild(card);
   });
-
   monthList.querySelectorAll(".month-card-clickable").forEach((el) => {
     el.addEventListener("click", () => openMonth(el.dataset.id));
   });
-
   monthList.querySelectorAll(".btn-delete-month").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -328,20 +355,17 @@ function renderHistory() {
 function deleteMonth(id) {
   const m = state.months.find((x) => x.id === id);
   if (!m) return;
-  // No confirm dialog — delete is immediate (the button is explicit enough)
   state.months = state.months.filter((x) => x.id !== id);
   saveState();
   renderHistory();
 }
 
-// ── MONTH VIEW ────────────────────────────────────────────────────────────────
+// -- MONTH VIEW
 function openMonth(id) {
   activeMonthId = id;
   const m = getActiveMonth();
   if (!m) return;
-
   monthViewTitle.textContent = m.name;
-
   if (m.budget === null) {
     budgetSetupBox.classList.remove("hidden");
     statsSection.classList.add("hidden");
@@ -369,8 +393,7 @@ function renderStats(m) {
 function renderExpenses(m) {
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
-    tableBody.innerHTML =
-      '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
+    tableBody.innerHTML = '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
     return;
   }
   m.expenses.forEach((exp) => {
@@ -386,7 +409,6 @@ function renderExpenses(m) {
     `;
     tableBody.appendChild(tr);
   });
-
   tableBody.querySelectorAll(".btn-del-expense").forEach((btn) => {
     btn.addEventListener("click", () => deleteExpense(btn.dataset.id));
   });
@@ -401,26 +423,24 @@ function deleteExpense(expId) {
   renderExpenses(m);
 }
 
-// ── EVENT LISTENERS ───────────────────────────────────────────────────────────
+// -- EVENT LISTENERS
 
-// Shared login flow (used by manual login AND auto-login on page load)
+// Shared post-auth entry: load state and show history screen
 async function doLogin() {
   const btnLogin = document.getElementById("btn-login");
   btnLogin.textContent = "Loading...";
   btnLogin.disabled = true;
-
   await loadState();
   ensureCurrentMonth();
   sortMonths();
   renderHistory();
   renderWelcomeName();
   showScreen("history");
-
   btnLogin.textContent = "Login";
   btnLogin.disabled = false;
 }
 
-// Login
+// Login -- sends plaintext password to GAS; server does PBKDF2 verification
 document.getElementById("btn-login").addEventListener("click", async () => {
   const uEl = document.getElementById("username");
   const pEl = document.getElementById("password");
@@ -441,31 +461,34 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   btnLogin.disabled = true;
 
   try {
-    const hashed  = await hashPassword(p);
-    const authUrl = GAS_URL
-      + "?action=auth"
-      + "&user=" + encodeURIComponent(u)
-      + "&pass=" + hashed;
-    const res  = await fetch(authUrl, { redirect: "follow" });
-    const text = await res.text();
-    const json = JSON.parse(text);
-
+    const json = await apiRequest({ action: "login", username: u, password: p });
     if (!json.ok) {
-      showFieldError(pEl, "err-password", "Invalid credentials.");
-      uEl.classList.add("is-invalid");
+      const err = json.error || "SERVER_ERROR";
+      if (err === "INVALID_CREDENTIALS") {
+        showFieldError(pEl, "err-password", "Invalid username or password.");
+        uEl.classList.add("is-invalid");
+        btnLogin.textContent = "Login";
+        btnLogin.disabled = false;
+        return;
+      } else if (err === "RATE_LIMITED") {
+        showBanner("login-error", "Too many failed attempts. Try again in 15 minutes.");
+      } else if (err === "ACCOUNT_INACTIVE") {
+        showBanner("login-error", "Your account is inactive. Contact support.");
+      } else {
+        showBanner("login-error", "Could not reach the server. Check your connection.");
+      }
       btnLogin.textContent = "Login";
       btnLogin.disabled = false;
       return;
     }
+    storeSession(json.token, json.username, json.expiresAt);
   } catch (err) {
-    console.error("Auth check failed:", err);
     showBanner("login-error", "Could not reach the server. Check your connection.");
     btnLogin.textContent = "Login";
     btnLogin.disabled = false;
     return;
   }
 
-  localStorage.setItem("afk_logged_in", "true");
   await doLogin();
 });
 
@@ -474,15 +497,18 @@ document.getElementById("password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
-function doLogout() {
-  localStorage.removeItem("afk_logged_in");
+async function doLogout() {
+  const session = getStoredSession();
+  if (session) {
+    try { await apiRequest({ action: "logout", token: session.token }); } catch (_) {}
+  }
+  clearSession();
+  state = { months: [] };
   activeMonthId = null;
   document.getElementById("username").value = "";
   document.getElementById("password").value = "";
   showScreen("login");
 }
-
-// Logout lives inside the profile modal (wired further below)
 
 // Back to history
 document.getElementById("btn-back").addEventListener("click", () => {
@@ -491,10 +517,8 @@ document.getElementById("btn-back").addEventListener("click", () => {
   showScreen("history");
 });
 
-// Create new month (prompts for a custom month or uses today if already exists)
-document
-  .getElementById("btn-create-month")
-  .addEventListener("click", openMonthPicker);
+// Create new month
+document.getElementById("btn-create-month").addEventListener("click", openMonthPicker);
 
 // Set / update budget
 btnSetBudget.addEventListener("click", () => {
@@ -516,7 +540,7 @@ btnSetBudget.addEventListener("click", () => {
   renderExpenses(m);
 });
 
-// Edit budget — re-shows the setup box pre-filled with current value
+// Edit budget
 document.getElementById("btn-edit-budget").addEventListener("click", () => {
   const m = getActiveMonth();
   if (!m) return;
@@ -552,7 +576,7 @@ function addExpense() {
   descInput.focus();
 }
 
-// ── PROFILE MODAL ────────────────────────────────────────────────────────────
+// -- PROFILE MODAL
 const profileOverlay    = document.getElementById("profile-overlay");
 const displayNameInput  = document.getElementById("display-name-input");
 const currentPassInput  = document.getElementById("current-pass-input");
@@ -579,7 +603,6 @@ function closeProfileModal() {
   profileOverlay.classList.add("hidden");
 }
 
-// Eye-toggle buttons inside the profile modal (Material Symbols — just swap text)
 document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
   btn.addEventListener("click", () => {
     const input = document.getElementById(btn.dataset.target);
@@ -596,22 +619,19 @@ document.getElementById("btn-profile-2").addEventListener("click", openProfileMo
 document.getElementById("btn-profile-close").addEventListener("click", closeProfileModal);
 profileOverlay.addEventListener("click", (e) => { if (e.target === profileOverlay) closeProfileModal(); });
 
-// Logout now lives inside the profile modal
 document.getElementById("btn-logout").addEventListener("click", doLogout);
 
 document.getElementById("btn-profile-save").addEventListener("click", async () => {
-  const newName    = displayNameInput.value.trim();
-  const newPass    = newPassInput.value;
+  const newName     = displayNameInput.value.trim();
+  const newPass     = newPassInput.value;
   const confirmPass = confirmPassInput.value;
-  const btn        = document.getElementById("btn-profile-save");
+  const btn         = document.getElementById("btn-profile-save");
 
-  // Save display name and update the UI immediately
   if (newName) {
     setDisplayName(newName);
     renderWelcomeName();
   }
 
-  // Password change is optional — only attempt if the user filled in the fields
   const currentPass = currentPassInput.value;
   if (currentPass || newPass || confirmPass) {
     if (!currentPass) {
@@ -622,8 +642,8 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
       showFieldError(confirmPassInput, "err-confirm-pass", "Passwords do not match.");
       return;
     }
-    if (newPass.length < 6) {
-      showFieldError(newPassInput, "err-new-pass", "Minimum 6 characters.");
+    if (newPass.length < 8) {
+      showFieldError(newPassInput, "err-new-pass", "Minimum 8 characters.");
       return;
     }
 
@@ -631,24 +651,25 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
     btn.disabled    = true;
 
     try {
-      const username     = document.getElementById("username").value.trim() || "arian";
-      const oldHashed    = await hashPassword(currentPass);
-      const newHashed    = await hashPassword(newPass);
-      const url = GAS_URL
-        + "?action=updatePass"
-        + "&user="    + encodeURIComponent(username)
-        + "&oldPass=" + oldHashed
-        + "&newPass=" + newHashed;
-      const res  = await fetch(url, { redirect: "follow" });
-      const text = await res.text();
-      const json = JSON.parse(text);
+      const session = getStoredSession();
+      if (!session) { handleSessionInvalid("SESSION_INVALID"); return; }
+      const json = await apiRequest({
+        action:      "changePassword",
+        token:       session.token,
+        currentPassword: currentPass,
+        newPassword: newPass,
+      });
       if (!json.ok) {
+        const err = json.error || "";
+        if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
+          handleSessionInvalid(err);
+          return;
+        }
         showFieldError(currentPassInput, "err-current-pass", "Current password is incorrect.");
         btn.textContent = "Save Changes";
         btn.disabled    = false;
         return;
       }
-      // Success: clear all password fields and errors, show green confirmation
       [currentPassInput, newPassInput, confirmPassInput].forEach((el) => {
         el.value = "";
         el.classList.remove("is-invalid");
@@ -664,70 +685,92 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
         setTimeout(() => { successEl.textContent = ""; successEl.style.color = ""; }, 3000);
       }
     } catch (err) {
-      console.error("Password update failed:", err);
       showFieldError(newPassInput, "err-new-pass", "Could not reach the server.");
       btn.textContent = "Save Changes";
       btn.disabled    = false;
       return;
     }
-
     btn.textContent = "Save Changes";
     btn.disabled    = false;
-    // Don't close modal on success — leave the green confirmation visible for 3s
     return;
   }
-
-  // No password change requested — just close after saving display name
   closeProfileModal();
 });
 
-// ── AUTO-LOGIN ON PAGE LOAD ───────────────────────────────────────────────────
+// -- AUTO-LOGIN ON PAGE LOAD
 (async function init() {
-  // Apply saved theme (or system preference) before any content renders
   applyTheme(getPreferredTheme());
 
-  if (localStorage.getItem("afk_logged_in") === "true") {
-    // Hide login immediately (synchronous) so it never flashes
-    loginScreen.classList.add("hidden");
+  const session = getStoredSession();
+  if (!session) return; // no stored session -- show login screen
 
-    // Show a minimal loading overlay while the GAS fetch runs
-    const overlay = document.createElement("div");
-    overlay.id = "init-loading";
-    overlay.style.cssText = [
-      "position:fixed", "inset:0",
-      "background:#0b0c10",
-      "display:flex", "align-items:center", "justify-content:center",
-      "flex-direction:column", "gap:18px",
-      "z-index:999",
-      "font-family:'Segoe UI',sans-serif",
-    ].join(";");
-    overlay.innerHTML = `
-      <style>
-        @keyframes _dots {
-          0%,20%  { content: ".";   }
-          40%     { content: "..";  }
-          60%,100%{ content: "..."; }
-        }
-        @keyframes _pulse {
-          0%,100% { opacity: 0.7; }
-          50%     { opacity: 1;   }
-        }
-        #_load-logo { animation: _pulse 1.8s ease-in-out infinite; max-width:220px; width:80vw; }
-        #_load-text::after {
-          content: "...";
-          display: inline-block;
-          animation: _dots 1.4s steps(1,end) infinite;
-        }
-      </style>
-      <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
-      <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
-        <span id="_load-text">Loading</span>
-      </div>
-    `;
-    document.body.appendChild(overlay);
+  // Hide login immediately so it never flashes
+  loginScreen.classList.add("hidden");
 
-    await doLogin();
+  const overlay = document.createElement("div");
+  overlay.id = "init-loading";
+  overlay.style.cssText = [
+    "position:fixed", "inset:0",
+    "background:#0b0c10",
+    "display:flex", "align-items:center", "justify-content:center",
+    "flex-direction:column", "gap:18px",
+    "z-index:999",
+    "font-family:'Segoe UI',sans-serif",
+  ].join(";");
+  overlay.innerHTML = `
+    <style>
+      @keyframes _dots {
+        0%,20%  { content: ".";   }
+        40%     { content: "..";  }
+        60%,100%{ content: "..."; }
+      }
+      @keyframes _pulse {
+        0%,100% { opacity: 0.7; }
+        50%     { opacity: 1;   }
+      }
+      #_load-logo { animation: _pulse 1.8s ease-in-out infinite; max-width:220px; width:80vw; }
+      #_load-text::after {
+        content: "...";
+        display: inline-block;
+        animation: _dots 1.4s steps(1,end) infinite;
+      }
+    </style>
+    <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
+    <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
+      <span id="_load-text">Loading</span>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 
-    overlay.remove();
+  try {
+    // Validate session server-side -- do NOT trust locally stored expiresAt
+    const vJson = await apiRequest({ action: "validateSession", token: session.token });
+    if (!vJson.ok) {
+      const errCode = vJson.error || "";
+      clearSession();
+      overlay.remove();
+      loginScreen.classList.remove("hidden");
+      if (errCode === "ACCOUNT_INACTIVE") {
+        showBanner("login-error", "Your account has been deactivated. Contact support.");
+      } else {
+        showBanner("login-error", "Your session has expired. Please log in again.");
+      }
+      return;
+    }
+    // Session is valid -- update stored expiresAt from server response
+    storeSession(session.token, vJson.username, vJson.expiresAt);
+  } catch (e) {
+    // Network error -- session may still be valid; proceed optimistically
+    console.error("validateSession network error:", e);
   }
+
+  const btnLogin = document.getElementById("btn-login");
+  try {
+    await doLogin();
+  } catch (e) {
+    // doLogin threw (e.g. SESSION_INVALID from getState) -- handleSessionInvalid already ran
+    console.error("init doLogin failed:", e);
+  }
+
+  overlay.remove();
 })();
