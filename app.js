@@ -498,16 +498,23 @@ document.getElementById("password").addEventListener("keydown", (e) => {
 });
 
 async function doLogout() {
+  const btn = document.getElementById("btn-logout");
+  if (btn) { btn.textContent = "Logging out..."; btn.disabled = true; }
+
   const session = getStoredSession();
   if (session) {
     try { await apiRequest({ action: "logout", token: session.token }); } catch (_) {}
   }
+
+  closeProfileModal();
   clearSession();
   state = { months: [] };
   activeMonthId = null;
   document.getElementById("username").value = "";
   document.getElementById("password").value = "";
   showScreen("login");
+
+  if (btn) { btn.textContent = "Logout"; btn.disabled = false; }
 }
 
 // Back to history
@@ -538,6 +545,25 @@ btnSetBudget.addEventListener("click", () => {
   addExpenseSection.classList.remove("hidden");
   renderStats(m);
   renderExpenses(m);
+});
+
+// Cancel budget setup
+document.getElementById("btn-cancel-budget").addEventListener("click", () => {
+  const m = getActiveMonth();
+  if (!m) return;
+  budgetInput.classList.remove("is-invalid");
+  budgetInput.value = "";
+  if (m.budget !== null) {
+    // Edit mode — restore stats view
+    budgetSetupBox.classList.add("hidden");
+    statsSection.classList.remove("hidden");
+    addExpenseSection.classList.remove("hidden");
+  } else {
+    // First-time setup — go back to history
+    activeMonthId = null;
+    renderHistory();
+    showScreen("history");
+  }
 });
 
 // Edit budget
@@ -616,7 +642,7 @@ document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
 
 document.getElementById("btn-profile").addEventListener("click",   openProfileModal);
 document.getElementById("btn-profile-2").addEventListener("click", openProfileModal);
-document.getElementById("btn-profile-close").addEventListener("click", closeProfileModal);
+document.getElementById("btn-profile-close-x").addEventListener("click", closeProfileModal);
 profileOverlay.addEventListener("click", (e) => { if (e.target === profileOverlay) closeProfileModal(); });
 
 document.getElementById("btn-logout").addEventListener("click", doLogout);

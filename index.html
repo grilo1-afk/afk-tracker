@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AFK Arena Tracker</title>
   <link rel="icon" type="image/png" href="images/favicon.png"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,dark_mode,light_mode,visibility,visibility_off"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,close,dark_mode,light_mode,visibility,visibility_off"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -112,6 +112,7 @@
         <div class="budget-setup-row">
           <input type="number" id="budget-input" placeholder="$ 0.00" min="0" step="0.01"/>
           <button id="btn-set-budget">Confirm</button>
+          <button type="button" id="btn-cancel-budget" class="btn-secondary">Cancel</button>
         </div>
       </div>
 
@@ -171,7 +172,12 @@
   <!-- PROFILE MODAL -->
   <div id="profile-overlay" class="modal-overlay hidden">
     <div class="modal-box">
-      <h3>Profile</h3>
+      <div class="modal-header">
+        <h3>Profile</h3>
+        <button type="button" id="btn-profile-close-x" class="btn-icon modal-close-btn" title="Close" aria-label="Close">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
       <div class="form-group">
         <label for="display-name-input">Display Name</label>
         <input type="text" id="display-name-input" placeholder="e.g. Arian"/>
@@ -202,7 +208,6 @@
       </div>
       <div class="modal-actions" style="margin-top:16px;">
         <button id="btn-profile-save">Save Changes</button>
-        <button id="btn-profile-close" class="btn-secondary">Cancel</button>
         <button id="btn-logout" class="btn-danger" style="margin-top:8px;">Logout</button>
       </div>
     </div>

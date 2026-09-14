@@ -302,6 +302,9 @@ button.btn-secondary:hover {
 .btn-eye:hover {
   color: var(--gold);
   background: transparent;
+  /* Neutralize the global button:hover translateY(-2px) which fights the absolute centering */
+  transform: translateY(-50%);
+  box-shadow: none;
 }
 /* ── INLINE VALIDATION ── */
 .field-error {
@@ -515,6 +518,7 @@ select.is-invalid {
 }
 .budget-setup-row button {
   width: 110px;
+  flex-shrink: 0;
 }
 .expense-inputs {
   display: grid;
@@ -584,8 +588,18 @@ th {
   max-width: 340px;
   box-shadow: 0 0 24px rgba(212, 175, 55, 0.35);
 }
-.modal-box h3 {
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 18px;
+}
+.modal-header h3 {
+  margin-bottom: 0;
+}
+.modal-close-btn {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 .modal-row {
   display: grid;
