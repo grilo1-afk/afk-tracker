@@ -3,8 +3,8 @@ let _saveTimer   = null;   // debounce handle for cloud sync
 let _retryCount  = 0;      // how many retries have fired for the current failed flush
 let _retryTimer  = null;   // handle for the next scheduled retry
 
-// Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
-let state = { months: [] };
+// Schema: { version, schemaVersion, updatedAt, months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
+let state = { version: 1, schemaVersion: 1, updatedAt: new Date().toISOString(), months: [] };
 let activeMonthId = null;
 
 const MONTH_NAMES = [
@@ -304,9 +304,23 @@ function setSaveStatus(status) {
   }
 }
 
+// Conflict resolution: "newer version wins" strategy.
+// Returns the state that should be used, and whether it came from local.
+function resolveConflict(localState, cloudState) {
+  const lv = (localState && typeof localState.version === "number") ? localState.version : null;
+  const cv = (cloudState && typeof cloudState.version === "number") ? cloudState.version : null;
+  // Either missing version → cloud is authoritative
+  if (lv === null || cv === null) return { resolved: cloudState, localWon: false };
+  if (lv > cv) return { resolved: localState, localWon: true };
+  // cloud newer or equal → use cloud
+  return { resolved: cloudState, localWon: false };
+}
+
 // Public mutation handler — called from all existing call sites, unchanged signature.
-// Writes local cache synchronously, then schedules a debounced cloud flush.
+// Stamps version + updatedAt, writes local cache synchronously, then schedules a debounced cloud flush.
 function saveState() {
+  state.version  = (typeof state.version === "number" && state.version > 0) ? state.version + 1 : 1;
+  state.updatedAt = new Date().toISOString();
   writeLocalCache(state);           // instant, synchronous
   // Reset retry state — new user mutation supersedes any in-flight retry
   _retryCount = 0;
@@ -381,9 +395,9 @@ async function loadState() {
     throw new Error(err);
   }
   if (json.data && Array.isArray(json.data.months)) {
-    return json.data; // return, don't assign
+    return json.data;
   }
-  return { months: [] };
+  return { version: 1, schemaVersion: 1, updatedAt: new Date().toISOString(), months: [] };
 }
 
 // -- ENSURE CURRENT MONTH EXISTS
@@ -884,13 +898,18 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
     showScreen("history");
 
     try {
+      const localSnapshot = state;
       const cloudState = await loadState();
-      // Cloud is authoritative (single-user) — overwrite local
-      state = cloudState;
+      const { resolved, localWon } = resolveConflict(localSnapshot, cloudState);
+      state = resolved;
       writeLocalCache(state);
       ensureCurrentMonth();
       sortMonths();
       renderHistory();
+      if (localWon) {
+        // Local was ahead of cloud — push it up
+        await flushToCloud();
+      }
     } catch (e) {
       // Cloud unavailable — local cache is still displayed, no disruption
       console.error("Background sync failed:", e);
