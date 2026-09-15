@@ -1,5 +1,7 @@
 // -- STATE
-let _saveTimer = null;   // debounce handle for cloud sync
+let _saveTimer   = null;   // debounce handle for cloud sync
+let _retryCount  = 0;      // how many retries have fired for the current failed flush
+let _retryTimer  = null;   // handle for the next scheduled retry
 
 // Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
 let state = { months: [] };
@@ -268,12 +270,62 @@ function getCurrentMonthId() {
 
 // -- PERSISTENCE (session-authenticated GAS Web App)
 
+// -- SAVE STATUS
+// Updates all .save-status elements on visible screens.
+// status: "saving" | "saved" | "error" | "idle"
+let _savedResetTimer = null;
+function setSaveStatus(status) {
+  const els = document.querySelectorAll(".save-status");
+  if (!els.length) return;
+
+  clearTimeout(_savedResetTimer);
+
+  if (status === "idle") {
+    els.forEach((el) => {
+      el.textContent = "";
+      el.className = "save-status";          // no .visible
+    });
+    return;
+  }
+
+  const map = {
+    saving: "Saving\u2026",
+    saved:  "\u2713 Saved",
+    error:  "\u26A0 Not synced",
+  };
+
+  els.forEach((el) => {
+    el.textContent = map[status] || "";
+    el.className = "save-status visible " + status;
+  });
+
+  if (status === "saved") {
+    _savedResetTimer = setTimeout(() => setSaveStatus("idle"), 2000);
+  }
+}
+
 // Public mutation handler — called from all existing call sites, unchanged signature.
 // Writes local cache synchronously, then schedules a debounced cloud flush.
 function saveState() {
   writeLocalCache(state);           // instant, synchronous
+  // Reset retry state — new user mutation supersedes any in-flight retry
+  _retryCount = 0;
+  clearTimeout(_retryTimer);
+  _retryTimer = null;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(flushToCloud, 800);
+}
+
+// Retry schedule (ms): 5s → 15s → 30s, then give up
+const RETRY_DELAYS = [5000, 15000, 30000];
+
+function scheduleRetry() {
+  if (_retryCount >= RETRY_DELAYS.length) return; // all retries exhausted — stay on error state
+  clearTimeout(_retryTimer);
+  _retryTimer = setTimeout(() => {
+    _retryCount++;
+    flushToCloud();
+  }, RETRY_DELAYS[_retryCount]);
 }
 
 // Private — sends current state to GAS. Reads module-level `state` at execution
@@ -282,6 +334,7 @@ async function flushToCloud() {
   _saveTimer = null;
   const session = getStoredSession();
   if (!session) return;
+  setSaveStatus("saving");
   try {
     const json = await apiRequest({
       action: "saveState",
@@ -291,12 +344,22 @@ async function flushToCloud() {
     if (!json.ok) {
       const err = json.error || "";
       if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
+        setSaveStatus("idle");
         handleSessionInvalid(err);
+      } else {
+        scheduleRetry();
+        setSaveStatus("error");
       }
+    } else {
+      _retryCount = 0;
+      clearTimeout(_retryTimer);
+      _retryTimer = null;
+      setSaveStatus("saved");
     }
   } catch (e) {
     console.error("Error saving state to cloud:", e);
-    // Retry logic handled in plan #9 (save-status-and-retry)
+    scheduleRetry();
+    setSaveStatus("error");
   }
 }
 

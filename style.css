@@ -387,6 +387,17 @@ select.is-invalid {
   gap: 8px;
   align-items: center;
 }
+.save-status {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+.save-status.visible { opacity: 1; }
+.save-status.saving  { color: var(--text-light); }
+.save-status.saved   { color: var(--success); }
+.save-status.error   { color: var(--danger); }
 .month-list {
   display: flex;
   flex-direction: column;
