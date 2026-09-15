@@ -14,7 +14,32 @@ const GAS_URL =
   "https://script.google.com/macros/s/AKfycbwCEDs1stwKwJRBwPhEVpBu2byM40Hc4Ygx2YV2iMbaWibTBjT09GjEZcKroWN2FFzL/exec";
 
 // -- SESSION HELPERS
-const SESSION_KEY = "afk_session";
+const SESSION_KEY     = "afk_session";
+const STATE_CACHE_KEY = "afk_state";
+
+function readLocalCache() {
+  try {
+    const raw = localStorage.getItem(STATE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.months)) return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeLocalCache(stateObj) {
+  try {
+    localStorage.setItem(STATE_CACHE_KEY, JSON.stringify(stateObj));
+  } catch (_) {
+    // Storage quota exceeded or private mode — non-fatal
+  }
+}
+
+function clearLocalCache() {
+  localStorage.removeItem(STATE_CACHE_KEY);
+}
 
 function getStoredSession() {
   try {
@@ -242,6 +267,7 @@ function getCurrentMonthId() {
 // -- PERSISTENCE (session-authenticated GAS Web App)
 
 async function saveState() {
+  writeLocalCache(state);           // instant, synchronous
   const session = getStoredSession();
   if (!session) return;
   try {
@@ -276,8 +302,9 @@ async function loadState() {
     throw new Error(err);
   }
   if (json.data && Array.isArray(json.data.months)) {
-    state = json.data;
+    return json.data; // return, don't assign
   }
+  return { months: [] };
 }
 
 // -- ENSURE CURRENT MONTH EXISTS
@@ -472,7 +499,9 @@ function deleteExpense(expId) {
 // Shared post-auth entry: load state and show history screen.
 // Does NOT touch the login button — callers own their own loading state.
 async function doLogin() {
-  await loadState();
+  const cloudState = await loadState();
+  state = cloudState;
+  writeLocalCache(state);
   ensureCurrentMonth();
   sortMonths();
   renderHistory();
@@ -762,53 +791,75 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
   const session = getStoredSession();
   if (!session) return; // no stored session -- show login screen
 
-  // Hide login immediately so it never flashes
   loginScreen.classList.add("hidden");
 
-  const overlay = document.createElement("div");
-  overlay.id = "init-loading";
-  overlay.style.cssText = [
-    "position:fixed", "inset:0",
-    "background:#0b0c10",
-    "display:flex", "align-items:center", "justify-content:center",
-    "flex-direction:column", "gap:18px",
-    "z-index:999",
-    "font-family:'Segoe UI',sans-serif",
-  ].join(";");
-  overlay.innerHTML = `
-    <style>
-      @keyframes _dots {
-        0%,20%  { content: ".";   }
-        40%     { content: "..";  }
-        60%,100%{ content: "..."; }
-      }
-      @keyframes _pulse {
-        0%,100% { opacity: 0.7; }
-        50%     { opacity: 1;   }
-      }
-      #_load-logo { animation: _pulse 1.8s ease-in-out infinite; max-width:220px; width:80vw; }
-      #_load-text::after {
-        content: "...";
-        display: inline-block;
-        animation: _dots 1.4s steps(1,end) infinite;
-      }
-    </style>
-    <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
-    <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
-      <span id="_load-text">Loading</span>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+  const cached = readLocalCache();
 
-  // Go directly to getState -- it authenticates server-side and returns SESSION_INVALID
-  // if the token is expired/revoked/account-inactive, which handleSessionInvalid() handles.
-  // This eliminates the redundant validateSession round-trip.
-  try {
-    await doLogin();
-  } catch (e) {
-    // doLogin threw (e.g. SESSION_INVALID from getState) -- handleSessionInvalid already ran
-    console.error("init doLogin failed:", e);
+  if (cached) {
+    // Warm load: render from cache immediately, sync cloud in background
+    state = cached;
+    ensureCurrentMonth();
+    sortMonths();
+    renderHistory();
+    renderWelcomeName();
+    showScreen("history");
+
+    try {
+      const cloudState = await loadState();
+      // Cloud is authoritative (single-user) — overwrite local
+      state = cloudState;
+      writeLocalCache(state);
+      ensureCurrentMonth();
+      sortMonths();
+      renderHistory();
+    } catch (e) {
+      // Cloud unavailable — local cache is still displayed, no disruption
+      console.error("Background sync failed:", e);
+    }
+  } else {
+    // Cold load: no cache — show loading overlay, block on GAS
+    const overlay = document.createElement("div");
+    overlay.id = "init-loading";
+    overlay.style.cssText = [
+      "position:fixed", "inset:0",
+      "background:#0b0c10",
+      "display:flex", "align-items:center", "justify-content:center",
+      "flex-direction:column", "gap:18px",
+      "z-index:999",
+      "font-family:'Segoe UI',sans-serif",
+    ].join(";");
+    overlay.innerHTML = `
+      <style>
+        @keyframes _dots {
+          0%,20%  { content: ".";   }
+          40%     { content: "..";  }
+          60%,100%{ content: "..."; }
+        }
+        @keyframes _pulse {
+          0%,100% { opacity: 0.7; }
+          50%     { opacity: 1;   }
+        }
+        #_load-logo { animation: _pulse 1.8s ease-in-out infinite; max-width:220px; width:80vw; }
+        #_load-text::after {
+          content: "...";
+          display: inline-block;
+          animation: _dots 1.4s steps(1,end) infinite;
+        }
+      </style>
+      <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
+      <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
+        <span id="_load-text">Loading</span>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    try {
+      await doLogin();
+    } catch (e) {
+      // doLogin threw (e.g. SESSION_INVALID from getState) -- handleSessionInvalid already ran
+      console.error("init doLogin failed:", e);
+    }
+
+    overlay.remove();
   }
-
-  overlay.remove();
 })();
