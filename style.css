@@ -325,7 +325,7 @@ select.is-invalid {
 .btn--loading {
   pointer-events: none;
   opacity: 0.85;
-  color: transparent; /* hide label text while spinner shows */
+  color: transparent !important; /* hide label text regardless of button variant */
   position: relative;
 }
 .btn--loading::after {
@@ -337,10 +337,16 @@ select.is-invalid {
   left: 50%;
   margin-top: -9px;
   margin-left: -9px;
+  /* Default spinner: dark tip on gold background (login/save buttons) */
   border: 2px solid rgba(0, 0, 0, 0.25);
   border-top-color: var(--bg-color);
   border-radius: 50%;
   animation: _btn-spin 0.7s linear infinite;
+}
+/* Spinner on transparent/danger buttons — use a light visible color */
+button.btn-danger.btn--loading::after {
+  border-color: rgba(224, 82, 82, 0.3);
+  border-top-color: var(--danger);
 }
 @keyframes _btn-spin {
   to { transform: rotate(360deg); }
