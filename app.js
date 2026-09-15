@@ -1,4 +1,6 @@
 // -- STATE
+let _saveTimer = null;   // debounce handle for cloud sync
+
 // Schema: { months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
 let state = { months: [] };
 let activeMonthId = null;
@@ -266,8 +268,18 @@ function getCurrentMonthId() {
 
 // -- PERSISTENCE (session-authenticated GAS Web App)
 
-async function saveState() {
+// Public mutation handler — called from all existing call sites, unchanged signature.
+// Writes local cache synchronously, then schedules a debounced cloud flush.
+function saveState() {
   writeLocalCache(state);           // instant, synchronous
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(flushToCloud, 800);
+}
+
+// Private — sends current state to GAS. Reads module-level `state` at execution
+// time, so it always sends the latest snapshot regardless of when saveState() was called.
+async function flushToCloud() {
+  _saveTimer = null;
   const session = getStoredSession();
   if (!session) return;
   try {
@@ -284,8 +296,12 @@ async function saveState() {
     }
   } catch (e) {
     console.error("Error saving state to cloud:", e);
+    // Retry logic handled in plan #9 (save-status-and-retry)
   }
 }
+
+// Flush any pending debounced save when the user closes or navigates away.
+window.addEventListener("beforeunload", flushToCloud);
 
 async function loadState() {
   const session = getStoredSession();
