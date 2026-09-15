@@ -73,29 +73,29 @@ function clearSession() {
 // -- CENTRALIZED API REQUEST
 // Always returns an object. Never throws.
 // Error shapes: { ok: false, error: "NETWORK_ERROR" | "TIMEOUT" | "INVALID_RESPONSE" | <server code> }
+// NOTE: AbortController.signal is intentionally NOT passed to fetch — GAS responds with a 302 redirect
+// to script.googleusercontent.com and attaching a signal causes some browsers to abort mid-redirect.
+// Timeout is implemented via Promise.race() instead.
 async function apiRequest(payload) {
-  const controller = new AbortController();
-  const timeoutId  = setTimeout(() => controller.abort(), 15000);
-  try {
-    const res  = await fetch(GAS_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      redirect: "follow",
-      body:    JSON.stringify(payload),
-      signal:  controller.signal,
-    });
+  const fetchPromise = fetch(GAS_URL, {
+    method:  "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    redirect: "follow",
+    body:    JSON.stringify(payload),
+  }).then(async (res) => {
     const text = await res.text();
     try {
       return JSON.parse(text);
     } catch (_) {
       return { ok: false, error: "INVALID_RESPONSE" };
     }
-  } catch (err) {
-    if (err.name === "AbortError") return { ok: false, error: "TIMEOUT" };
-    return { ok: false, error: "NETWORK_ERROR" };
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  }).catch(() => ({ ok: false, error: "NETWORK_ERROR" }));
+
+  const timeoutPromise = new Promise((resolve) =>
+    setTimeout(() => resolve({ ok: false, error: "TIMEOUT" }), 15000)
+  );
+
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
 // -- SESSION INVALIDATION HANDLER
