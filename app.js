@@ -580,12 +580,71 @@ function openMonth(id) {
 }
 
 function renderStats(m) {
-  const spent = m.expenses.reduce((s, e) => s + e.val, 0);
+  const spent     = m.expenses.reduce((s, e) => s + e.val, 0);
   const remaining = m.budget - spent;
-  displayBudget.textContent = fmt(m.budget);
-  displaySpent.textContent = fmt(spent);
+  displayBudget.textContent    = fmt(m.budget);
+  displaySpent.textContent     = fmt(spent);
   displayRemaining.textContent = fmt(remaining);
   displayRemaining.classList.toggle("over-budget", remaining < 0);
+
+  // -- #18: Budget progress bar
+  const progressWrap   = document.getElementById("budget-progress-wrap");
+  const barFill        = document.getElementById("budget-bar-fill");
+  const pctText        = document.getElementById("budget-pct-text");
+  if (progressWrap && barFill && pctText && m.budget > 0) {
+    const rawPct     = spent / m.budget * 100;
+    const clampPct   = Math.min(rawPct, 100);
+    const colorClass = rawPct >= 100 ? "over" : rawPct >= 80 ? "warn" : "";
+    barFill.style.width = clampPct + "%";
+    barFill.className   = "budget-bar-fill" + (colorClass ? " " + colorClass : "");
+    pctText.textContent = rawPct.toFixed(1) + "% of budget used";
+    pctText.className   = "budget-pct-text" + (colorClass ? " " + colorClass : "");
+    progressWrap.classList.remove("hidden");
+  } else if (progressWrap) {
+    progressWrap.classList.add("hidden");
+  }
+
+  // -- #19: Daily allowance (current month only)
+  const dailyEl        = document.getElementById("daily-allowance");
+  const currentMonthId = getCurrentMonthId();
+  if (dailyEl) {
+    if (m.id === currentMonthId && remaining > 0) {
+      const now      = new Date();
+      const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+      if (daysLeft > 0) {
+        const daily = remaining / daysLeft;
+        dailyEl.textContent = fmt(daily) + " / day remaining  (" + daysLeft + " day" + (daysLeft !== 1 ? "s" : "") + " left in month)";
+        dailyEl.classList.remove("hidden");
+      } else {
+        dailyEl.classList.add("hidden");
+      }
+    } else {
+      dailyEl.classList.add("hidden");
+    }
+  }
+
+  // -- #20: Spending projection (current month only, >=3 days passed, >=1 expense)
+  const projEl = document.getElementById("spending-projection");
+  if (projEl) {
+    const now         = new Date();
+    const daysPassed  = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (m.id === currentMonthId && daysPassed >= 3 && m.expenses.length > 0) {
+      const dailyRate = spent / daysPassed;
+      const projected = dailyRate * daysInMonth;
+      const diff      = projected - m.budget;
+      if (diff > 0) {
+        projEl.textContent = "At this pace: " + fmt(projected) + " projected  \u26A0 " + fmt(diff) + " over budget";
+        projEl.className   = "stat-hint over";
+      } else {
+        projEl.textContent = "At this pace: " + fmt(projected) + " projected  \u2713 On track to finish under budget";
+        projEl.className   = "stat-hint ok";
+      }
+      projEl.classList.remove("hidden");
+    } else {
+      projEl.classList.add("hidden");
+    }
+  }
 }
 
 function formatExpenseDate(isoDate) {
@@ -598,6 +657,21 @@ function formatExpenseDate(isoDate) {
 }
 
 function renderExpenses(m) {
+  // -- #21: Mobile cards at <=480px, table on desktop
+  if (window.innerWidth <= 480) {
+    _renderExpenseCards(m);
+  } else {
+    _renderExpenseTable(m);
+  }
+}
+
+function _renderExpenseTable(m) {
+  // Remove any mobile card list if switching back to desktop
+  const existingCards = document.getElementById("expense-card-list");
+  if (existingCards) existingCards.remove();
+  const table = tableBody.closest("table");
+  if (table) table.style.display = "";
+
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
     tableBody.innerHTML = '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
@@ -640,6 +714,80 @@ function renderExpenses(m) {
     tr.appendChild(tdVal);
     tr.appendChild(tdAction);
     tableBody.appendChild(tr);
+  });
+}
+
+function _renderExpenseCards(m) {
+  // Hide the table, insert card list adjacent to it
+  const table = tableBody.closest("table");
+  if (table) table.style.display = "none";
+  tableBody.innerHTML = "";
+
+  // Reuse or create the card list container
+  let cardList = document.getElementById("expense-card-list");
+  if (!cardList) {
+    cardList = document.createElement("div");
+    cardList.id = "expense-card-list";
+    cardList.className = "expense-card-list";
+    if (table && table.parentNode) {
+      table.parentNode.insertBefore(cardList, table);
+    }
+  }
+  cardList.innerHTML = "";
+
+  if (m.expenses.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "expense-card-empty";
+    empty.textContent = "No expenses recorded yet.";
+    cardList.appendChild(empty);
+    return;
+  }
+
+  m.expenses.forEach((exp) => {
+    const card = document.createElement("div");
+    card.className = "expense-card";
+
+    const descEl = document.createElement("div");
+    descEl.className = "expense-card-desc";
+    descEl.textContent = exp.desc;
+
+    const row = document.createElement("div");
+    row.className = "expense-card-row";
+
+    const dateEl = document.createElement("span");
+    dateEl.className = "expense-card-date";
+    dateEl.textContent = formatExpenseDate(exp.date);
+
+    const valEl = document.createElement("span");
+    valEl.className = "expense-card-val";
+    valEl.textContent = fmt(exp.val);
+
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "expense-card-actions";
+
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "btn-edit-expense";
+    btnEdit.dataset.id = exp.id;
+    btnEdit.title = "Edit expense";
+    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn-danger btn-del-expense";
+    btnDel.dataset.id = exp.id;
+    btnDel.textContent = "Del";
+    btnDel.addEventListener("click", () => deleteExpense(exp.id));
+
+    actionsEl.appendChild(btnEdit);
+    actionsEl.appendChild(btnDel);
+
+    row.appendChild(dateEl);
+    row.appendChild(valEl);
+    row.appendChild(actionsEl);
+
+    card.appendChild(descEl);
+    card.appendChild(row);
+    cardList.appendChild(card);
   });
 }
 
@@ -959,6 +1107,11 @@ document.getElementById("btn-edit-budget").addEventListener("click", () => {
   budgetSetupBox.classList.remove("hidden");
   statsSection.classList.add("hidden");
   addExpenseSection.classList.add("hidden");
+  // Hide analytics elements while budget setup box is shown
+  ["budget-progress-wrap", "daily-allowance", "spending-projection"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
   budgetInput.focus();
 });
 

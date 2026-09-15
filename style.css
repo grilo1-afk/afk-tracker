@@ -39,6 +39,7 @@
   --text-light: #d4cfc8;   /* Warm off-white — easy on eyes against dark art */
   --danger:     #e05252;   /* Muted red for spend / delete */
   --success:    #4ade80;   /* Emerald green for remaining budget */
+  --warning:    #f59e0b;   /* Amber for 80–100% budget usage */
 }
 
 /* ── LIGHT THEME TOKEN OVERRIDES ── */
@@ -51,6 +52,7 @@
   --text-light: #1e1e2e;   /* near-black — 11.4:1 on panel-bg ✓ */
   --danger:     #c0392b;   /* deep red — 4.6:1 on panel-bg ✓ */
   --success:    #1a7a3f;   /* deep green — 5.1:1 on panel-bg ✓ */
+  --warning:    #b45309;   /* dark amber — readable on light panel */
 }
 [data-theme="light"] .btn-icon { color: var(--text-light); }
 [data-theme="light"] .btn-icon:hover { background-color: rgba(0,0,0,0.06); }
@@ -505,6 +507,101 @@ select.is-invalid {
 }
 .stat-box.remaining strong.over-budget {
   color: var(--danger);
+}
+
+/* ── BUDGET PROGRESS BAR (#18) ── */
+.budget-progress-wrap {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.budget-bar {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  background-color: var(--success);
+}
+.budget-bar-fill.warn  { background-color: var(--warning); }
+.budget-bar-fill.over  { background-color: var(--danger);  }
+.budget-pct-text {
+  font-size: 12px;
+  color: var(--text-light);
+  opacity: 0.75;
+  text-align: center;
+}
+.budget-pct-text.warn { color: var(--warning); opacity: 1; }
+.budget-pct-text.over { color: var(--danger);  opacity: 1; }
+
+/* ── STAT HINTS (#19 / #20) ── */
+.stat-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  opacity: 0.7;
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+.stat-hint.over { color: var(--danger); opacity: 1; }
+.stat-hint.ok   { color: var(--success); opacity: 1; }
+
+/* ── MOBILE EXPENSE CARDS (#21) ── */
+.expense-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.expense-card {
+  background-color: var(--bg-color);
+  border: 1px solid #333;
+  border-radius: 7px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.expense-card-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  word-break: break-word;
+}
+.expense-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.expense-card-date {
+  font-size: 12px;
+  color: #777;
+  flex: 1;
+}
+.expense-card-val {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--danger);
+  flex-shrink: 0;
+}
+.expense-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.expense-card-empty {
+  text-align: center;
+  color: #555;
+  font-size: 13px;
+  padding: 16px 0;
+  font-style: italic;
 }
 .stat-box--editable { position: relative; }
 
