@@ -131,6 +131,7 @@ const displayRemaining  = document.getElementById("display-remaining");
 
 const descInput     = document.getElementById("desc");
 const valInput      = document.getElementById("val");
+const expDateInput  = document.getElementById("exp-date");
 const btnAddExpense = document.getElementById("btn-add-expense");
 const tableBody     = document.getElementById("expense-table-body");
 
@@ -265,6 +266,8 @@ document.addEventListener("keydown", (e) => {
   if (!pickerOverlay.classList.contains("hidden")) { closeMonthPicker(); return; }
   const dmOverlay = document.getElementById("delete-month-overlay");
   if (dmOverlay && !dmOverlay.classList.contains("hidden")) { closeDeleteMonthModal(); return; }
+  const eeOverlay = document.getElementById("edit-expense-overlay");
+  if (eeOverlay && !eeOverlay.classList.contains("hidden")) { closeEditExpenseModal(); return; }
   if (!profileOverlay.classList.contains("hidden")) { closeProfileModal(); return; }
 });
 
@@ -564,6 +567,12 @@ function openMonth(id) {
     budgetSetupBox.classList.add("hidden");
     statsSection.classList.remove("hidden");
     addExpenseSection.classList.remove("hidden");
+    // Pre-fill date input with today and constrain to the viewed month
+    const today = new Date().toISOString().slice(0, 10);
+    expDateInput.value = today;
+    const lastDay = new Date(m.year, m.month + 1, 0).getDate();
+    expDateInput.min = m.year + "-" + String(m.month + 1).padStart(2, "0") + "-01";
+    expDateInput.max = m.year + "-" + String(m.month + 1).padStart(2, "0") + "-" + String(lastDay).padStart(2, "0");
     renderStats(m);
     renderExpenses(m);
   }
@@ -609,15 +618,23 @@ function renderExpenses(m) {
     tdVal.textContent = fmt(exp.val);
 
     const tdAction = document.createElement("td");
-    tdAction.className = "action-col";
+    tdAction.className = "action-col action-col--wide";
 
-    const btn = document.createElement("button");
-    btn.className = "btn-danger btn-del-expense";
-    btn.dataset.id = exp.id;
-    btn.textContent = "Del";
-    btn.addEventListener("click", () => deleteExpense(exp.id));
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "btn-edit-expense";
+    btnEdit.dataset.id = exp.id;
+    btnEdit.title = "Edit expense";
+    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
 
-    tdAction.appendChild(btn);
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn-danger btn-del-expense";
+    btnDel.dataset.id = exp.id;
+    btnDel.textContent = "Del";
+    btnDel.addEventListener("click", () => deleteExpense(exp.id));
+
+    tdAction.appendChild(btnEdit);
+    tdAction.appendChild(btnDel);
     tr.appendChild(tdDate);
     tr.appendChild(tdDesc);
     tr.appendChild(tdVal);
@@ -701,6 +718,102 @@ function undoDeleteExpense() {
   }
   hideUndoToast();
 }
+
+// -- EXPENSE EDIT MODAL
+let _editingExpenseId = null;
+
+function openEditExpenseModal(expId) {
+  const m = getActiveMonth();
+  if (!m) return;
+  const exp = m.expenses.find((e) => e.id === expId);
+  if (!exp) return;
+
+  _editingExpenseId = expId;
+
+  const descEl = document.getElementById("edit-exp-desc");
+  const valEl  = document.getElementById("edit-exp-val");
+  const dateEl = document.getElementById("edit-exp-date");
+
+  descEl.value = exp.desc;
+  valEl.value  = exp.val;
+  dateEl.value = exp.date || "";
+
+  // Constrain date picker to the viewed month
+  const lastDay = new Date(m.year, m.month + 1, 0).getDate();
+  dateEl.min = m.year + "-" + String(m.month + 1).padStart(2, "0") + "-01";
+  dateEl.max = m.year + "-" + String(m.month + 1).padStart(2, "0") + "-" + String(lastDay).padStart(2, "0");
+
+  // Clear any previous validation state
+  [descEl, valEl, dateEl].forEach((el) => el.classList.remove("is-invalid"));
+  ["err-edit-exp-desc", "err-edit-exp-val", "err-edit-exp-date"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "";
+  });
+
+  document.getElementById("edit-expense-overlay").classList.remove("hidden");
+  descEl.focus();
+}
+
+function closeEditExpenseModal() {
+  _editingExpenseId = null;
+  document.getElementById("edit-expense-overlay").classList.add("hidden");
+}
+
+document.getElementById("btn-edit-expense-close-x").addEventListener("click", closeEditExpenseModal);
+document.getElementById("btn-edit-expense-cancel").addEventListener("click", closeEditExpenseModal);
+document.getElementById("edit-expense-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("edit-expense-overlay")) closeEditExpenseModal();
+});
+
+document.getElementById("btn-edit-expense-save").addEventListener("click", () => {
+  if (!_editingExpenseId) return;
+  const m = getActiveMonth();
+  if (!m) return;
+  const exp = m.expenses.find((e) => e.id === _editingExpenseId);
+  if (!exp) return;
+
+  const descEl = document.getElementById("edit-exp-desc");
+  const valEl  = document.getElementById("edit-exp-val");
+  const dateEl = document.getElementById("edit-exp-date");
+
+  const newDesc = descEl.value.trim();
+  const newVal  = parseFloat(valEl.value);
+  const newDate = dateEl.value;
+
+  let valid = true;
+  if (!newDesc) {
+    showFieldError(descEl, "err-edit-exp-desc", "Description is required.");
+    valid = false;
+  } else {
+    clearFieldError(descEl, "err-edit-exp-desc");
+  }
+
+  if (!newVal || newVal <= 0) {
+    showFieldError(valEl, "err-edit-exp-val", "Enter a valid amount.");
+    valid = false;
+  } else {
+    clearFieldError(valEl, "err-edit-exp-val");
+  }
+
+  if (!newDate) {
+    showFieldError(dateEl, "err-edit-exp-date", "Date is required.");
+    valid = false;
+  } else {
+    clearFieldError(dateEl, "err-edit-exp-date");
+  }
+
+  if (!valid) return;
+
+  // Mutate in-place — id and createdAt are untouched
+  exp.desc = newDesc;
+  exp.val  = newVal;
+  exp.date = newDate;
+
+  saveState();
+  renderStats(m);
+  renderExpenses(m);
+  closeEditExpenseModal();
+});
 
 // -- EVENT LISTENERS
 
@@ -858,19 +971,43 @@ valInput.addEventListener("keydown", (e) => {
 function addExpense() {
   const m = getActiveMonth();
   if (!m) return;
-  const desc = descInput.value.trim();
-  const val = parseFloat(valInput.value);
-  if (!desc) { descInput.classList.add("is-invalid"); return; }
-  if (!val || val <= 0) { valInput.classList.add("is-invalid"); return; }
-  descInput.classList.remove("is-invalid");
-  valInput.classList.remove("is-invalid");
-  const today = new Date().toISOString().slice(0, 10); // "2026-09-05"
-  m.expenses.push({ id: uid(), desc, val, date: today, createdAt: new Date().toISOString() });
+  const desc    = descInput.value.trim();
+  const val     = parseFloat(valInput.value);
+  const dateVal = expDateInput.value; // "YYYY-MM-DD"
+
+  let valid = true;
+  if (!desc) { descInput.classList.add("is-invalid"); valid = false; }
+  else descInput.classList.remove("is-invalid");
+
+  if (!val || val <= 0) { valInput.classList.add("is-invalid"); valid = false; }
+  else valInput.classList.remove("is-invalid");
+
+  if (!dateVal) {
+    showFieldError(expDateInput, "err-exp-date", "Date is required.");
+    expDateInput.classList.add("is-invalid");
+    valid = false;
+  } else {
+    expDateInput.classList.remove("is-invalid");
+    // Warn if outside the viewed month (non-blocking)
+    const minDate = expDateInput.min;
+    const maxDate = expDateInput.max;
+    if ((minDate && dateVal < minDate) || (maxDate && dateVal > maxDate)) {
+      showFieldError(expDateInput, "err-exp-date", "Date is outside this month.");
+    } else {
+      clearFieldError(expDateInput, "err-exp-date");
+    }
+  }
+
+  if (!valid) return;
+
+  m.expenses.push({ id: uid(), desc, val, date: dateVal, createdAt: new Date().toISOString() });
   saveState();
   renderStats(m);
   renderExpenses(m);
   descInput.value = "";
   valInput.value = "";
+  expDateInput.value = new Date().toISOString().slice(0, 10);
+  clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
 }
 

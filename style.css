@@ -558,10 +558,10 @@ select.is-invalid {
 }
 .expense-inputs {
   display: grid;
-  grid-template-columns: 2fr 1fr auto;
+  grid-template-columns: 2fr 1fr 1fr auto;
   gap: 10px;
   align-items: end;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 .expense-inputs button {
   width: 56px;
@@ -596,6 +596,27 @@ th {
 .action-col {
   text-align: center;
   width: 50px;
+}
+.action-col--wide {
+  width: 96px;
+}
+.btn-edit-expense {
+  background-color: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 6px 8px;
+  font-size: 12px;
+  width: auto;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  min-height: 36px;
+  cursor: pointer;
+}
+.btn-edit-expense:hover {
+  background-color: var(--gold);
+  color: var(--bg-color);
+  transform: none;
+  box-shadow: none;
 }
 .section-title {
   color: var(--gold);
@@ -678,6 +699,7 @@ th {
   .month-list { margin-bottom: 0; }
 
   .expense-inputs { grid-template-columns: 1fr 1fr; }
+  .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
   .expense-inputs > div:last-child { grid-column: 1 / -1; }
   .expense-inputs button { width: 100%; }
 

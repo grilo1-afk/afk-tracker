@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AFK Arena Tracker</title>
   <link rel="icon" type="image/png" href="images/favicon.png"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,close,dark_mode,light_mode,visibility,visibility_off"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,close,dark_mode,edit,light_mode,visibility,visibility_off"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -147,10 +147,15 @@
             <label for="val">Amount ($)</label>
             <input type="number" id="val" placeholder="0.00" min="0" step="0.01"/>
           </div>
+          <div>
+            <label for="exp-date">Date</label>
+            <input type="date" id="exp-date"/>
+          </div>
           <div style="padding-top:18px;">
             <button id="btn-add-expense">OK</button>
           </div>
         </div>
+        <span class="field-error" id="err-exp-date"></span>
 
         <table>
           <thead>
@@ -158,7 +163,7 @@
               <th>Date</th>
               <th>Description</th>
               <th style="text-align:right">Amount</th>
-              <th class="action-col"></th>
+              <th class="action-col action-col--wide"></th>
             </tr>
           </thead>
           <tbody id="expense-table-body">
@@ -167,6 +172,37 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE EDIT MODAL -->
+  <div id="edit-expense-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Edit Expense</h3>
+        <button type="button" id="btn-edit-expense-close-x" class="btn-icon modal-close-btn" title="Close" aria-label="Close">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="form-group">
+        <label for="edit-exp-desc">Description</label>
+        <input type="text" id="edit-exp-desc" placeholder="e.g. Premium Pass"/>
+        <span class="field-error" id="err-edit-exp-desc"></span>
+      </div>
+      <div class="form-group">
+        <label for="edit-exp-val">Amount ($)</label>
+        <input type="number" id="edit-exp-val" placeholder="0.00" min="0" step="0.01"/>
+        <span class="field-error" id="err-edit-exp-val"></span>
+      </div>
+      <div class="form-group">
+        <label for="edit-exp-date">Date</label>
+        <input type="date" id="edit-exp-date"/>
+        <span class="field-error" id="err-edit-exp-date"></span>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button id="btn-edit-expense-save">Save Changes</button>
+        <button id="btn-edit-expense-cancel" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>
