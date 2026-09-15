@@ -469,19 +469,15 @@ function deleteExpense(expId) {
 
 // -- EVENT LISTENERS
 
-// Shared post-auth entry: load state and show history screen
+// Shared post-auth entry: load state and show history screen.
+// Does NOT touch the login button — callers own their own loading state.
 async function doLogin() {
-  const btnLogin = document.getElementById("btn-login");
-  btnLogin.textContent = "Loading...";
-  btnLogin.disabled = true;
   await loadState();
   ensureCurrentMonth();
   sortMonths();
   renderHistory();
   renderWelcomeName();
   showScreen("history");
-  btnLogin.textContent = "Login";
-  btnLogin.disabled = false;
 }
 
 // Login -- sends plaintext password to GAS; server does PBKDF2 verification
@@ -501,7 +497,7 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   if (!valid) return;
 
   const btnLogin = document.getElementById("btn-login");
-  btnLogin.textContent = "Authenticating...";
+  btnLogin.classList.add("btn--loading");
   btnLogin.disabled = true;
 
   try {
@@ -511,8 +507,6 @@ document.getElementById("btn-login").addEventListener("click", async () => {
       if (err === "INVALID_CREDENTIALS") {
         showFieldError(pEl, "err-password", "Invalid username or password.");
         uEl.classList.add("is-invalid");
-        btnLogin.textContent = "Login";
-        btnLogin.disabled = false;
         return;
       } else if (err === "RATE_LIMITED") {
         showBanner("login-error", "Too many failed attempts. Try again in 15 minutes.");
@@ -521,19 +515,16 @@ document.getElementById("btn-login").addEventListener("click", async () => {
       } else {
         showBanner("login-error", "Could not reach the server. Check your connection.");
       }
-      btnLogin.textContent = "Login";
-      btnLogin.disabled = false;
       return;
     }
     storeSession(json.token, json.username, json.expiresAt);
+    await doLogin();
   } catch (err) {
     showBanner("login-error", "Could not reach the server. Check your connection.");
-    btnLogin.textContent = "Login";
+  } finally {
+    btnLogin.classList.remove("btn--loading");
     btnLogin.disabled = false;
-    return;
   }
-
-  await doLogin();
 });
 
 // Allow Enter key on login
@@ -543,22 +534,23 @@ document.getElementById("password").addEventListener("keydown", (e) => {
 
 async function doLogout() {
   const btn = document.getElementById("btn-logout");
-  if (btn) { btn.textContent = "Logging out..."; btn.disabled = true; }
+  if (btn) { btn.classList.add("btn--loading"); btn.disabled = true; }
 
-  const session = getStoredSession();
-  if (session) {
-    try { await apiRequest({ action: "logout", token: session.token }); } catch (_) {}
+  try {
+    const session = getStoredSession();
+    if (session) {
+      try { await apiRequest({ action: "logout", token: session.token }); } catch (_) {}
+    }
+    closeProfileModal();
+    clearSession();
+    state = { months: [] };
+    activeMonthId = null;
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+    showScreen("login");
+  } finally {
+    if (btn) { btn.classList.remove("btn--loading"); btn.disabled = false; }
   }
-
-  closeProfileModal();
-  clearSession();
-  state = { months: [] };
-  activeMonthId = null;
-  document.getElementById("username").value = "";
-  document.getElementById("password").value = "";
-  showScreen("login");
-
-  if (btn) { btn.textContent = "Logout"; btn.disabled = false; }
 }
 
 // Back to history
@@ -717,17 +709,17 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
       return;
     }
 
-    btn.textContent = "Saving...";
-    btn.disabled    = true;
+    btn.classList.add("btn--loading");
+    btn.disabled = true;
 
     try {
       const session = getStoredSession();
       if (!session) { handleSessionInvalid("SESSION_INVALID"); return; }
       const json = await apiRequest({
-        action:      "changePassword",
-        token:       session.token,
+        action:          "changePassword",
+        token:           session.token,
         currentPassword: currentPass,
-        newPassword: newPass,
+        newPassword:     newPass,
       });
       if (!json.ok) {
         const err = json.error || "";
@@ -736,15 +728,13 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
           return;
         }
         showFieldError(currentPassInput, "err-current-pass", "Current password is incorrect.");
-        btn.textContent = "Save Changes";
-        btn.disabled    = false;
         return;
       }
       [currentPassInput, newPassInput, confirmPassInput].forEach((el) => {
         el.value = "";
         el.classList.remove("is-invalid");
       });
-      ["err-current-pass","err-new-pass","err-confirm-pass"].forEach((id) => {
+      ["err-current-pass", "err-new-pass", "err-confirm-pass"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) { el.textContent = ""; el.style.color = ""; }
       });
@@ -756,12 +746,10 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
       }
     } catch (err) {
       showFieldError(newPassInput, "err-new-pass", "Could not reach the server.");
-      btn.textContent = "Save Changes";
-      btn.disabled    = false;
-      return;
+    } finally {
+      btn.classList.remove("btn--loading");
+      btn.disabled = false;
     }
-    btn.textContent = "Save Changes";
-    btn.disabled    = false;
     return;
   }
   closeProfileModal();

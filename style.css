@@ -319,6 +319,31 @@ select.is-invalid {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.2);
 }
+/* ── BUTTON LOADING STATE (spinner) ── */
+.btn--loading {
+  pointer-events: none;
+  opacity: 0.85;
+  color: transparent; /* hide label text while spinner shows */
+  position: relative;
+}
+.btn--loading::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 50%;
+  left: 50%;
+  margin-top: -9px;
+  margin-left: -9px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  border-top-color: var(--bg-color);
+  border-radius: 50%;
+  animation: _btn-spin 0.7s linear infinite;
+}
+@keyframes _btn-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Top-of-screen error banner */
 .error-banner {
   background: rgba(224, 82, 82, 0.12);
