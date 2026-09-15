@@ -171,6 +171,24 @@
     </div>
   </div>
 
+  <!-- DELETE MONTH CONFIRMATION MODAL -->
+  <div id="delete-month-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 id="delete-month-name">Delete Month?</h3>
+      <p id="delete-month-stats" class="delete-month-stats"></p>
+      <div class="modal-actions">
+        <button id="btn-delete-month-confirm" class="btn-danger btn-delete-month-confirm">Delete</button>
+        <button id="btn-delete-month-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNDO TOAST -->
+  <div id="undo-toast" class="undo-toast hidden">
+    <span id="undo-toast-msg">Expense deleted</span>
+    <button type="button" id="btn-undo-delete" class="btn-undo" onclick="undoDeleteExpense()">Undo</button>
+  </div>
+
   <!-- PROFILE MODAL -->
   <div id="profile-overlay" class="modal-overlay hidden">
     <div class="modal-box">

@@ -687,3 +687,81 @@ th {
   .month-card-name { font-size: 13px; }
   .badge-current { display: none; }
 }
+
+/* ── DELETE MONTH MODAL ── */
+.delete-month-stats {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+  margin: 4px 0 20px;
+}
+.btn-delete-month-confirm {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  background-color: var(--danger);
+  color: #fff;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn-delete-month-confirm:hover {
+  background-color: #c0392b;
+  color: #fff;
+}
+
+/* ── UNDO TOAST ── */
+.undo-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e2330;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-light);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  z-index: 200;
+  white-space: nowrap;
+  animation: _toast-in 0.2s ease-out;
+}
+.undo-toast.hidden { display: none !important; }
+@keyframes _toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+}
+.btn-undo {
+  width: auto;
+  min-height: unset;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn-undo:hover {
+  background-color: var(--gold);
+  color: var(--bg-color);
+  transform: none;
+  box-shadow: none;
+}
+@media (max-width: 480px) {
+  .undo-toast {
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    transform: none;
+    justify-content: space-between;
+  }
+}

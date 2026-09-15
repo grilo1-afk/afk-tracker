@@ -3,6 +3,10 @@ let _saveTimer   = null;   // debounce handle for cloud sync
 let _retryCount  = 0;      // how many retries have fired for the current failed flush
 let _retryTimer  = null;   // handle for the next scheduled retry
 
+// -- UNDO STATE (expense deletion)
+let _lastDeleted = null;   // { expense, index, monthId }
+let _undoTimer   = null;   // handle for the 4-second undo window
+
 // Schema: { version, schemaVersion, updatedAt, months: [{ id, name, year, month, budget, expenses: [{id, desc, val, date, createdAt}] }] }
 let state = { version: 1, schemaVersion: 1, updatedAt: new Date().toISOString(), months: [] };
 let activeMonthId = null;
@@ -67,15 +71,31 @@ function clearSession() {
 }
 
 // -- CENTRALIZED API REQUEST
+// Always returns an object. Never throws.
+// Error shapes: { ok: false, error: "NETWORK_ERROR" | "TIMEOUT" | "INVALID_RESPONSE" | <server code> }
 async function apiRequest(payload) {
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
-    body: JSON.stringify(payload),
-  });
-  const text = await res.text();
-  return JSON.parse(text);
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res  = await fetch(GAS_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      redirect: "follow",
+      body:    JSON.stringify(payload),
+      signal:  controller.signal,
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      return { ok: false, error: "INVALID_RESPONSE" };
+    }
+  } catch (err) {
+    if (err.name === "AbortError") return { ok: false, error: "TIMEOUT" };
+    return { ok: false, error: "NETWORK_ERROR" };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // -- SESSION INVALIDATION HANDLER
@@ -243,6 +263,8 @@ function clearBanner(bannerId) {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!pickerOverlay.classList.contains("hidden")) { closeMonthPicker(); return; }
+  const dmOverlay = document.getElementById("delete-month-overlay");
+  if (dmOverlay && !dmOverlay.classList.contains("hidden")) { closeDeleteMonthModal(); return; }
   if (!profileOverlay.classList.contains("hidden")) { closeProfileModal(); return; }
 });
 
@@ -344,36 +366,32 @@ function scheduleRetry() {
 
 // Private — sends current state to GAS. Reads module-level `state` at execution
 // time, so it always sends the latest snapshot regardless of when saveState() was called.
+// apiRequest() never throws — all network/timeout/parse failures come back as { ok: false, error }.
 async function flushToCloud() {
   _saveTimer = null;
   const session = getStoredSession();
   if (!session) return;
   setSaveStatus("saving");
-  try {
-    const json = await apiRequest({
-      action: "saveState",
-      token: session.token,
-      data: state,
-    });
-    if (!json.ok) {
-      const err = json.error || "";
-      if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
-        setSaveStatus("idle");
-        handleSessionInvalid(err);
-      } else {
-        scheduleRetry();
-        setSaveStatus("error");
-      }
+  const json = await apiRequest({
+    action: "saveState",
+    token:  session.token,
+    data:   state,
+  });
+  if (!json.ok) {
+    const err = json.error || "";
+    if (err === "SESSION_INVALID" || err === "ACCOUNT_INACTIVE") {
+      setSaveStatus("idle");
+      handleSessionInvalid(err);
     } else {
-      _retryCount = 0;
-      clearTimeout(_retryTimer);
-      _retryTimer = null;
-      setSaveStatus("saved");
+      // Covers NETWORK_ERROR, TIMEOUT, INVALID_RESPONSE, and any other server error
+      scheduleRetry();
+      setSaveStatus("error");
     }
-  } catch (e) {
-    console.error("Error saving state to cloud:", e);
-    scheduleRetry();
-    setSaveStatus("error");
+  } else {
+    _retryCount = 0;
+    clearTimeout(_retryTimer);
+    _retryTimer = null;
+    setSaveStatus("saved");
   }
 }
 
@@ -483,7 +501,7 @@ function renderHistory() {
     btn.textContent = "Delete";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      deleteMonth(m.id);
+      openDeleteMonthModal(m.id);
     });
     rightDiv.appendChild(btn);
 
@@ -492,6 +510,36 @@ function renderHistory() {
     monthList.appendChild(card);
   });
 }
+
+// -- DELETE MONTH CONFIRMATION MODAL
+let _pendingDeleteMonthId = null;
+
+function openDeleteMonthModal(id) {
+  const m = state.months.find((x) => x.id === id);
+  if (!m) return;
+  _pendingDeleteMonthId = id;
+  const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
+  const expCount   = m.expenses.length;
+  document.getElementById("delete-month-name").textContent  = "Delete " + m.name + "?";
+  document.getElementById("delete-month-stats").textContent =
+    expCount + " expense" + (expCount !== 1 ? "s" : "") + " \u00B7 " + fmt(totalSpent) + " spent";
+  document.getElementById("delete-month-overlay").classList.remove("hidden");
+}
+
+function closeDeleteMonthModal() {
+  _pendingDeleteMonthId = null;
+  document.getElementById("delete-month-overlay").classList.add("hidden");
+}
+
+document.getElementById("btn-delete-month-cancel").addEventListener("click", closeDeleteMonthModal);
+document.getElementById("btn-delete-month-confirm").addEventListener("click", () => {
+  if (!_pendingDeleteMonthId) return;
+  deleteMonth(_pendingDeleteMonthId);
+  closeDeleteMonthModal();
+});
+document.getElementById("delete-month-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("delete-month-overlay")) closeDeleteMonthModal();
+});
 
 function deleteMonth(id) {
   const m = state.months.find((x) => x.id === id);
@@ -578,13 +626,80 @@ function renderExpenses(m) {
   });
 }
 
+// -- UNDO TOAST HELPERS
+function showUndoToast(message) {
+  const toast = document.getElementById("undo-toast");
+  if (!toast) return;
+  document.getElementById("undo-toast-msg").textContent = message;
+  toast.classList.remove("hidden");
+}
+
+function hideUndoToast() {
+  const toast = document.getElementById("undo-toast");
+  if (toast) toast.classList.add("hidden");
+}
+
 function deleteExpense(expId) {
   const m = getActiveMonth();
   if (!m) return;
-  m.expenses = m.expenses.filter((e) => e.id !== expId);
-  saveState();
+
+  // If there's an active undo window for a previous deletion, commit it now
+  if (_undoTimer) {
+    clearTimeout(_undoTimer);
+    _undoTimer    = null;
+    _lastDeleted  = null;
+    hideUndoToast();
+    flushToCloud();
+  }
+
+  const idx = m.expenses.findIndex((e) => e.id === expId);
+  if (idx === -1) return;
+
+  // Stash for potential undo
+  _lastDeleted = { expense: m.expenses[idx], index: idx, monthId: m.id };
+
+  // Remove from state + update local cache immediately (no cloud flush yet)
+  m.expenses.splice(idx, 1);
+  state.version   = (typeof state.version === "number" && state.version > 0) ? state.version + 1 : 1;
+  state.updatedAt = new Date().toISOString();
+  writeLocalCache(state);
+
   renderStats(m);
   renderExpenses(m);
+
+  showUndoToast("Expense deleted");
+
+  // 4-second undo window — on expiry, flush to cloud
+  _undoTimer = setTimeout(() => {
+    _undoTimer   = null;
+    _lastDeleted = null;
+    hideUndoToast();
+    flushToCloud();
+  }, 4000);
+}
+
+function undoDeleteExpense() {
+  if (!_lastDeleted) return;
+  clearTimeout(_undoTimer);
+  _undoTimer = null;
+
+  const { expense, index, monthId } = _lastDeleted;
+  _lastDeleted = null;
+
+  const m = state.months.find((x) => x.id === monthId);
+  if (!m) { hideUndoToast(); return; }
+
+  // Re-insert at original position
+  m.expenses.splice(index, 0, expense);
+  state.version   = (typeof state.version === "number" && state.version > 0) ? state.version + 1 : 1;
+  state.updatedAt = new Date().toISOString();
+  writeLocalCache(state);
+
+  if (m.id === activeMonthId) {
+    renderStats(m);
+    renderExpenses(m);
+  }
+  hideUndoToast();
 }
 
 // -- EVENT LISTENERS
@@ -660,9 +775,8 @@ async function doLogout() {
 
   try {
     const session = getStoredSession();
-    if (session) {
-      try { await apiRequest({ action: "logout", token: session.token }); } catch (_) {}
-    }
+    // Best-effort logout — apiRequest never throws, fire-and-forget
+    if (session) await apiRequest({ action: "logout", token: session.token });
     closeProfileModal();
     clearSession();
     state = { months: [] };
@@ -849,6 +963,10 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
           handleSessionInvalid(err);
           return;
         }
+        if (err === "NETWORK_ERROR" || err === "TIMEOUT" || err === "INVALID_RESPONSE") {
+          showFieldError(newPassInput, "err-new-pass", "Could not reach the server. Try again.");
+          return;
+        }
         showFieldError(currentPassInput, "err-current-pass", "Current password is incorrect.");
         return;
       }
@@ -866,8 +984,6 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
         successEl.textContent = "Password updated.";
         setTimeout(() => { successEl.textContent = ""; successEl.style.color = ""; }, 3000);
       }
-    } catch (err) {
-      showFieldError(newPassInput, "err-new-pass", "Could not reach the server.");
     } finally {
       btn.classList.remove("btn--loading");
       btn.disabled = false;
