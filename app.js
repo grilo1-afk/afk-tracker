@@ -144,7 +144,7 @@ document.getElementById("btn-pick-confirm").addEventListener("click", async () =
   sortMonths();
   closeMonthPicker();
   renderHistory();
-  openMonth(newId, setActiveMonthId);
+  openMonth(newId);
 });
 
 // -- ESCAPE KEY

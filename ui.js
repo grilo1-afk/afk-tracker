@@ -1,6 +1,6 @@
 
 import {
-  state, activeMonthId, MONTH_NAMES,
+  state, activeMonthId, setActiveMonthId, MONTH_NAMES,
   fmt, getActiveMonth, getCurrentMonthObj,
   getDisplayName, cacheDisplayName,
 } from "./state.js";
@@ -149,8 +149,7 @@ const displaySpent      = document.getElementById("display-spent");
 const displayRemaining  = document.getElementById("display-remaining");
 const tableBody         = document.getElementById("expense-table-body");
 
-// Exported and called from app.js — setActiveMonthId passed in to avoid circular import
-export function openMonth(id, setActiveMonthId) {
+export function openMonth(id) {
   setActiveMonthId(id);
   const m = getActiveMonth();
   if (!m) return;
