@@ -672,21 +672,10 @@ button.btn-danger.btn--loading::after {
 }
 .expense-inputs {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 10px;
   align-items: end;
   margin-bottom: 4px;
-}
-
-.expense-add-wrap {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 0;
-}
-
-.expense-inputs button {
-  width: 56px;
-  padding: 10px 6px;
 }
 table {
   width: 100%;
@@ -791,13 +780,6 @@ td.action-col {
   transform: none;
   box-shadow: none;
 }
-/* Add-expense button — auto width, same min-height as inputs */
-#btn-add-expense {
-  min-height: 44px;
-  margin-bottom: 0;
-  width: auto;
-  padding: 0 16px;
-}
 
 .section-title {
   color: var(--gold);
@@ -879,18 +861,17 @@ td.action-col {
 
   .month-list { margin-bottom: 0; }
 
-  /* Expense form: 2-col grid, date row + Add button each span full width */
+  /* Expense form: 2-col grid on mobile, date+today+add row spans full width */
   .expense-inputs {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
+  /* Date cell (3rd child) spans full width on mobile */
   .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
-  .expense-inputs > div:last-child   { grid-column: 1 / -1; }
-  .expense-inputs > div:last-child button { width: 100%; min-height: 44px; font-size: 14px; }
 
-  /* Date+Today row: today button touch-friendly */
-  .date-with-today { gap: 8px; }
-  .btn-today { min-height: 44px; padding: 8px 12px; font-size: 12px; }
+  /* Date+Today+Add row: larger touch targets */
+  .date-with-today { gap: 6px; }
+  .btn-today { min-height: 44px; padding: 8px 10px; font-size: 12px; }
 
   /* Action buttons in expense cards: larger touch targets */
   .expense-card-actions .btn-edit-expense,
