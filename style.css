@@ -196,9 +196,20 @@ label {
   font-weight: bold;
   font-size: 13px;
 }
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7) hue-rotate(180deg) brightness(1.2);
+  cursor: pointer;
+  opacity: 0.75;
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.6;
+}
+
 input[type="text"],
 input[type="password"],
 input[type="number"],
+input[type="date"],
 select {
   width: 100%;
   padding: 12px 10px;
@@ -728,6 +739,16 @@ td.action-col {
   flex-shrink: 0;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  background-color: transparent;
+  color: var(--text-light);
+  border: 1px solid #444;
+}
+.btn-today:hover {
+  background-color: #2a2f38;
+  border-color: var(--text-light);
+  color: white;
+  transform: none;
+  box-shadow: none;
 }
 .btn-edit-expense {
   background-color: transparent;
@@ -831,6 +852,19 @@ td.action-col {
   .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
   .expense-inputs > div:last-child { grid-column: 1 / -1; }
   .expense-inputs button { width: 100%; }
+
+  td.action-col {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+  }
+  .btn-edit-expense,
+  .btn-del-expense,
+  .btn-danger.btn-del-expense {
+    min-height: 44px;
+    padding: 6px 8px;
+  }
 
   .stats-grid { gap: 6px; }
   .stat-box strong { font-size: 16px; }
