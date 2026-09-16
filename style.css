@@ -5,7 +5,11 @@
   vertical-align: middle;
   user-select: none;
   /* Match the outlined weight/grade used across the app */
-  font-variation-settings: 'wght' 300, 'FILL' 0, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings:
+    "wght" 300,
+    "FILL" 0,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 /* ── ICON BUTTON (replaces btn-sm btn-secondary for icon-only actions) ── */
@@ -21,47 +25,60 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
   touch-action: manipulation;
 }
 .btn-icon:hover {
-  background-color: rgba(255,255,255,0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--gold);
 }
 
 /* ── DESIGN TOKENS ── */
 :root {
   /* Dark fantasy palette — pairs with AFK Arena character art */
-  --bg-color:   #0a0c12;   /* Near-black void background */
-  --panel-bg:   #141824;   /* Deep navy panel surface */
-  --gold:       #e8b84b;   /* Warm antique gold — matches the logo */
-  --gold-hover: #f5d06a;   /* Brighter gold on hover */
-  --text-light: #d4cfc8;   /* Warm off-white — easy on eyes against dark art */
-  --danger:     #e05252;   /* Muted red for spend / delete */
-  --success:    #4ade80;   /* Emerald green for remaining budget */
-  --warning:    #f59e0b;   /* Amber for 80–100% budget usage */
+  --bg-color: #0a0c12; /* Near-black void background */
+  --panel-bg: #141824; /* Deep navy panel surface */
+  --gold: #e8b84b; /* Warm antique gold — matches the logo */
+  --gold-hover: #f5d06a; /* Brighter gold on hover */
+  --text-light: #d4cfc8; /* Warm off-white — easy on eyes against dark art */
+  --danger: #e05252; /* Muted red for spend / delete */
+  --success: #4ade80; /* Emerald green for remaining budget */
+  --warning: #f59e0b; /* Amber for 80–100% budget usage */
 }
 
 /* ── LIGHT THEME TOKEN OVERRIDES ── */
 /* W3C AA verified: body text on panel-bg ≥ 4.5:1 for all tokens */
 [data-theme="light"] {
-  --bg-color:   #f4f0e8;   /* warm parchment */
-  --panel-bg:   #fffdf7;   /* soft cream panel */
-  --gold:       #8b6914;   /* dark antique gold — 4.8:1 on panel-bg ✓ */
+  --bg-color: #f4f0e8; /* warm parchment */
+  --panel-bg: #fffdf7; /* soft cream panel */
+  --gold: #8b6914; /* dark antique gold — 4.8:1 on panel-bg ✓ */
   --gold-hover: #a07820;
-  --text-light: #1e1e2e;   /* near-black — 11.4:1 on panel-bg ✓ */
-  --danger:     #c0392b;   /* deep red — 4.6:1 on panel-bg ✓ */
-  --success:    #1a7a3f;   /* deep green — 5.1:1 on panel-bg ✓ */
-  --warning:    #b45309;   /* dark amber — readable on light panel */
+  --text-light: #1e1e2e; /* near-black — 11.4:1 on panel-bg ✓ */
+  --danger: #c0392b; /* deep red — 4.6:1 on panel-bg ✓ */
+  --success: #1a7a3f; /* deep green — 5.1:1 on panel-bg ✓ */
+  --warning: #b45309; /* dark amber — readable on light panel */
 }
-[data-theme="light"] .btn-icon { color: var(--text-light); }
-[data-theme="light"] .btn-icon:hover { background-color: rgba(0,0,0,0.06); }
-[data-theme="light"] .char-art { opacity: 0.12; filter: brightness(0.8); }
+[data-theme="light"] .btn-icon {
+  color: var(--text-light);
+}
+[data-theme="light"] .btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .char-art {
+  opacity: 0.12;
+  filter: brightness(0.8);
+}
 @media (max-width: 480px) {
-  [data-theme="light"] .char-art { opacity: 0.09; }
+  [data-theme="light"] .char-art {
+    opacity: 0.09;
+  }
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   background-color: var(--bg-color);
@@ -127,7 +144,9 @@ body {
   border-top: 1px solid rgba(232, 184, 75, 0.2);
 }
 .screen-footer button,
-#btn-create-month { margin-top: 0; }
+#btn-create-month {
+  margin-top: 0;
+}
 
 /* ── LOGO ── */
 .logo-wrap {
@@ -167,8 +186,13 @@ body {
   background: linear-gradient(to top, var(--panel-bg), transparent);
   pointer-events: none;
 }
-.char-art-left  { left: -10px; }
-.char-art-right { right: -10px; transform: scaleX(-1); }
+.char-art-left {
+  left: -10px;
+}
+.char-art-right {
+  right: -10px;
+  transform: scaleX(-1);
+}
 h1,
 h2,
 h3 {
@@ -240,7 +264,10 @@ button {
   font-weight: bold;
   font-size: 15px;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.15s, box-shadow 0.15s;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    box-shadow 0.15s;
   text-transform: uppercase;
   letter-spacing: 1px;
   min-height: 44px;
@@ -360,7 +387,9 @@ button.btn-danger.btn--loading::after {
   border-top-color: var(--danger);
 }
 @keyframes _btn-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Top-of-screen error banner */
@@ -413,10 +442,18 @@ button.btn-danger.btn--loading::after {
   transition: opacity 0.3s;
   white-space: nowrap;
 }
-.save-status.visible { opacity: 1; }
-.save-status.saving  { color: var(--text-light); }
-.save-status.saved   { color: var(--success); }
-.save-status.error   { color: var(--danger); }
+.save-status.visible {
+  opacity: 1;
+}
+.save-status.saving {
+  color: var(--text-light);
+}
+.save-status.saved {
+  color: var(--success);
+}
+.save-status.error {
+  color: var(--danger);
+}
 .month-list {
   display: flex;
   flex-direction: column;
@@ -536,26 +573,38 @@ button.btn-danger.btn--loading::after {
 .budget-bar {
   width: 100%;
   height: 8px;
-  background-color: rgba(255,255,255,0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   overflow: hidden;
 }
 .budget-bar-fill {
   height: 100%;
   border-radius: 4px;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  transition:
+    width 0.3s ease,
+    background-color 0.3s ease;
   background-color: var(--success);
 }
-.budget-bar-fill.warn  { background-color: var(--warning); }
-.budget-bar-fill.over  { background-color: var(--danger);  }
+.budget-bar-fill.warn {
+  background-color: var(--warning);
+}
+.budget-bar-fill.over {
+  background-color: var(--danger);
+}
 .budget-pct-text {
   font-size: 12px;
   color: var(--text-light);
   opacity: 0.75;
   text-align: center;
 }
-.budget-pct-text.warn { color: var(--warning); opacity: 1; }
-.budget-pct-text.over { color: var(--danger);  opacity: 1; }
+.budget-pct-text.warn {
+  color: var(--warning);
+  opacity: 1;
+}
+.budget-pct-text.over {
+  color: var(--danger);
+  opacity: 1;
+}
 
 /* ── STAT HINTS (#19 / #20) ── */
 .stat-hint {
@@ -566,8 +615,14 @@ button.btn-danger.btn--loading::after {
   margin-bottom: 8px;
   letter-spacing: 0.3px;
 }
-.stat-hint.over { color: var(--danger); opacity: 1; }
-.stat-hint.ok   { color: var(--success); opacity: 1; }
+.stat-hint.over {
+  color: var(--danger);
+  opacity: 1;
+}
+.stat-hint.ok {
+  color: var(--success);
+  opacity: 1;
+}
 
 /* ── MOBILE EXPENSE CARDS (#21) ── */
 .expense-card-list {
@@ -620,7 +675,9 @@ button.btn-danger.btn--loading::after {
   padding: 16px 0;
   font-style: italic;
 }
-.stat-box--editable { position: relative; }
+.stat-box--editable {
+  position: relative;
+}
 
 .btn-edit-budget {
   position: absolute;
@@ -670,12 +727,61 @@ button.btn-danger.btn--loading::after {
   width: 110px;
   flex-shrink: 0;
 }
-.expense-inputs {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 10px;
-  align-items: end;
+/* New flat expense form — labels row + single flex input row */
+.expense-form {
   margin-bottom: 4px;
+}
+
+.expense-form-labels {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.exp-label {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--text-light);
+  flex: 2;
+}
+.exp-label:nth-child(2) {
+  flex: 1;
+}
+.exp-label:nth-child(3) {
+  flex: 1;
+}
+
+.expense-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+.exp-input {
+  height: 44px;
+  padding: 0 10px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.exp-desc {
+  flex: 2;
+}
+.exp-amount {
+  flex: 1;
+  min-width: 0;
+}
+.exp-date {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-exp-action {
+  height: 44px;
+  min-height: 44px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 table {
   width: 100%;
@@ -833,7 +939,9 @@ td.action-col {
   gap: 8px;
 }
 /* Desktop: give screen-header its padding */
-.screen-header { padding: 16px 24px 14px; }
+.screen-header {
+  padding: 16px 24px 14px;
+}
 
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
@@ -848,30 +956,55 @@ td.action-col {
     box-shadow: none;
   }
 
-  #login-screen { padding: 32px 20px; border: none; }
+  #login-screen {
+    padding: 32px 20px;
+    border: none;
+  }
 
-  .screen-header { padding: 14px 18px 12px; }
-  .scroll-content { padding: 14px 18px; }
-  .screen-footer  { padding: 10px 18px 20px; }
+  .screen-header {
+    padding: 14px 18px 12px;
+  }
+  .scroll-content {
+    padding: 14px 18px;
+  }
+  .screen-footer {
+    padding: 10px 18px 20px;
+  }
 
   /* Character art smaller on narrow screens */
-  .char-art { width: 140px; opacity: 0.22; }
-  .char-art-left  { left: -10px; }
-  .char-art-right { right: -10px; }
-
-  .month-list { margin-bottom: 0; }
-
-  /* Expense form: 2-col grid on mobile, date+today+add row spans full width */
-  .expense-inputs {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+  .char-art {
+    width: 140px;
+    opacity: 0.22;
   }
-  /* Date cell (3rd child) spans full width on mobile */
-  .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
+  .char-art-left {
+    left: -10px;
+  }
+  .char-art-right {
+    right: -10px;
+  }
 
-  /* Date+Today+Add row: larger touch targets */
-  .date-with-today { gap: 6px; }
-  .btn-today { min-height: 44px; padding: 8px 10px; font-size: 12px; }
+  .month-list {
+    margin-bottom: 0;
+  }
+
+  /* Expense form: stack on mobile */
+  .expense-form-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .exp-desc {
+    flex: 1 1 100%;
+  }
+  .exp-amount {
+    flex: 1 1 calc(50% - 3px);
+  }
+  .exp-date {
+    flex: 1 1 calc(50% - 3px);
+  }
+  .btn-exp-action {
+    flex: 1 1 calc(50% - 3px);
+    min-height: 48px;
+  }
 
   /* Action buttons in expense cards: larger touch targets */
   .expense-card-actions .btn-edit-expense,
@@ -881,11 +1014,23 @@ td.action-col {
     font-size: 12px;
   }
 
-  .stats-grid { gap: 6px; }
-  .stat-box strong { font-size: 16px; }
-  th, td { padding: 8px 6px; font-size: 12px; }
-  .month-card-name { font-size: 13px; }
-  .badge-current { display: none; }
+  .stats-grid {
+    gap: 6px;
+  }
+  .stat-box strong {
+    font-size: 16px;
+  }
+  th,
+  td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  .month-card-name {
+    font-size: 13px;
+  }
+  .badge-current {
+    display: none;
+  }
 }
 
 /* ── DELETE MONTH MODAL ── */
@@ -925,15 +1070,23 @@ td.action-col {
   gap: 16px;
   font-size: 13px;
   color: var(--text-light);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   z-index: 200;
   white-space: nowrap;
   animation: _toast-in 0.2s ease-out;
 }
-.undo-toast.hidden { display: none !important; }
+.undo-toast.hidden {
+  display: none !important;
+}
 @keyframes _toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 .btn-undo {
   width: auto;
@@ -948,7 +1101,9 @@ td.action-col {
   letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .btn-undo:hover {
   background-color: var(--gold);

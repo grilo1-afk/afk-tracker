@@ -162,22 +162,18 @@
       <!-- Add Expense + Table (shown once budget is set) -->
       <div id="add-expense-section" class="hidden">
         <div class="section-title">New Expense</div>
-        <div class="expense-inputs">
-          <div>
-            <label for="desc">Description</label>
-            <input type="text" id="desc" placeholder="e.g. Premium Pass"/>
+        <div class="expense-form">
+          <div class="expense-form-labels">
+            <span class="exp-label" data-for="desc">Description</span>
+            <span class="exp-label" data-for="val">Amount ($)</span>
+            <span class="exp-label" data-for="exp-date">Date</span>
           </div>
-          <div>
-            <label for="val">Amount ($)</label>
-            <input type="number" id="val" placeholder="0.00" min="0" step="0.01"/>
-          </div>
-          <div>
-            <label for="exp-date">Date</label>
-            <div class="date-with-today">
-              <input type="date" id="exp-date"/>
-              <button type="button" id="btn-today-expense" class="btn-today" title="Set to today">Today</button>
-              <button id="btn-add-expense" class="btn-today" title="Add expense">Add</button>
-            </div>
+          <div class="expense-form-row">
+            <input type="text"   id="desc"     placeholder="e.g. Premium Pass" class="exp-input exp-desc"/>
+            <input type="number" id="val"      placeholder="0.00" min="0" step="0.01" class="exp-input exp-amount"/>
+            <input type="date"   id="exp-date" class="exp-input exp-date"/>
+            <button type="button" id="btn-today-expense" class="btn-exp-action btn-secondary">Today</button>
+            <button              id="btn-add-expense"    class="btn-exp-action">Add</button>
           </div>
         </div>
         <span class="field-error" id="err-exp-date"></span>
