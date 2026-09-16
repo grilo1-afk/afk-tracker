@@ -674,8 +674,14 @@ button.btn-danger.btn--loading::after {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;
   gap: 10px;
-  align-items: center;
+  align-items: end;
   margin-bottom: 4px;
+}
+/* Add button's wrapper div: stretch to full row height then center the button */
+.expense-inputs > div:last-of-type {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
 }
 .expense-inputs button {
   width: 56px;
