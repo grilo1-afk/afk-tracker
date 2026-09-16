@@ -432,22 +432,9 @@ document.getElementById("password").addEventListener("keydown", (e) => {
 (async function init() {
   applyTheme(getPreferredTheme());
 
-  // Show loading overlay immediately — before ANY async work.
-  // This prevents the login screen flashing on refresh when a session exists.
-  const overlay = document.createElement("div");
-  overlay.id = "init-loading";
-  overlay.style.cssText = "position:fixed;inset:0;background:#0b0c10;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:999;font-family:'Segoe UI',sans-serif;";
-  overlay.innerHTML = `
-    <style>
-      @keyframes _dots{0%,20%{content:"."}40%{content:".."}60%,100%{content:"..."}}
-      @keyframes _pulse{0%,100%{opacity:0.7}50%{opacity:1}}
-      #_load-logo{animation:_pulse 1.8s ease-in-out infinite;max-width:220px;width:80vw;}
-      #_load-text::after{content:"...";display:inline-block;animation:_dots 1.4s steps(1,end) infinite;}
-    </style>
-    <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
-    <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;"><span id="_load-text">Loading</span></div>
-  `;
-  document.body.appendChild(overlay);
+  // The #init-loading overlay is baked into the HTML and visible from first paint.
+  // We just grab the reference here; no need to create it.
+  const overlay = document.getElementById("init-loading");
 
   try {
     const session = await getSession();

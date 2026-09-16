@@ -10,6 +10,18 @@
 </head>
 <body>
 
+  <!-- INITIAL LOADING OVERLAY — visible from first paint, removed by init() in app.js -->
+  <div id="init-loading" style="position:fixed;inset:0;background:#0b0c10;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:999;font-family:'Segoe UI',sans-serif;">
+    <style>
+      @keyframes _dots{0%,20%{content:"."}40%{content:".."}60%,100%{content:"..."}}
+      @keyframes _pulse{0%,100%{opacity:0.7}50%{opacity:1}}
+      #_load-logo{animation:_pulse 1.8s ease-in-out infinite;max-width:220px;width:80vw;}
+      #_load-text::after{content:"...";display:inline-block;animation:_dots 1.4s steps(1,end) infinite;}
+    </style>
+    <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
+    <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;"><span id="_load-text">Loading</span></div>
+  </div>
+
   <!-- LOGIN SCREEN -->
   <div id="login-screen" class="container">
     <div class="logo-wrap">
@@ -166,7 +178,7 @@
               <button type="button" id="btn-today-expense" class="btn-today" title="Set to today">Today</button>
             </div>
           </div>
-          <div style="padding-top:18px;">
+          <div>
             <button id="btn-add-expense">Add</button>
           </div>
         </div>
