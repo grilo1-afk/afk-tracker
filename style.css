@@ -699,6 +699,7 @@ th {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  text-align: center;
 }
 .expense-row:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.02);
@@ -707,18 +708,21 @@ th {
   text-align: right;
   color: var(--danger);
 }
+/* Action column — flex so Edit + Del sit side by side without overflow */
 .action-col {
-  width: 80px;
-  padding: 6px 4px !important;
+  width: 88px;
+  padding: 4px !important;
+  white-space: nowrap;
 }
 td.action-col {
   display: flex;
   gap: 4px;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 .action-col--wide {
-  width: 80px;
+  width: 88px;
 }
 
 /* ── DATE + TODAY BUTTON ── */
@@ -750,17 +754,19 @@ td.action-col {
   transform: none;
   box-shadow: none;
 }
-.btn-edit-expense {
+.btn-edit-expense,
+.btn-danger.btn-del-expense {
   background-color: transparent;
-  color: var(--gold);
   border: 1px solid var(--gold);
-  padding: 6px 8px;
-  font-size: 12px;
+  color: var(--gold);
+  padding: 4px 7px;
+  font-size: 11px;
   width: auto;
   letter-spacing: 0;
   text-transform: uppercase;
-  min-height: 36px;
+  min-height: 32px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .btn-edit-expense:hover {
   background-color: var(--gold);
@@ -768,6 +774,24 @@ td.action-col {
   transform: none;
   box-shadow: none;
 }
+.btn-danger.btn-del-expense {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-danger.btn-del-expense:hover {
+  background-color: var(--danger);
+  color: white;
+  transform: none;
+  box-shadow: none;
+}
+/* Add-expense button — match btn-today compact style */
+#btn-add-expense {
+  padding: 8px 12px;
+  font-size: 12px;
+  min-height: 36px;
+  letter-spacing: 0.5px;
+}
+
 .section-title {
   color: var(--gold);
   font-size: 13px;
@@ -848,22 +872,25 @@ td.action-col {
 
   .month-list { margin-bottom: 0; }
 
-  .expense-inputs { grid-template-columns: 1fr 1fr; }
-  .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
-  .expense-inputs > div:last-child { grid-column: 1 / -1; }
-  .expense-inputs button { width: 100%; }
-
-  td.action-col {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-    align-items: center;
+  /* Expense form: 2-col grid, date row + Add button each span full width */
+  .expense-inputs {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
-  .btn-edit-expense,
-  .btn-del-expense,
-  .btn-danger.btn-del-expense {
+  .expense-inputs > div:nth-child(3) { grid-column: 1 / -1; }
+  .expense-inputs > div:last-child   { grid-column: 1 / -1; }
+  .expense-inputs > div:last-child button { width: 100%; min-height: 44px; font-size: 14px; }
+
+  /* Date+Today row: today button touch-friendly */
+  .date-with-today { gap: 8px; }
+  .btn-today { min-height: 44px; padding: 8px 12px; font-size: 12px; }
+
+  /* Action buttons in expense cards: larger touch targets */
+  .expense-card-actions .btn-edit-expense,
+  .expense-card-actions .btn-danger.btn-del-expense {
     min-height: 44px;
-    padding: 6px 8px;
+    padding: 8px 12px;
+    font-size: 12px;
   }
 
   .stats-grid { gap: 6px; }
