@@ -1,8 +1,8 @@
 import { supabase } from "./supabase-client.js";
 
 // -- STATE
-// Schema: { months: [{ id (uuid), name, year, month (0-based), budget (null|number), expenses: [{id (uuid), desc, val, date, createdAt}] }] }
-let state = { months: [] };
+// Schema: { displayName, months: [{ id (uuid), name, year, month (0-based), budget (null|number), expenses: [{id (uuid), desc, val, date, createdAt}] }] }
+let state = { displayName: null, months: [] };
 let activeMonthId = null;
 
 // -- UNDO STATE (expense deletion)
@@ -82,20 +82,33 @@ function dbRowsToState(monthRows) {
 // -- SUPABASE PERSISTENCE
 
 async function loadState() {
-  const { data, error } = await supabase
-    .from("months")
-    .select("*, expenses(*)")
-    .order("year", { ascending: false })
-    .order("month", { ascending: false });
+  // Fetch months+expenses and profile display_name in parallel
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
 
-  if (error) {
-    if (error.message && error.message.toLowerCase().includes("jwt")) {
+  const [monthsResult, profileResult] = await Promise.all([
+    supabase
+      .from("months")
+      .select("*, expenses(*)")
+      .order("year", { ascending: false })
+      .order("month", { ascending: false }),
+    user
+      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  if (monthsResult.error) {
+    if (monthsResult.error.message && monthsResult.error.message.toLowerCase().includes("jwt")) {
       handleSessionInvalid("SESSION_INVALID");
     }
-    throw new Error(error.message || "DB_ERROR");
+    throw new Error(monthsResult.error.message || "DB_ERROR");
   }
 
-  return dbRowsToState(data || []);
+  const newState = dbRowsToState(monthsResult.data || []);
+  const displayName = (profileResult.data && profileResult.data.display_name) || null;
+  if (displayName) cacheDisplayName(displayName);
+  newState.displayName = displayName || getDisplayName();
+  return newState;
 }
 
 // Insert a new month row. Returns the inserted row's id (uuid) on success or null on failure.
@@ -419,7 +432,23 @@ document.addEventListener("keydown", (e) => {
 });
 
 // -- DISPLAY NAME
-function renderWelcomeName() {
+// Fetches display_name from the profiles table, caches it in localStorage,
+// then updates the welcome-name element. Falls back to cached/default on error.
+async function renderWelcomeName() {
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData && authData.user;
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+      const name = (profile && profile.display_name) || null;
+      if (name) cacheDisplayName(name);
+    }
+  } catch (_) { /* non-fatal — fall through to cached value */ }
+
   const el = document.getElementById("welcome-name");
   if (el) el.textContent = getDisplayName();
 }
@@ -1243,7 +1272,7 @@ document
         }
       } catch (_) { /* non-fatal */ }
       cacheDisplayName(newName);
-      renderWelcomeName();
+      await renderWelcomeName();
     }
 
     const currentPass = currentPassInput.value;
@@ -1417,7 +1446,7 @@ async function doLogin() {
   ensureCurrentMonth();
   sortMonths();
   renderHistory();
-  renderWelcomeName();
+  await renderWelcomeName();
   showScreen("history");
 }
 
@@ -1464,7 +1493,7 @@ function ensureCurrentMonth() {
     ensureCurrentMonth();
     sortMonths();
     renderHistory();
-    renderWelcomeName();
+    await renderWelcomeName();
     showScreen("history");
 
     try {
