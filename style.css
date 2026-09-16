@@ -771,7 +771,6 @@ button.btn-danger.btn--loading::after {
   letter-spacing: 0.5px;
   flex-shrink: 0;
   white-space: nowrap;
-  align-self: center; /* vertically center within the 44px input row */
 }
 table {
   width: 100%;
