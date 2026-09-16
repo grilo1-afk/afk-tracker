@@ -1,3 +1,5 @@
+import { supabase } from "./supabase-client.js";
+
 // -- STATE
 let _saveTimer   = null;   // debounce handle for cloud sync
 let _retryCount  = 0;      // how many retries have fired for the current failed flush
@@ -968,6 +970,13 @@ document.getElementById("btn-edit-expense-save").addEventListener("click", () =>
 // Shared post-auth entry: load state and show history screen.
 // Does NOT touch the login button — callers own their own loading state.
 async function doLogin() {
+  // Verify the Supabase session is active before proceeding
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    handleSessionInvalid("SESSION_INVALID");
+    throw new Error("SESSION_INVALID");
+  }
+
   const cloudState = await loadState();
   state = cloudState;
   writeLocalCache(state);
@@ -978,7 +987,7 @@ async function doLogin() {
   showScreen("history");
 }
 
-// Login -- sends plaintext password to GAS; server does PBKDF2 verification
+// Login -- uses Supabase Auth instead of GAS session tokens
 document.getElementById("btn-login").addEventListener("click", async () => {
   const uEl = document.getElementById("username");
   const pEl = document.getElementById("password");
@@ -999,23 +1008,20 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   btnLogin.disabled = true;
 
   try {
-    const json = await apiRequest({ action: "login", username: u, password: p });
-    if (!json.ok) {
-      const err = json.error || "SERVER_ERROR";
-      if (err === "INVALID_CREDENTIALS") {
+    const { data, error } = await supabase.auth.signInWithPassword({ email: u, password: p });
+    if (error) {
+      const msg = error.message || "";
+      if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("credentials") || error.status === 400) {
         showFieldError(pEl, "err-password", "Invalid username or password.");
         uEl.classList.add("is-invalid");
-        return;
-      } else if (err === "RATE_LIMITED") {
-        showBanner("login-error", "Too many failed attempts. Try again in 15 minutes.");
-      } else if (err === "ACCOUNT_INACTIVE") {
-        showBanner("login-error", "Your account is inactive. Contact support.");
+      } else if (error.status === 429) {
+        showBanner("login-error", "Too many failed attempts. Try again later.");
       } else {
         showBanner("login-error", "Could not reach the server. Check your connection.");
       }
       return;
     }
-    storeSession(json.token, json.username, json.expiresAt);
+    // Supabase manages its own session in localStorage — no manual storeSession needed
     await doLogin();
   } catch (err) {
     showBanner("login-error", "Could not reach the server. Check your connection.");
@@ -1035,9 +1041,8 @@ async function doLogout() {
   if (btn) { btn.classList.add("btn--loading"); btn.disabled = true; }
 
   try {
-    const session = getStoredSession();
-    // Best-effort logout — apiRequest never throws, fire-and-forget
-    if (session) await apiRequest({ action: "logout", token: session.token });
+    // Best-effort sign out from Supabase — non-blocking on error
+    await supabase.auth.signOut();
     closeProfileModal();
     clearSession();
     state = { months: [] };
@@ -1287,8 +1292,9 @@ document.getElementById("btn-profile-save").addEventListener("click", async () =
 (async function init() {
   applyTheme(getPreferredTheme());
 
-  const session = getStoredSession();
-  if (!session) return; // no stored session -- show login screen
+  // Check Supabase session instead of the legacy GAS token
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return; // no active session -- show login screen
 
   loginScreen.classList.add("hidden");
 
