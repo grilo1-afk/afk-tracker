@@ -727,51 +727,39 @@ button.btn-danger.btn--loading::after {
   width: 110px;
   flex-shrink: 0;
 }
-/* New flat expense form — labels row + single flex input row */
-.expense-form {
-  margin-bottom: 4px;
-}
-
-.expense-form-labels {
-  display: flex;
-  gap: 12px; /* must match expense-form-row gap exactly */
-  margin-bottom: 4px;
-}
-.exp-label {
-  font-weight: bold;
-  font-size: 13px;
-  color: var(--text-light);
-  flex: 2; /* matches .exp-desc */
-  overflow: hidden;
-}
-.exp-label:nth-child(2) {
-  flex: 1;
-} /* matches .exp-amount */
-.exp-label:nth-child(3) {
-  flex: 1;
-} /* matches .exp-date — buttons have no label */
-
+/* Flat expense form — each field wraps its own label + input */
 .expense-form-row {
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: flex-end;
+  margin-bottom: 4px;
 }
-.exp-input {
+
+.exp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.exp-field label {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.exp-field input {
   height: 44px;
-  padding: 0 10px;
-  font-size: 15px;
-  flex-shrink: 0;
+  margin: 0;
 }
+
 .exp-desc {
   flex: 2;
 }
 .exp-amount {
   flex: 1;
-  min-width: 0;
 }
 .exp-date {
   flex: 1;
-  min-width: 0;
 }
 
 .btn-exp-action {
