@@ -697,11 +697,37 @@ th {
   color: var(--danger);
 }
 .action-col {
-  text-align: center;
-  width: 50px;
+  width: 80px;
+  padding: 6px 4px !important;
+}
+td.action-col {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
 }
 .action-col--wide {
-  width: 96px;
+  width: 80px;
+}
+
+/* ── DATE + TODAY BUTTON ── */
+.date-with-today {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.date-with-today input[type="date"] {
+  flex: 1;
+  min-width: 0;
+}
+.btn-today {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 11px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 .btn-edit-expense {
   background-color: transparent;

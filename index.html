@@ -161,7 +161,10 @@
           </div>
           <div>
             <label for="exp-date">Date</label>
-            <input type="date" id="exp-date"/>
+            <div class="date-with-today">
+              <input type="date" id="exp-date"/>
+              <button type="button" id="btn-today-expense" class="btn-today" title="Set to today">Today</button>
+            </div>
           </div>
           <div style="padding-top:18px;">
             <button id="btn-add-expense">OK</button>
@@ -209,7 +212,10 @@
       </div>
       <div class="form-group">
         <label for="edit-exp-date">Date</label>
-        <input type="date" id="edit-exp-date"/>
+        <div class="date-with-today">
+          <input type="date" id="edit-exp-date"/>
+          <button type="button" id="btn-today-edit-exp" class="btn-today" title="Set to today">Today</button>
+        </div>
         <span class="field-error" id="err-edit-exp-date"></span>
       </div>
       <div class="modal-actions" style="margin-top:16px;">

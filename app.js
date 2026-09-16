@@ -1046,6 +1046,22 @@ document
 
 // -- EVENT LISTENERS
 
+// -- TODAY BUTTON HANDLERS
+document.getElementById("btn-today-expense").addEventListener("click", () => {
+  expDateInput.value = new Date().toISOString().slice(0, 10);
+  expDateInput.classList.remove("is-invalid");
+  clearFieldError(expDateInput, "err-exp-date");
+});
+
+document.getElementById("btn-today-edit-exp").addEventListener("click", () => {
+  const dateEl = document.getElementById("edit-exp-date");
+  if (dateEl) {
+    dateEl.value = new Date().toISOString().slice(0, 10);
+    dateEl.classList.remove("is-invalid");
+    clearFieldError(dateEl, "err-edit-exp-date");
+  }
+});
+
 document.getElementById("btn-back").addEventListener("click", () => {
   activeMonthId = null;
   renderHistory();
