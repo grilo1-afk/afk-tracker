@@ -431,35 +431,55 @@ document.getElementById("password").addEventListener("keydown", (e) => {
 // -- INIT
 (async function init() {
   applyTheme(getPreferredTheme());
-  const session = await getSession();
-  if (!session) return;
-  loginScreen.classList.add("hidden");
-  const cached = readLocalCache();
-  if (cached) {
-    setState(cached);
-    ensureCurrentMonth(dbAddMonth); sortMonths();
-    renderHistory(); await renderWelcomeName(); showScreen("history");
-    try {
-      const fresh = await loadState();
-      setState(fresh); writeLocalCache(state);
-      ensureCurrentMonth(dbAddMonth); sortMonths(); renderHistory();
-    } catch (e) { console.error("Background sync failed:", e); }
-  } else {
-    const overlay = document.createElement("div");
-    overlay.id = "init-loading";
-    overlay.style.cssText = "position:fixed;inset:0;background:#0b0c10;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:999;font-family:'Segoe UI',sans-serif;";
-    overlay.innerHTML = `
-      <style>
-        @keyframes _dots{0%,20%{content:"."}40%{content:".."}60%,100%{content:"..."}}
-        @keyframes _pulse{0%,100%{opacity:0.7}50%{opacity:1}}
-        #_load-logo{animation:_pulse 1.8s ease-in-out infinite;max-width:220px;width:80vw;}
-        #_load-text::after{content:"...";display:inline-block;animation:_dots 1.4s steps(1,end) infinite;}
-      </style>
-      <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
-      <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;"><span id="_load-text">Loading</span></div>
-    `;
-    document.body.appendChild(overlay);
-    try { await doLogin(); } catch (e) { console.error("init doLogin failed:", e); }
+
+  // Show loading overlay immediately — before ANY async work.
+  // This prevents the login screen flashing on refresh when a session exists.
+  const overlay = document.createElement("div");
+  overlay.id = "init-loading";
+  overlay.style.cssText = "position:fixed;inset:0;background:#0b0c10;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:999;font-family:'Segoe UI',sans-serif;";
+  overlay.innerHTML = `
+    <style>
+      @keyframes _dots{0%,20%{content:"."}40%{content:".."}60%,100%{content:"..."}}
+      @keyframes _pulse{0%,100%{opacity:0.7}50%{opacity:1}}
+      #_load-logo{animation:_pulse 1.8s ease-in-out infinite;max-width:220px;width:80vw;}
+      #_load-text::after{content:"...";display:inline-block;animation:_dots 1.4s steps(1,end) infinite;}
+    </style>
+    <img id="_load-logo" src="images/logo.png" alt="AFK Arena Tracker"/>
+    <div style="color:#d4cfc8;font-size:12px;letter-spacing:2px;text-transform:uppercase;"><span id="_load-text">Loading</span></div>
+  `;
+  document.body.appendChild(overlay);
+
+  try {
+    const session = await getSession();
+    if (!session) {
+      // No session — show login screen, done.
+      overlay.remove();
+      return;
+    }
+
+    loginScreen.classList.add("hidden");
+    const cached = readLocalCache();
+
+    if (cached) {
+      // Warm load: render from cache immediately, sync in background
+      setState(cached);
+      ensureCurrentMonth(dbAddMonth); sortMonths();
+      renderHistory(); await renderWelcomeName();
+      showScreen("history");
+      overlay.remove(); // Reveal history screen, sync continues silently
+
+      try {
+        const fresh = await loadState();
+        setState(fresh); writeLocalCache(state);
+        ensureCurrentMonth(dbAddMonth); sortMonths(); renderHistory();
+      } catch (e) { console.error("Background sync failed:", e); }
+    } else {
+      // Cold load: no cache — block on full loadState
+      try { await doLogin(); } catch (e) { console.error("init doLogin failed:", e); }
+      overlay.remove();
+    }
+  } catch (e) {
+    console.error("init failed:", e);
     overlay.remove();
   }
 })();
