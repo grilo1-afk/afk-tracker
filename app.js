@@ -1161,15 +1161,32 @@ const currentPassInput = document.getElementById("current-pass-input");
 const newPassInput = document.getElementById("new-pass-input");
 const confirmPassInput = document.getElementById("confirm-pass-input");
 
+// Display name is sourced from profiles table; localStorage is used only as a fast-read cache.
 function getDisplayName() {
   return localStorage.getItem("afk_display_name") || "User";
 }
 
-function setDisplayName(name) {
-  localStorage.setItem("afk_display_name", name.trim() || "User");
+function cacheDisplayName(name) {
+  localStorage.setItem("afk_display_name", (name || "").trim() || "User");
 }
 
-function openProfileModal() {
+async function openProfileModal() {
+  // Attempt to refresh display name from DB on every open
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData && authData.user;
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+      if (profile && profile.display_name) {
+        cacheDisplayName(profile.display_name);
+      }
+    }
+  } catch (_) { /* non-fatal */ }
+
   displayNameInput.value = getDisplayName();
   currentPassInput.value = "";
   newPassInput.value = "";
@@ -1214,7 +1231,18 @@ document
     const btn = document.getElementById("btn-profile-save");
 
     if (newName) {
-      setDisplayName(newName);
+      // Persist to Supabase profiles table; keep localStorage in sync as cache
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData && authData.user;
+        if (user) {
+          await supabase
+            .from("profiles")
+            .update({ display_name: newName })
+            .eq("id", user.id);
+        }
+      } catch (_) { /* non-fatal */ }
+      cacheDisplayName(newName);
       renderWelcomeName();
     }
 
@@ -1336,8 +1364,10 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   btnLogin.disabled = true;
 
   try {
+    // Normalize: if the user typed a plain username (no @), append the internal domain
+    const email = u.includes("@") ? u : u + "@afk-tracker.com";
     const { error } = await supabase.auth.signInWithPassword({
-      email: u,
+      email,
       password: p,
     });
     if (error) {
