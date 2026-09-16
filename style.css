@@ -681,12 +681,11 @@ button.btn-danger.btn--loading::after {
 .expense-add-wrap {
   display: flex;
   align-items: flex-end;
+  padding-bottom: 0;
 }
 
-#btn-add-expense {
-  margin-bottom: 0;
-}
-.expense-inputs button {
+/* Only shrink the OK/Add button — not #btn-add-expense which has its own rule */
+.expense-inputs button:not(#btn-add-expense) {
   width: 56px;
   padding: 10px 6px;
 }
@@ -793,12 +792,14 @@ td.action-col {
   transform: none;
   box-shadow: none;
 }
-/* Add-expense button — match btn-today compact style */
+/* Add-expense button */
 #btn-add-expense {
   padding: 8px 12px;
   font-size: 12px;
-  min-height: 36px;
+  min-height: 44px;
   letter-spacing: 0.5px;
+  margin-bottom: 0;
+  width: auto;
 }
 
 .section-title {
