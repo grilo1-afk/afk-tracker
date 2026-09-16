@@ -734,21 +734,22 @@ button.btn-danger.btn--loading::after {
 
 .expense-form-labels {
   display: flex;
-  gap: 10px;
+  gap: 12px; /* must match expense-form-row gap exactly */
   margin-bottom: 4px;
 }
 .exp-label {
   font-weight: bold;
   font-size: 13px;
   color: var(--text-light);
-  flex: 2;
+  flex: 2; /* matches .exp-desc */
+  overflow: hidden;
 }
 .exp-label:nth-child(2) {
   flex: 1;
-}
+} /* matches .exp-amount */
 .exp-label:nth-child(3) {
   flex: 1;
-}
+} /* matches .exp-date — buttons have no label */
 
 .expense-form-row {
   display: flex;
@@ -774,14 +775,15 @@ button.btn-danger.btn--loading::after {
 }
 
 .btn-exp-action {
-  height: 44px;
-  min-height: 44px;
+  height: 36px;
+  min-height: 36px;
   width: auto;
   padding: 0 14px;
   font-size: 12px;
   letter-spacing: 0.5px;
   flex-shrink: 0;
   white-space: nowrap;
+  align-self: center; /* vertically center within the 44px input row */
 }
 table {
   width: 100%;

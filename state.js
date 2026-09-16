@@ -10,16 +10,27 @@ export function setState(newState) {
 }
 
 export let activeMonthId = null;
-export function setActiveMonthId(id) { activeMonthId = id; }
+export function setActiveMonthId(id) {
+  activeMonthId = id;
+}
 
 export const MONTH_NAMES = [
-  "January", "February", "March",    "April",
-  "May",     "June",     "July",     "August",
-  "September","October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // -- LOCAL CACHE
-const SESSION_KEY     = "afk_session";
+const SESSION_KEY = "afk_session";
 const STATE_CACHE_KEY = "afk_state";
 
 export function readLocalCache() {
@@ -29,13 +40,17 @@ export function readLocalCache() {
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.months)) return null;
     return parsed;
-  } catch (_) { return null; }
+  } catch (_) {
+    return null;
+  }
 }
 
 export function writeLocalCache(stateObj) {
   try {
     localStorage.setItem(STATE_CACHE_KEY, JSON.stringify(stateObj));
-  } catch (_) { /* non-fatal */ }
+  } catch (_) {
+    /* non-fatal */
+  }
 }
 
 export function clearLocalCache() {
@@ -67,8 +82,8 @@ export function getActiveMonth() {
 }
 
 export function getCurrentMonthObj() {
-  const now   = new Date();
-  const year  = now.getFullYear();
+  const now = new Date();
+  const year = now.getFullYear();
   const month = now.getMonth(); // 0-based
   return state.months.find((m) => m.year === year && m.month === month) || null;
 }
@@ -78,16 +93,16 @@ export function getCurrentMonthObj() {
 // budget = 0 in DB means "not set" → map to null in UI.
 export function dbRowsToState(monthRows) {
   const months = monthRows.map((m) => ({
-    id:       m.id,
-    name:     m.name,
-    year:     m.year,
-    month:    m.month - 1,
-    budget:   m.budget > 0 ? parseFloat(m.budget) : null,
+    id: m.id,
+    name: m.name,
+    year: m.year,
+    month: m.month - 1,
+    budget: m.budget > 0 ? parseFloat(m.budget) : null,
     expenses: (m.expenses || []).map((e) => ({
-      id:        e.id,
-      desc:      e.description,
-      val:       parseFloat(e.amount),
-      date:      e.expense_date,
+      id: e.id,
+      desc: e.description,
+      val: parseFloat(e.amount),
+      date: e.expense_date,
       createdAt: e.created_at,
     })),
   }));

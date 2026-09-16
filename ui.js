@@ -1,17 +1,26 @@
-
 import {
-  state, activeMonthId, setActiveMonthId, MONTH_NAMES,
-  fmt, getActiveMonth, getCurrentMonthObj,
-  getDisplayName, cacheDisplayName,
+  state,
+  activeMonthId,
+  setActiveMonthId,
+  MONTH_NAMES,
+  fmt,
+  getActiveMonth,
+  getCurrentMonthObj,
+  getDisplayName,
+  cacheDisplayName,
 } from "./state.js";
 import { supabase } from "./supabase-client.js";
 
 // -- SCREEN ROUTING
-const loginScreen   = document.getElementById("login-screen");
+const loginScreen = document.getElementById("login-screen");
 const historyScreen = document.getElementById("history-screen");
-const monthScreen   = document.getElementById("month-screen");
+const monthScreen = document.getElementById("month-screen");
 
-const SCREENS = { login: loginScreen, history: historyScreen, month: monthScreen };
+const SCREENS = {
+  login: loginScreen,
+  history: historyScreen,
+  month: monthScreen,
+};
 
 export function showScreen(name) {
   Object.values(SCREENS).forEach((s) => s.classList.add("hidden"));
@@ -23,13 +32,17 @@ export function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("afk_theme", theme);
   const icon = theme === "dark" ? "light_mode" : "dark_mode";
-  document.querySelectorAll(".theme-icon").forEach((el) => { el.textContent = icon; });
+  document.querySelectorAll(".theme-icon").forEach((el) => {
+    el.textContent = icon;
+  });
 }
 
 export function getPreferredTheme() {
   const saved = localStorage.getItem("afk_theme");
   if (saved) return saved;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return window.matchMedia("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
 }
 
 export function toggleTheme() {
@@ -66,7 +79,7 @@ export function clearBanner(bannerId) {
 
 // -- DISPLAY NAME
 export async function renderWelcomeName() {
-  const name = (state.displayName) || getDisplayName();
+  const name = state.displayName || getDisplayName();
   const el = document.getElementById("welcome-name");
   if (el) el.textContent = name;
 }
@@ -79,23 +92,24 @@ export function sortMonths() {
 }
 
 export function renderHistory() {
-  const monthList  = document.getElementById("month-list");
+  const monthList = document.getElementById("month-list");
   const currentObj = getCurrentMonthObj();
   monthList.innerHTML = "";
   if (state.months.length === 0) {
-    monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
+    monthList.innerHTML =
+      '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
     return;
   }
   state.months.forEach((m) => {
-    const isCurrent  = currentObj && m.id === currentObj.id;
+    const isCurrent = currentObj && m.id === currentObj.id;
     const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
-    const hasBudget  = m.budget !== null;
-    const metaText   = hasBudget
+    const hasBudget = m.budget !== null;
+    const metaText = hasBudget
       ? "Budget: " + fmt(m.budget) + " \u2022 Spent: " + fmt(totalSpent)
       : "Budget not set yet";
 
-    const card      = document.createElement("div");
-    card.className  = "month-card";
+    const card = document.createElement("div");
+    card.className = "month-card";
 
     const clickable = document.createElement("div");
     clickable.className = "month-card-clickable month-card-info";
@@ -139,15 +153,15 @@ export function renderHistory() {
 }
 
 // -- MONTH VIEW
-const monthViewTitle    = document.getElementById("month-view-title");
-const budgetSetupBox    = document.getElementById("budget-setup-box");
-const statsSection      = document.getElementById("stats-section");
+const monthViewTitle = document.getElementById("month-view-title");
+const budgetSetupBox = document.getElementById("budget-setup-box");
+const statsSection = document.getElementById("stats-section");
 const addExpenseSection = document.getElementById("add-expense-section");
-const expDateInput      = document.getElementById("exp-date");
-const displayBudget     = document.getElementById("display-budget");
-const displaySpent      = document.getElementById("display-spent");
-const displayRemaining  = document.getElementById("display-remaining");
-const tableBody         = document.getElementById("expense-table-body");
+const expDateInput = document.getElementById("exp-date");
+const displayBudget = document.getElementById("display-budget");
+const displaySpent = document.getElementById("display-spent");
+const displayRemaining = document.getElementById("display-remaining");
+const tableBody = document.getElementById("expense-table-body");
 
 export function openMonth(id) {
   setActiveMonthId(id);
@@ -168,7 +182,8 @@ export function openMonth(id) {
     const lastDay = new Date(m.year, m.month + 1, 0).getDate();
     const mm = String(m.month + 1).padStart(2, "0");
     expDateInput.min = m.year + "-" + mm + "-01";
-    expDateInput.max = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
+    expDateInput.max =
+      m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
     renderStats(m);
     renderExpenses(m);
   }
@@ -176,56 +191,82 @@ export function openMonth(id) {
 }
 
 export function renderStats(m) {
-  const spent     = m.expenses.reduce((s, e) => s + e.val, 0);
+  const spent = m.expenses.reduce((s, e) => s + e.val, 0);
   const remaining = m.budget - spent;
-  displayBudget.textContent    = fmt(m.budget);
-  displaySpent.textContent     = fmt(spent);
+  displayBudget.textContent = fmt(m.budget);
+  displaySpent.textContent = fmt(spent);
   displayRemaining.textContent = fmt(remaining);
   displayRemaining.classList.toggle("over-budget", remaining < 0);
 
   const progressWrap = document.getElementById("budget-progress-wrap");
-  const barFill      = document.getElementById("budget-bar-fill");
-  const pctText      = document.getElementById("budget-pct-text");
+  const barFill = document.getElementById("budget-bar-fill");
+  const pctText = document.getElementById("budget-pct-text");
   if (progressWrap && barFill && pctText && m.budget > 0) {
-    const rawPct     = (spent / m.budget) * 100;
-    const clampPct   = Math.min(rawPct, 100);
+    const rawPct = (spent / m.budget) * 100;
+    const clampPct = Math.min(rawPct, 100);
     const colorClass = rawPct >= 100 ? "over" : rawPct >= 80 ? "warn" : "";
     barFill.style.width = clampPct + "%";
-    barFill.className   = "budget-bar-fill" + (colorClass ? " " + colorClass : "");
+    barFill.className =
+      "budget-bar-fill" + (colorClass ? " " + colorClass : "");
     pctText.textContent = rawPct.toFixed(1) + "% of budget used";
-    pctText.className   = "budget-pct-text" + (colorClass ? " " + colorClass : "");
+    pctText.className =
+      "budget-pct-text" + (colorClass ? " " + colorClass : "");
     progressWrap.classList.remove("hidden");
   } else if (progressWrap) {
     progressWrap.classList.add("hidden");
   }
 
-  const dailyEl    = document.getElementById("daily-allowance");
+  const dailyEl = document.getElementById("daily-allowance");
   const currentObj = getCurrentMonthObj();
   if (dailyEl) {
     if (currentObj && m.id === currentObj.id && remaining > 0) {
-      const now      = new Date();
-      const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+      const now = new Date();
+      const daysLeft =
+        new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() -
+        now.getDate();
       if (daysLeft > 0) {
-        dailyEl.textContent = fmt(remaining / daysLeft) + " / day  (" + daysLeft + " day" + (daysLeft !== 1 ? "s" : "") + " left)";
+        dailyEl.textContent =
+          fmt(remaining / daysLeft) +
+          " / day  (" +
+          daysLeft +
+          " day" +
+          (daysLeft !== 1 ? "s" : "") +
+          " left)";
         dailyEl.classList.remove("hidden");
-      } else { dailyEl.classList.add("hidden"); }
-    } else { dailyEl.classList.add("hidden"); }
+      } else {
+        dailyEl.classList.add("hidden");
+      }
+    } else {
+      dailyEl.classList.add("hidden");
+    }
   }
 
   const projEl = document.getElementById("spending-projection");
   if (projEl) {
     const now = new Date();
-    const dp  = now.getDate();
+    const dp = now.getDate();
     const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    if (currentObj && m.id === currentObj.id && dp >= 3 && m.expenses.length > 0) {
+    if (
+      currentObj &&
+      m.id === currentObj.id &&
+      dp >= 3 &&
+      m.expenses.length > 0
+    ) {
       const proj = (spent / dp) * dim;
       const diff = proj - m.budget;
-      projEl.textContent = diff > 0
-        ? "At this pace: " + fmt(proj) + " projected  \u26A0 " + fmt(diff) + " over budget"
-        : "At this pace: " + fmt(proj) + " projected  \u2713 On track";
+      projEl.textContent =
+        diff > 0
+          ? "At this pace: " +
+            fmt(proj) +
+            " projected  \u26A0 " +
+            fmt(diff) +
+            " over budget"
+          : "At this pace: " + fmt(proj) + " projected  \u2713 On track";
       projEl.className = "stat-hint " + (diff > 0 ? "over" : "ok");
       projEl.classList.remove("hidden");
-    } else { projEl.classList.add("hidden"); }
+    } else {
+      projEl.classList.add("hidden");
+    }
   }
 }
 
@@ -240,10 +281,16 @@ function formatExpenseDate(isoDate) {
 
 // deleteExpense callback registered by app.js to avoid circular imports
 let _deleteExpenseCb = null;
-export function registerDeleteExpenseCb(fn) { _deleteExpenseCb = fn; }
+export function registerDeleteExpenseCb(fn) {
+  _deleteExpenseCb = fn;
+}
 
 export function renderExpenses(m) {
-  if (window.innerWidth <= 480) { _renderExpenseCards(m); } else { _renderExpenseTable(m); }
+  if (window.innerWidth <= 480) {
+    _renderExpenseCards(m);
+  } else {
+    _renderExpenseTable(m);
+  }
 }
 
 function _renderExpenseTable(m) {
@@ -253,7 +300,8 @@ function _renderExpenseTable(m) {
   if (table) table.style.display = "";
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
-    tableBody.innerHTML = '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
+    tableBody.innerHTML =
+      '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
     return;
   }
   m.expenses.forEach((exp) => {
@@ -271,16 +319,22 @@ function _renderExpenseTable(m) {
     const btnEdit = document.createElement("button");
     btnEdit.className = "btn-edit-expense";
     btnEdit.title = "Edit expense";
-    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.innerHTML =
+      '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
     btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
-    btnDel.addEventListener("click", () => _deleteExpenseCb && _deleteExpenseCb(exp.id));
+    btnDel.addEventListener(
+      "click",
+      () => _deleteExpenseCb && _deleteExpenseCb(exp.id),
+    );
     tdAction.appendChild(btnEdit);
     tdAction.appendChild(btnDel);
-    tr.appendChild(tdDate); tr.appendChild(tdDesc);
-    tr.appendChild(tdVal);  tr.appendChild(tdAction);
+    tr.appendChild(tdDate);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdVal);
+    tr.appendChild(tdAction);
     tableBody.appendChild(tr);
   });
 }
@@ -294,7 +348,8 @@ function _renderExpenseCards(m) {
     cardList = document.createElement("div");
     cardList.id = "expense-card-list";
     cardList.className = "expense-card-list";
-    if (table && table.parentNode) table.parentNode.insertBefore(cardList, table);
+    if (table && table.parentNode)
+      table.parentNode.insertBefore(cardList, table);
   }
   cardList.innerHTML = "";
   if (m.expenses.length === 0) {
@@ -323,16 +378,23 @@ function _renderExpenseCards(m) {
     const btnEdit = document.createElement("button");
     btnEdit.className = "btn-edit-expense";
     btnEdit.title = "Edit expense";
-    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.innerHTML =
+      '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
     btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
-    btnDel.addEventListener("click", () => _deleteExpenseCb && _deleteExpenseCb(exp.id));
+    btnDel.addEventListener(
+      "click",
+      () => _deleteExpenseCb && _deleteExpenseCb(exp.id),
+    );
     actionsEl.appendChild(btnEdit);
     actionsEl.appendChild(btnDel);
-    row.appendChild(dateEl); row.appendChild(valEl); row.appendChild(actionsEl);
-    card.appendChild(descEl); card.appendChild(row);
+    row.appendChild(dateEl);
+    row.appendChild(valEl);
+    row.appendChild(actionsEl);
+    card.appendChild(descEl);
+    card.appendChild(row);
     cardList.appendChild(card);
   });
 }
@@ -354,26 +416,28 @@ export function hideUndoToast() {
 let _editingExpenseId = null;
 
 export function openEditExpenseModal(expId) {
-  const m   = getActiveMonth();
+  const m = getActiveMonth();
   if (!m) return;
   const exp = m.expenses.find((e) => e.id === expId);
   if (!exp) return;
   _editingExpenseId = expId;
   const descEl = document.getElementById("edit-exp-desc");
-  const valEl  = document.getElementById("edit-exp-val");
+  const valEl = document.getElementById("edit-exp-val");
   const dateEl = document.getElementById("edit-exp-date");
   descEl.value = exp.desc;
-  valEl.value  = exp.val;
+  valEl.value = exp.val;
   dateEl.value = exp.date || "";
   const lastDay = new Date(m.year, m.month + 1, 0).getDate();
   const mm = String(m.month + 1).padStart(2, "0");
   dateEl.min = m.year + "-" + mm + "-01";
   dateEl.max = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
   [descEl, valEl, dateEl].forEach((el) => el.classList.remove("is-invalid"));
-  ["err-edit-exp-desc", "err-edit-exp-val", "err-edit-exp-date"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = "";
-  });
+  ["err-edit-exp-desc", "err-edit-exp-val", "err-edit-exp-date"].forEach(
+    (id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = "";
+    },
+  );
   document.getElementById("edit-expense-overlay").classList.remove("hidden");
   descEl.focus();
 }
@@ -383,7 +447,9 @@ export function closeEditExpenseModal() {
   document.getElementById("edit-expense-overlay").classList.add("hidden");
 }
 
-export function getEditingExpenseId() { return _editingExpenseId; }
+export function getEditingExpenseId() {
+  return _editingExpenseId;
+}
 
 // -- DELETE MONTH MODAL
 let _pendingDeleteMonthId = null;
@@ -393,10 +459,16 @@ export function openDeleteMonthModal(id) {
   if (!m) return;
   _pendingDeleteMonthId = id;
   const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
-  const expCount   = m.expenses.length;
-  document.getElementById("delete-month-name").textContent  = "Delete " + m.name + "?";
+  const expCount = m.expenses.length;
+  document.getElementById("delete-month-name").textContent =
+    "Delete " + m.name + "?";
   document.getElementById("delete-month-stats").textContent =
-    expCount + " expense" + (expCount !== 1 ? "s" : "") + " \u00B7 " + fmt(totalSpent) + " spent";
+    expCount +
+    " expense" +
+    (expCount !== 1 ? "s" : "") +
+    " \u00B7 " +
+    fmt(totalSpent) +
+    " spent";
   document.getElementById("delete-month-overlay").classList.remove("hidden");
 }
 
@@ -405,13 +477,15 @@ export function closeDeleteMonthModal() {
   document.getElementById("delete-month-overlay").classList.add("hidden");
 }
 
-export function getPendingDeleteMonthId() { return _pendingDeleteMonthId; }
+export function getPendingDeleteMonthId() {
+  return _pendingDeleteMonthId;
+}
 
 // -- MONTH PICKER MODAL
 export function openMonthPicker() {
   const now = new Date();
   document.getElementById("pick-month").value = now.getMonth();
-  document.getElementById("pick-year").value  = now.getFullYear();
+  document.getElementById("pick-year").value = now.getFullYear();
   document.getElementById("month-picker-overlay").classList.remove("hidden");
 }
 
@@ -428,14 +502,18 @@ export async function openProfileModal() {
     const user = authData && authData.user;
     if (user) {
       const { data: profile } = await supabase
-        .from("profiles").select("display_name").eq("id", user.id).single();
-      if (profile && profile.display_name) cacheDisplayName(profile.display_name);
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+      if (profile && profile.display_name)
+        cacheDisplayName(profile.display_name);
     }
   } catch (_) {}
-  document.getElementById("display-name-input").value  = getDisplayName();
-  document.getElementById("current-pass-input").value  = "";
-  document.getElementById("new-pass-input").value      = "";
-  document.getElementById("confirm-pass-input").value  = "";
+  document.getElementById("display-name-input").value = getDisplayName();
+  document.getElementById("current-pass-input").value = "";
+  document.getElementById("new-pass-input").value = "";
+  document.getElementById("confirm-pass-input").value = "";
   profileOverlay.classList.remove("hidden");
 }
 
@@ -445,14 +523,21 @@ export function closeProfileModal() {
 
 // -- ENSURE CURRENT MONTH EXISTS (fire-and-forget)
 export function ensureCurrentMonth(dbAddMonthFn) {
-  const now   = new Date();
-  const year  = now.getFullYear();
+  const now = new Date();
+  const year = now.getFullYear();
   const month = now.getMonth(); // 0-based
   if (!state.months.find((m) => m.year === year && m.month === month)) {
     const name = MONTH_NAMES[month] + " " + year;
     dbAddMonthFn(year, month + 1, name).then((newId) => {
       if (!newId) return;
-      state.months.unshift({ id: newId, name, year, month, budget: null, expenses: [] });
+      state.months.unshift({
+        id: newId,
+        name,
+        year,
+        month,
+        budget: null,
+        expenses: [],
+      });
       sortMonths();
       renderHistory();
     });
