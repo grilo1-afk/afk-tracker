@@ -684,8 +684,7 @@ button.btn-danger.btn--loading::after {
   padding-bottom: 0;
 }
 
-/* Only shrink the OK/Add button — not #btn-add-expense which has its own rule */
-.expense-inputs button:not(#btn-add-expense) {
+.expense-inputs button {
   width: 56px;
   padding: 10px 6px;
 }
@@ -792,14 +791,12 @@ td.action-col {
   transform: none;
   box-shadow: none;
 }
-/* Add-expense button */
+/* Add-expense button — auto width, same min-height as inputs */
 #btn-add-expense {
-  padding: 8px 12px;
-  font-size: 12px;
   min-height: 44px;
-  letter-spacing: 0.5px;
   margin-bottom: 0;
   width: auto;
+  padding: 0 16px;
 }
 
 .section-title {
