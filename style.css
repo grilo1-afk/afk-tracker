@@ -760,6 +760,7 @@ button.btn-danger.btn--loading::after {
 }
 .exp-date {
   flex: 1;
+  min-width: 130px;
 }
 
 .btn-exp-action {
