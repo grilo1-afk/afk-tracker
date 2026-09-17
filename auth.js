@@ -15,7 +15,6 @@ let _showScreen = null;
 let _showBanner = null;
 let _renderHistory = null;
 let _renderWelcomeName = null;
-let _ensureCurrentMonth = null;
 let _sortMonths = null;
 
 export function registerAuthCallbacks({
@@ -23,14 +22,12 @@ export function registerAuthCallbacks({
   showBanner,
   renderHistory,
   renderWelcomeName,
-  ensureCurrentMonth,
   sortMonths,
 }) {
   _showScreen = showScreen;
   _showBanner = showBanner;
   _renderHistory = renderHistory;
   _renderWelcomeName = renderWelcomeName;
-  _ensureCurrentMonth = ensureCurrentMonth;
   _sortMonths = sortMonths;
 }
 
@@ -78,7 +75,6 @@ export async function doLogin() {
     throw err;
   }
 
-  _ensureCurrentMonth && _ensureCurrentMonth();
   _sortMonths && _sortMonths();
   _renderHistory && _renderHistory();
   _renderWelcomeName && (await _renderWelcomeName());

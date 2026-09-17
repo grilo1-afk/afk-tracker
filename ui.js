@@ -468,25 +468,3 @@ export function closeProfileModal() {
   profileOverlay.classList.add("hidden");
 }
 
-// -- ENSURE CURRENT MONTH EXISTS (fire-and-forget)
-export function ensureCurrentMonth(dbAddMonthFn) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-based
-  if (!state.months.find((m) => m.year === year && m.month === month)) {
-    const name = MONTH_NAMES[month] + " " + year;
-    dbAddMonthFn(year, month + 1, name).then((newId) => {
-      if (!newId) return;
-      state.months.unshift({
-        id: newId,
-        name,
-        year,
-        month,
-        budget: null,
-        expenses: [],
-      });
-      sortMonths();
-      renderHistory();
-    });
-  }
-}

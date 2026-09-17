@@ -60,7 +60,6 @@ import {
   profileOverlay,
   openProfileModal,
   closeProfileModal,
-  ensureCurrentMonth,
   registerDeleteExpenseCb,
 } from "./ui.js";
 
@@ -70,7 +69,6 @@ registerAuthCallbacks({
   showBanner,
   renderHistory,
   renderWelcomeName,
-  ensureCurrentMonth: () => ensureCurrentMonth(dbAddMonth),
   sortMonths,
 });
 
@@ -684,7 +682,6 @@ document.getElementById("password").addEventListener("keydown", (e) => {
     if (cached) {
       // Warm load: render from cache immediately, sync in background
       setState(cached);
-      ensureCurrentMonth(dbAddMonth);
       sortMonths();
       renderHistory();
       await renderWelcomeName();
@@ -695,7 +692,6 @@ document.getElementById("password").addEventListener("keydown", (e) => {
         const fresh = await loadState();
         setState(fresh);
         writeLocalCache(state);
-        ensureCurrentMonth(dbAddMonth);
         sortMonths();
         renderHistory();
       } catch (e) {
