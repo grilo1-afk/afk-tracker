@@ -215,59 +215,6 @@ export function renderStats(m) {
   } else if (progressWrap) {
     progressWrap.classList.add("hidden");
   }
-
-  const dailyEl = document.getElementById("daily-allowance");
-  const currentObj = getCurrentMonthObj();
-  if (dailyEl) {
-    if (currentObj && m.id === currentObj.id && remaining > 0) {
-      const now = new Date();
-      const daysLeft =
-        new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() -
-        now.getDate();
-      if (daysLeft > 0) {
-        dailyEl.textContent =
-          fmt(remaining / daysLeft) +
-          " / day  (" +
-          daysLeft +
-          " day" +
-          (daysLeft !== 1 ? "s" : "") +
-          " left)";
-        dailyEl.classList.remove("hidden");
-      } else {
-        dailyEl.classList.add("hidden");
-      }
-    } else {
-      dailyEl.classList.add("hidden");
-    }
-  }
-
-  const projEl = document.getElementById("spending-projection");
-  if (projEl) {
-    const now = new Date();
-    const dp = now.getDate();
-    const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    if (
-      currentObj &&
-      m.id === currentObj.id &&
-      dp >= 3 &&
-      m.expenses.length > 0
-    ) {
-      const proj = (spent / dp) * dim;
-      const diff = proj - m.budget;
-      projEl.textContent =
-        diff > 0
-          ? "At this pace: " +
-            fmt(proj) +
-            " projected  \u26A0 " +
-            fmt(diff) +
-            " over budget"
-          : "At this pace: " + fmt(proj) + " projected  \u2713 On track";
-      projEl.className = "stat-hint " + (diff > 0 ? "over" : "ok");
-      projEl.classList.remove("hidden");
-    } else {
-      projEl.classList.add("hidden");
-    }
-  }
 }
 
 function formatExpenseDate(isoDate) {
