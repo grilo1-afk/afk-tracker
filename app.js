@@ -11,6 +11,7 @@ import {
   clearSession,
   getDisplayName,
   cacheDisplayName,
+  setCurrentUserId,
 } from "./state.js";
 import {
   loadState,
@@ -674,6 +675,8 @@ document.getElementById("password").addEventListener("keydown", (e) => {
       overlay.remove();
       return;
     }
+
+    setCurrentUserId(session.user.id);
 
     loginScreen.classList.add("hidden");
     const cached = readLocalCache();

@@ -6,6 +6,7 @@ import {
   clearSession,
   writeLocalCache,
   readLocalCache,
+  setCurrentUserId,
 } from "./state.js";
 import { loadState } from "./api.js";
 
@@ -35,6 +36,7 @@ export function registerAuthCallbacks({
 
 export function handleSessionInvalid(errorCode) {
   clearSession();
+  setCurrentUserId(null);
   setState({ displayName: null, months: [] });
   setActiveMonthId(null);
   document.getElementById("username").value = "";
@@ -62,6 +64,7 @@ export async function doLogin() {
     handleSessionInvalid("SESSION_INVALID");
     throw new Error("SESSION_INVALID");
   }
+  setCurrentUserId(user.id);
 
   try {
     const loaded = await loadState();
