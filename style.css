@@ -928,6 +928,29 @@ td.action-col {
   flex-direction: column;
   gap: 8px;
 }
+
+/* ── SETTINGS MODAL SECTIONS ── */
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+}
+.settings-section {
+  border-top: 1px solid #2a2f38;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+.settings-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.settings-section h4 {
+  color: var(--gold);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 12px;
+}
 /* Desktop: give screen-header its padding */
 .screen-header {
   padding: 16px 24px 14px;

@@ -145,9 +145,9 @@
           </button>
           <button
             id="btn-profile"
-            class="btn-icon"
-            title="Profile"
-            aria-label="Profile"
+              class="btn-icon"
+              title="Settings"
+              aria-label="Settings"
           >
             <span class="material-symbols-outlined">account_circle</span>
           </button>
@@ -217,8 +217,8 @@
           <button
             id="btn-profile-2"
             class="btn-icon"
-            title="Profile"
-            aria-label="Profile"
+            title="Settings"
+            aria-label="Settings"
           >
             <span class="material-symbols-outlined">account_circle</span>
           </button>
@@ -419,11 +419,11 @@
       </button>
     </div>
 
-    <!-- PROFILE MODAL -->
+    <!-- SETTINGS MODAL -->
     <div id="profile-overlay" class="modal-overlay hidden">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>Profile</h3>
+          <h3>Settings</h3>
           <button
             type="button"
             id="btn-profile-close-x"
@@ -434,76 +434,90 @@
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
-        <div class="form-group">
-          <label for="display-name-input">Display Name</label>
-          <input type="text" id="display-name-input" placeholder="e.g. Arian" />
-        </div>
-        <div
-          class="form-group"
-          style="
-            border-top: 1px solid #2a2f38;
-            padding-top: 16px;
-            margin-top: 4px;
-          "
-        >
-          <label>Change Password</label>
-          <div class="input-with-toggle" style="margin-bottom: 4px">
-            <input
-              type="password"
-              id="current-pass-input"
-              placeholder="Current password"
-            />
-            <button
-              type="button"
-              class="btn-eye btn-eye-profile"
-              data-target="current-pass-input"
-              title="Show/hide"
-            >
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
+        <div class="settings-sections">
+          <!-- Profile section -->
+          <div class="settings-section" id="settings-section-profile">
+            <h4>Profile</h4>
+            <div class="form-group">
+              <label for="display-name-input">Display Name</label>
+              <input type="text" id="display-name-input" placeholder="e.g. Arian" />
+            </div>
           </div>
-          <span class="field-error" id="err-current-pass"></span>
-          <div
-            class="input-with-toggle"
-            style="margin-top: 6px; margin-bottom: 4px"
-          >
-            <input
-              type="password"
-              id="new-pass-input"
-              placeholder="New password"
-            />
-            <button
-              type="button"
-              class="btn-eye btn-eye-profile"
-              data-target="new-pass-input"
-              title="Show/hide"
-            >
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
+
+          <!-- Appearance section (empty — C2 will populate) -->
+          <div class="settings-section" id="settings-section-appearance">
+            <h4>Appearance</h4>
           </div>
-          <span class="field-error" id="err-new-pass"></span>
-          <div class="input-with-toggle" style="margin-top: 6px">
-            <input
-              type="password"
-              id="confirm-pass-input"
-              placeholder="Confirm new password"
-            />
-            <button
-              type="button"
-              class="btn-eye btn-eye-profile"
-              data-target="confirm-pass-input"
-              title="Show/hide"
-            >
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
+
+          <!-- Tracker section (empty — E1, E2, D4 will populate) -->
+          <div class="settings-section" id="settings-section-tracker">
+            <h4>Tracker</h4>
           </div>
-          <span class="field-error" id="err-confirm-pass"></span>
-        </div>
-        <div class="modal-actions" style="margin-top: 16px">
-          <button id="btn-profile-save">Save Changes</button>
-          <button id="btn-logout" class="btn-danger" style="margin-top: 8px">
-            Logout
-          </button>
+
+          <!-- Security section -->
+          <div class="settings-section" id="settings-section-security">
+            <h4>Security</h4>
+            <div class="form-group">
+              <label>Change Password</label>
+              <div class="input-with-toggle" style="margin-bottom: 4px">
+                <input
+                  type="password"
+                  id="current-pass-input"
+                  placeholder="Current password"
+                />
+                <button
+                  type="button"
+                  class="btn-eye btn-eye-profile"
+                  data-target="current-pass-input"
+                  title="Show/hide"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+              <span class="field-error" id="err-current-pass"></span>
+              <div
+                class="input-with-toggle"
+                style="margin-top: 6px; margin-bottom: 4px"
+              >
+                <input
+                  type="password"
+                  id="new-pass-input"
+                  placeholder="New password"
+                />
+                <button
+                  type="button"
+                  class="btn-eye btn-eye-profile"
+                  data-target="new-pass-input"
+                  title="Show/hide"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+              <span class="field-error" id="err-new-pass"></span>
+              <div class="input-with-toggle" style="margin-top: 6px">
+                <input
+                  type="password"
+                  id="confirm-pass-input"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  class="btn-eye btn-eye-profile"
+                  data-target="confirm-pass-input"
+                  title="Show/hide"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+              <span class="field-error" id="err-confirm-pass"></span>
+            </div>
+            <div class="modal-actions" style="margin-top: 16px">
+              <button id="btn-profile-save">Save Changes</button>
+              <button id="btn-logout" class="btn-danger" style="margin-top: 8px">
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
