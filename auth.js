@@ -70,7 +70,7 @@ export async function doLogin() {
   } catch (err) {
     if (err.isJwt) {
       handleSessionInvalid("SESSION_INVALID");
-      throw err;
+      throw new Error("SESSION_INVALID");
     }
     throw err;
   }
