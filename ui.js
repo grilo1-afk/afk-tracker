@@ -474,3 +474,24 @@ export function closeProfileModal() {
   profileOverlay.classList.add("hidden");
 }
 
+// -- SYNC STATUS INDICATOR
+// status: "syncing" | "stale" | null (null clears the indicator)
+// Uses existing .save-status class modifiers already in style.css:
+//   .saving  → muted/neutral tone
+//   .error   → warning/danger tone
+//   .visible → controls opacity transition
+export function setSyncStatus(status) {
+  document.querySelectorAll(".save-status").forEach((el) => {
+    el.classList.remove("visible", "saving", "error");
+    if (status === "syncing") {
+      el.textContent = "Syncing\u2026";
+      el.classList.add("visible", "saving");
+    } else if (status === "stale") {
+      el.textContent = "Showing saved data \u2014 could not refresh";
+      el.classList.add("visible", "error");
+    } else {
+      el.textContent = "";
+    }
+  });
+}
+

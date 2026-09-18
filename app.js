@@ -62,6 +62,7 @@ import {
   closeProfileModal,
   registerDeleteExpenseCb,
   parseMoneyInput,
+  setSyncStatus,
 } from "./ui.js";
 
 // -- WIRE AUTH CALLBACKS (breaks circular dep)
@@ -752,13 +753,16 @@ document.getElementById("password").addEventListener("keydown", (e) => {
       overlay.remove(); // Reveal history screen, sync continues silently
 
       try {
+        setSyncStatus("syncing");
         const fresh = await loadState();
         setState(fresh);
         writeLocalCache(state);
         sortMonths();
         renderHistory();
+        setSyncStatus(null);
       } catch (e) {
         console.error("Background sync failed:", e);
+        setSyncStatus("stale");
       }
     } else {
       // Cold load: no cache — block on full loadState
@@ -766,6 +770,17 @@ document.getElementById("password").addEventListener("keydown", (e) => {
         await doLogin();
       } catch (e) {
         console.error("init doLogin failed:", e);
+        // doLogin() throws "SESSION_INVALID" after calling handleSessionInvalid()
+        // internally, which already re-shows the login screen with its own banner.
+        // For every other failure (network drop, etc.) we must show something —
+        // without this the person is left on a blank page with no way to retry.
+        if (e.message !== "SESSION_INVALID") {
+          showScreen("login");
+          showBanner(
+            "login-error",
+            "Could not load your data. Check your connection and try again.",
+          );
+        }
       }
       overlay.remove();
     }
