@@ -86,7 +86,21 @@ function deleteExpense(expId) {
     const prev = _lastDeleted;
     _lastDeleted = null;
     hideUndoToast();
-    if (prev) dbDeleteExpense(prev.expense.id);
+    if (prev) {
+      dbDeleteExpense(prev.expense.id).then((ok) => {
+        if (!ok) {
+          const prevMonth = state.months.find((x) => x.id === prev.monthId);
+          if (prevMonth) {
+            prevMonth.expenses.splice(prev.index, 0, prev.expense);
+            if (prevMonth.id === activeMonthId) {
+              renderStats(prevMonth);
+              renderExpenses(prevMonth);
+            }
+          }
+          showBanner("login-error", "Could not delete expense. Try again.");
+        }
+      });
+    }
   }
   const idx = m.expenses.findIndex((e) => e.id === expId);
   if (idx === -1) return;
@@ -95,12 +109,26 @@ function deleteExpense(expId) {
   renderStats(m);
   renderExpenses(m);
   showUndoToast("Expense deleted");
-  _undoTimer = setTimeout(async () => {
+  _undoTimer = setTimeout(() => {
     _undoTimer = null;
     const toDelete = _lastDeleted;
     _lastDeleted = null;
     hideUndoToast();
-    if (toDelete) await dbDeleteExpense(toDelete.expense.id);
+    if (toDelete) {
+      dbDeleteExpense(toDelete.expense.id).then((ok) => {
+        if (!ok) {
+          const tMonth = state.months.find((x) => x.id === toDelete.monthId);
+          if (tMonth) {
+            tMonth.expenses.splice(toDelete.index, 0, toDelete.expense);
+            if (tMonth.id === activeMonthId) {
+              renderStats(tMonth);
+              renderExpenses(tMonth);
+            }
+          }
+          showBanner("login-error", "Could not delete expense. Try again.");
+        }
+      });
+    }
   }, 4000);
 }
 
@@ -277,11 +305,9 @@ btnSetBudget.addEventListener("click", async () => {
     return;
   }
   budgetInput.classList.remove("is-invalid");
-  const ok = await dbUpdateBudget(m.id, val);
-  if (!ok) {
-    showBanner("login-error", "Could not save budget. Try again.");
-    return;
-  }
+
+  // Optimistic: apply immediately, then persist
+  const prevBudget = m.budget;
   m.budget = val;
   budgetSetupBox.classList.add("hidden");
   statsSection.classList.remove("hidden");
@@ -294,6 +320,17 @@ btnSetBudget.addEventListener("click", async () => {
   expDateInput.max = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
   renderStats(m);
   renderExpenses(m);
+
+  const ok = await dbUpdateBudget(m.id, val);
+  if (!ok) {
+    m.budget = prevBudget;
+    budgetSetupBox.classList.remove("hidden");
+    statsSection.classList.add("hidden");
+    addExpenseSection.classList.add("hidden");
+    renderStats(m);
+    renderExpenses(m);
+    showBanner("login-error", "Could not save budget. Try again.");
+  }
 });
 
 document.getElementById("btn-cancel-budget").addEventListener("click", () => {
@@ -363,18 +400,11 @@ async function addExpense() {
     }
   }
   if (!valid) return;
-  const row = await dbAddExpense(m.id, desc, val, dateVal);
-  if (!row) {
-    showBanner("login-error", "Could not save expense. Try again.");
-    return;
-  }
-  m.expenses.push({
-    id: row.id,
-    desc,
-    val,
-    date: dateVal,
-    createdAt: row.created_at,
-  });
+
+  // Optimistic: push with tmp id, render and clear form immediately
+  const tmpId = `tmp-${crypto.randomUUID()}`;
+  const optimisticExpense = { id: tmpId, desc, val, date: dateVal, createdAt: null };
+  m.expenses.push(optimisticExpense);
   renderStats(m);
   renderExpenses(m);
   descInput.value = "";
@@ -382,6 +412,23 @@ async function addExpense() {
   expDateInput.value = new Date().toISOString().slice(0, 10);
   clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
+
+  const row = await dbAddExpense(m.id, desc, val, dateVal);
+  if (!row) {
+    // Rollback: remove the optimistic expense
+    const tmpIdx = m.expenses.findIndex((e) => e.id === tmpId);
+    if (tmpIdx !== -1) m.expenses.splice(tmpIdx, 1);
+    renderStats(m);
+    renderExpenses(m);
+    showBanner("login-error", "Could not save expense. Try again.");
+    return;
+  }
+  // Success: replace tmp id with real row data
+  const saved = m.expenses.find((e) => e.id === tmpId);
+  if (saved) {
+    saved.id = row.id;
+    saved.createdAt = row.created_at;
+  }
 }
 
 // -- EXPENSE EDIT MODAL
@@ -432,17 +479,28 @@ document
       clearFieldError(dateEl, "err-edit-exp-date");
     }
     if (!valid) return;
-    const ok = await dbUpdateExpense(exp.id, newDesc, newVal, newDate);
-    if (!ok) {
-      showBanner("login-error", "Could not update expense. Try again.");
-      return;
-    }
+
+    // Optimistic: apply new values, close modal, then persist
+    const prevDesc = exp.desc;
+    const prevVal = exp.val;
+    const prevDate = exp.date;
     exp.desc = newDesc;
     exp.val = newVal;
     exp.date = newDate;
     renderStats(m);
     renderExpenses(m);
     closeEditExpenseModal();
+
+    const ok = await dbUpdateExpense(exp.id, newDesc, newVal, newDate);
+    if (!ok) {
+      // Rollback
+      exp.desc = prevDesc;
+      exp.val = prevVal;
+      exp.date = prevDate;
+      renderStats(m);
+      renderExpenses(m);
+      showBanner("login-error", "Could not update expense. Try again.");
+    }
   });
 
 // -- DELETE MONTH
@@ -454,18 +512,27 @@ document
   .addEventListener("click", async () => {
     const id = getPendingDeleteMonthId();
     if (!id) return;
-    const ok = await dbDeleteMonth(id);
-    if (!ok) {
-      showBanner("login-error", "Could not delete month. Try again.");
-      closeDeleteMonthModal();
-      return;
-    }
+
+    // Optimistic: remove immediately, then persist
+    const idx = state.months.findIndex((x) => x.id === id);
+    if (idx === -1) return;
+    const savedMonth = state.months[idx];
     setState({
       months: state.months.filter((x) => x.id !== id),
       displayName: state.displayName,
     });
     closeDeleteMonthModal();
     renderHistory();
+
+    const ok = await dbDeleteMonth(id);
+    if (!ok) {
+      // Rollback: re-insert at original index
+      const restored = [...state.months];
+      restored.splice(idx, 0, savedMonth);
+      setState({ months: restored, displayName: state.displayName });
+      renderHistory();
+      showBanner("login-error", "Could not delete month. Try again.");
+    }
   });
 document
   .getElementById("delete-month-overlay")
