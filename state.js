@@ -21,6 +21,10 @@ export function setCurrentUserId(id) {
   }
 }
 
+export function getCurrentUserId() {
+  return currentUserId;
+}
+
 export let activeMonthId = null;
 export function setActiveMonthId(id) {
   activeMonthId = id;

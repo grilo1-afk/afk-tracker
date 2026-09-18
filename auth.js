@@ -7,6 +7,7 @@ import {
   writeLocalCache,
   readLocalCache,
   setCurrentUserId,
+  getCurrentUserId,
 } from "./state.js";
 import { loadState } from "./api.js";
 
@@ -86,9 +87,22 @@ export async function signInWithPassword(email, password) {
   return error || null; // null = success
 }
 
+let _isSigningOut = false;
+
 export async function signOut() {
+  _isSigningOut = true;
   await supabase.auth.signOut();
 }
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event !== "SIGNED_OUT") return;
+  if (_isSigningOut) {
+    _isSigningOut = false;
+    return;
+  }
+  if (getCurrentUserId() === null) return; // nothing was logged in — nothing to invalidate
+  handleSessionInvalid("SESSION_INVALID");
+});
 
 export async function getSession() {
   const {
