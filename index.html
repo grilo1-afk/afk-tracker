@@ -232,11 +232,10 @@
           <p>Warning: Once confirmed, this budget is locked for this month.</p>
           <div class="budget-setup-row">
             <input
-              type="number"
+              type="text"
+              inputmode="decimal"
               id="budget-input"
               placeholder="$ 0.00"
-              min="0"
-              step="0.01"
             />
             <button id="btn-set-budget">Confirm</button>
             <button type="button" id="btn-cancel-budget" class="btn-secondary">
@@ -289,11 +288,10 @@
             <div class="exp-field exp-amount">
               <label for="val">Amount ($)</label>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 id="val"
                 placeholder="0.00"
-                min="0"
-                step="0.01"
               />
             </div>
             <div class="exp-field exp-date">
@@ -359,11 +357,10 @@
         <div class="form-group">
           <label for="edit-exp-val">Amount ($)</label>
           <input
-            type="number"
+            type="text"
+            inputmode="decimal"
             id="edit-exp-val"
             placeholder="0.00"
-            min="0"
-            step="0.01"
           />
           <span class="field-error" id="err-edit-exp-val"></span>
         </div>

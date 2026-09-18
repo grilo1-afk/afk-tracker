@@ -63,6 +63,12 @@ export function clearFieldError(inputEl, spanId) {
   if (span) span.textContent = "";
 }
 
+export function parseMoneyInput(rawValue) {
+  const normalized = String(rawValue).trim().replace(",", ".");
+  const val = parseFloat(normalized);
+  return Number.isFinite(val) ? val : NaN;
+}
+
 export function showBanner(bannerId, message) {
   const el = document.getElementById(bannerId);
   if (!el) return;

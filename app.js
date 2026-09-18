@@ -61,6 +61,7 @@ import {
   openProfileModal,
   closeProfileModal,
   registerDeleteExpenseCb,
+  parseMoneyInput,
 } from "./ui.js";
 
 // -- WIRE AUTH CALLBACKS (breaks circular dep)
@@ -269,7 +270,7 @@ document
 btnSetBudget.addEventListener("click", async () => {
   const m = getActiveMonth();
   if (!m) return;
-  const val = parseFloat(budgetInput.value);
+  const val = parseMoneyInput(budgetInput.value);
   if (!val || val <= 0) {
     budgetInput.classList.add("is-invalid");
     budgetInput.setAttribute("placeholder", "Enter a valid amount");
@@ -332,7 +333,7 @@ async function addExpense() {
   const m = getActiveMonth();
   if (!m) return;
   const desc = descInput.value.trim();
-  const val = parseFloat(valInput.value);
+  const val = parseMoneyInput(valInput.value);
   const dateVal = expDateInput.value;
   let valid = true;
   if (!desc) {
@@ -409,7 +410,7 @@ document
     const valEl = document.getElementById("edit-exp-val");
     const dateEl = document.getElementById("edit-exp-date");
     const newDesc = descEl.value.trim();
-    const newVal = parseFloat(valEl.value);
+    const newVal = parseMoneyInput(valEl.value);
     const newDate = dateEl.value;
     let valid = true;
     if (!newDesc) {
