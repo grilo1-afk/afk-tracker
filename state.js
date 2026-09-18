@@ -109,8 +109,8 @@ export function cacheDisplayName(name) {
 }
 
 // -- HELPERS
-export function fmt(n) {
-  return "$ " + parseFloat(n).toFixed(2);
+export function fmt(cents) {
+  return "$ " + (cents / 100).toFixed(2);
 }
 
 export function getActiveMonth() {
@@ -133,11 +133,11 @@ export function dbRowsToState(monthRows) {
     name: m.name,
     year: m.year,
     month: m.month - 1,
-    budget: m.budget !== null ? parseFloat(m.budget) : null,
+    budget: m.budget !== null ? Math.round(parseFloat(m.budget) * 100) : null,
     expenses: (m.expenses || []).map((e) => ({
       id: e.id,
       desc: e.description,
-      val: parseFloat(e.amount),
+      val: Math.round(parseFloat(e.amount) * 100),
       date: e.expense_date,
       createdAt: e.created_at,
     })),

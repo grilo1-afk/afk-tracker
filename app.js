@@ -135,7 +135,7 @@ async function undoDeleteExpense() {
   if (!m) return;
 
   // Expense is already gone from DB — undo means re-creating it
-  const result = await dbAddExpense(monthId, expense.desc, expense.val, expense.date);
+  const result = await dbAddExpense(monthId, expense.desc, expense.val / 100, expense.date);
   if (!result.ok) {
     showBanner("login-error", "Could not restore expense. Try again.");
     return;
@@ -318,7 +318,7 @@ btnSetBudget.addEventListener("click", async () => {
 
   // Optimistic: apply immediately, then persist
   const prevBudget = m.budget;
-  m.budget = val;
+  m.budget = Math.round(val * 100);
   budgetSetupBox.classList.add("hidden");
   statsSection.classList.remove("hidden");
   addExpenseSection.classList.remove("hidden");
@@ -362,7 +362,7 @@ document.getElementById("btn-cancel-budget").addEventListener("click", () => {
 document.getElementById("btn-edit-budget").addEventListener("click", () => {
   const m = getActiveMonth();
   if (!m) return;
-  budgetInput.value = m.budget !== null ? m.budget : "";
+  budgetInput.value = m.budget !== null ? (m.budget / 100).toFixed(2) : "";
   budgetSetupBox.classList.remove("hidden");
   statsSection.classList.add("hidden");
   addExpenseSection.classList.add("hidden");
@@ -413,7 +413,7 @@ async function addExpense() {
 
   // Optimistic: push with tmp id, render and clear form immediately
   const tmpId = `tmp-${crypto.randomUUID()}`;
-  const optimisticExpense = { id: tmpId, desc, val, date: dateVal, createdAt: null };
+  const optimisticExpense = { id: tmpId, desc, val: Math.round(val * 100), date: dateVal, createdAt: null };
   m.expenses.push(optimisticExpense);
   renderStats(m);
   renderExpenses(m);
@@ -495,7 +495,7 @@ document
     const prevVal = exp.val;
     const prevDate = exp.date;
     exp.desc = newDesc;
-    exp.val = newVal;
+    exp.val = Math.round(newVal * 100);
     exp.date = newDate;
     renderStats(m);
     renderExpenses(m);

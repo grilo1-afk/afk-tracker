@@ -400,7 +400,7 @@ export function openEditExpenseModal(expId) {
   const valEl = document.getElementById("edit-exp-val");
   const dateEl = document.getElementById("edit-exp-date");
   descEl.value = exp.desc;
-  valEl.value = exp.val;
+  valEl.value = (exp.val / 100).toFixed(2);
   dateEl.value = exp.date || "";
   const lastDay = new Date(m.year, m.month + 1, 0).getDate();
   const mm = String(m.month + 1).padStart(2, "0");
