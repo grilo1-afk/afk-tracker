@@ -41,6 +41,7 @@ export async function loadState() {
     supabase
       .from("months")
       .select("*, expenses(*)")
+      .is("deleted_at", null)
       .order("year", { ascending: false })
       .order("month", { ascending: false })
       .order("expense_date", { foreignTable: "expenses", ascending: false })
@@ -102,7 +103,10 @@ export async function dbUpdateBudget(monthUuid, budget) {
 }
 
 export async function dbDeleteMonth(monthUuid) {
-  const { error } = await supabase.from("months").delete().eq("id", monthUuid);
+  const { error } = await supabase
+    .from("months")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", monthUuid);
 
   if (error) {
     console.error("dbDeleteMonth:", error);
