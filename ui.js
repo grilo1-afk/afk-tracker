@@ -207,16 +207,33 @@ export function renderStats(m) {
   const progressWrap = document.getElementById("budget-progress-wrap");
   const barFill = document.getElementById("budget-bar-fill");
   const pctText = document.getElementById("budget-pct-text");
-  if (progressWrap && barFill && pctText && m.budget > 0) {
-    const rawPct = (spent / m.budget) * 100;
-    const clampPct = Math.min(rawPct, 100);
-    const colorClass = rawPct >= 100 ? "over" : rawPct >= 80 ? "warn" : "";
-    barFill.style.width = clampPct + "%";
-    barFill.className =
-      "budget-bar-fill" + (colorClass ? " " + colorClass : "");
-    pctText.textContent = rawPct.toFixed(1) + "% of budget used";
-    pctText.className =
-      "budget-pct-text" + (colorClass ? " " + colorClass : "");
+  if (progressWrap && barFill && pctText && m.budget !== null) {
+    if (m.budget === 0) {
+      if (spent === 0) {
+        // Zero budget, nothing spent — show bar at 0%, no special styling
+        barFill.style.width = "0%";
+        barFill.className = "budget-bar-fill";
+        pctText.textContent = "0.0% of budget used";
+        pctText.className = "budget-pct-text";
+      } else {
+        // Zero budget, any spending — over budget by definition
+        barFill.style.width = "100%";
+        barFill.className = "budget-bar-fill over";
+        pctText.textContent = "100%+ of budget used";
+        pctText.className = "budget-pct-text over";
+      }
+    } else {
+      // Normal case: budget > 0
+      const rawPct = (spent / m.budget) * 100;
+      const clampPct = Math.min(rawPct, 100);
+      const colorClass = rawPct >= 100 ? "over" : rawPct >= 80 ? "warn" : "";
+      barFill.style.width = clampPct + "%";
+      barFill.className =
+        "budget-bar-fill" + (colorClass ? " " + colorClass : "");
+      pctText.textContent = rawPct.toFixed(1) + "% of budget used";
+      pctText.className =
+        "budget-pct-text" + (colorClass ? " " + colorClass : "");
+    }
     progressWrap.classList.remove("hidden");
   } else if (progressWrap) {
     progressWrap.classList.add("hidden");

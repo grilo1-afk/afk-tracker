@@ -126,14 +126,14 @@ export function getCurrentMonthObj() {
 
 // -- DB ROW → UI STATE MAPPER
 // months.month in DB is 1-based; UI expects 0-based.
-// budget = 0 in DB means "not set" → map to null in UI.
+// budget = null in DB means "not set yet"; 0 is a valid deliberate budget.
 export function dbRowsToState(monthRows) {
   const months = monthRows.map((m) => ({
     id: m.id,
     name: m.name,
     year: m.year,
     month: m.month - 1,
-    budget: m.budget > 0 ? parseFloat(m.budget) : null,
+    budget: m.budget !== null ? parseFloat(m.budget) : null,
     expenses: (m.expenses || []).map((e) => ({
       id: e.id,
       desc: e.description,

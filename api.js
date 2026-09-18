@@ -77,7 +77,7 @@ export async function dbAddMonth(year, monthOneBased, name, onAuthError) {
 
   const { data, error } = await supabase
     .from("months")
-    .insert({ user_id: user.id, year, month: monthOneBased, name, budget: 0 })
+    .insert({ user_id: user.id, year, month: monthOneBased, name })
     .select("id")
     .single();
 

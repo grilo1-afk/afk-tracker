@@ -309,7 +309,7 @@ btnSetBudget.addEventListener("click", async () => {
   const m = getActiveMonth();
   if (!m) return;
   const val = parseMoneyInput(budgetInput.value);
-  if (!val || val <= 0) {
+  if (Number.isNaN(val) || val < 0) {
     budgetInput.classList.add("is-invalid");
     budgetInput.setAttribute("placeholder", "Enter a valid amount");
     return;
