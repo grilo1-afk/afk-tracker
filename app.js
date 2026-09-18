@@ -36,7 +36,7 @@ import {
   showScreen,
   applyTheme,
   getPreferredTheme,
-  toggleTheme,
+  watchSystemTheme,
   showFieldError,
   clearFieldError,
   showBanner,
@@ -175,8 +175,7 @@ const btnAddExpense = document.getElementById("btn-add-expense");
 document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteExpense);
 
 // -- THEME
-document.getElementById("btn-theme").addEventListener("click", toggleTheme);
-document.getElementById("btn-theme-2").addEventListener("click", toggleTheme);
+document.getElementById("theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
 
 // -- PASSWORD TOGGLE
 document.getElementById("btn-toggle-password").addEventListener("click", () => {
@@ -738,6 +737,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
 // -- INIT
 (async function init() {
   applyTheme(getPreferredTheme());
+  watchSystemTheme();
 
   // The #init-loading overlay is baked into the HTML and visible from first paint.
   // We just grab the reference here; no need to create it.

@@ -28,26 +28,33 @@ export function showScreen(name) {
 }
 
 // -- THEME
-export function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("afk_theme", theme);
-  const icon = theme === "dark" ? "light_mode" : "dark_mode";
-  document.querySelectorAll(".theme-icon").forEach((el) => {
-    el.textContent = icon;
-  });
+function resolveTheme(preference) {
+  if (preference === "system") {
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
+  }
+  return preference;
+}
+
+export function applyTheme(preference) {
+  localStorage.setItem("afk_theme", preference);
+  document.documentElement.setAttribute("data-theme", resolveTheme(preference));
+  const select = document.getElementById("theme-select");
+  if (select) select.value = preference;
 }
 
 export function getPreferredTheme() {
-  const saved = localStorage.getItem("afk_theme");
-  if (saved) return saved;
-  return window.matchMedia("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
+  return localStorage.getItem("afk_theme") || "system";
 }
 
-export function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme") || "dark";
-  applyTheme(current === "dark" ? "light" : "dark");
+export function watchSystemTheme() {
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener(
+    "change",
+    () => {
+      if (getPreferredTheme() === "system") applyTheme("system");
+    },
+  );
 }
 
 // -- VALIDATION HELPERS
@@ -549,6 +556,7 @@ export async function openProfileModal(event) {
   document.getElementById("current-pass-input").value = "";
   document.getElementById("new-pass-input").value = "";
   document.getElementById("confirm-pass-input").value = "";
+  document.getElementById("theme-select").value = getPreferredTheme();
   _lastFocusedTrigger = (event && event.currentTarget) || null;
   profileOverlay.classList.remove("hidden");
   trapFocus(profileOverlay);

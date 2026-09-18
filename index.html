@@ -136,14 +136,6 @@
         <div class="header-actions">
           <span class="save-status" aria-live="polite"></span>
           <button
-            id="btn-theme"
-            class="btn-icon"
-            title="Toggle theme"
-            aria-label="Toggle theme"
-          >
-            <span class="material-symbols-outlined theme-icon">light_mode</span>
-          </button>
-          <button
             id="btn-profile"
               class="btn-icon"
               title="Settings"
@@ -205,14 +197,6 @@
           <span class="save-status" aria-live="polite"></span>
           <button id="btn-back" class="btn-icon" title="Back" aria-label="Back">
             <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-          <button
-            id="btn-theme-2"
-            class="btn-icon"
-            title="Toggle theme"
-            aria-label="Toggle theme"
-          >
-            <span class="material-symbols-outlined theme-icon">light_mode</span>
           </button>
           <button
             id="btn-profile-2"
@@ -444,9 +428,17 @@
             </div>
           </div>
 
-          <!-- Appearance section (empty — C2 will populate) -->
+          <!-- Appearance section -->
           <div class="settings-section" id="settings-section-appearance">
             <h4>Appearance</h4>
+            <div class="form-group">
+              <label for="theme-select">Theme</label>
+              <select id="theme-select">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+            </div>
           </div>
 
           <!-- Tracker section (empty — E1, E2, D4 will populate) -->
