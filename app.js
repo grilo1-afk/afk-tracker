@@ -125,9 +125,6 @@ function undoDeleteExpense() {
 // Register delete callback so ui.js can call it without importing app.js
 registerDeleteExpenseCb(deleteExpense);
 
-// Make undoDeleteExpense available for the inline onclick in HTML
-window.undoDeleteExpense = undoDeleteExpense;
-
 // -- DOM REFS
 const loginScreen = document.getElementById("login-screen");
 const budgetSetupBox = document.getElementById("budget-setup-box");
@@ -139,6 +136,9 @@ const descInput = document.getElementById("desc");
 const valInput = document.getElementById("val");
 const expDateInput = document.getElementById("exp-date");
 const btnAddExpense = document.getElementById("btn-add-expense");
+
+// -- UNDO TOAST
+document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteExpense);
 
 // -- THEME
 document.getElementById("btn-theme").addEventListener("click", toggleTheme);
@@ -318,12 +318,7 @@ document.getElementById("btn-edit-budget").addEventListener("click", () => {
   budgetSetupBox.classList.remove("hidden");
   statsSection.classList.add("hidden");
   addExpenseSection.classList.add("hidden");
-  ["budget-progress-wrap", "daily-allowance", "spending-projection"].forEach(
-    (id) => {
-      const el = document.getElementById(id);
-      if (el) el.classList.add("hidden");
-    },
-  );
+  document.getElementById("budget-progress-wrap")?.classList.add("hidden");
   budgetInput.focus();
 });
 

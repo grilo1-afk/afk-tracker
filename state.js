@@ -5,8 +5,6 @@ export let state = { displayName: null, months: [] };
 // Mutates state in-place so all module references stay live
 export function setState(newState) {
   Object.assign(state, newState);
-  state.months = newState.months;
-  state.displayName = newState.displayName ?? state.displayName;
 }
 
 // -- USER ID (for namespaced cache keys)
