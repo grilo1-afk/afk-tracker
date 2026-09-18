@@ -434,6 +434,7 @@ export function openEditExpenseModal(expId, triggerEl) {
   const exp = m.expenses.find((e) => e.id === expId);
   if (!exp) return;
   _editingExpenseId = expId;
+  _lastFocusedTrigger = triggerEl || null;
   const descEl = document.getElementById("edit-exp-desc");
   const valEl = document.getElementById("edit-exp-val");
   const dateEl = document.getElementById("edit-exp-date");
