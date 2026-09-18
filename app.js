@@ -88,8 +88,8 @@ function deleteExpense(expId) {
     _lastDeleted = null;
     hideUndoToast();
     if (prev) {
-      dbDeleteExpense(prev.expense.id).then((ok) => {
-        if (!ok) {
+      dbDeleteExpense(prev.expense.id).then((result) => {
+        if (!result.ok) {
           const prevMonth = state.months.find((x) => x.id === prev.monthId);
           if (prevMonth) {
             prevMonth.expenses.splice(prev.index, 0, prev.expense);
@@ -98,7 +98,7 @@ function deleteExpense(expId) {
               renderExpenses(prevMonth);
             }
           }
-          showBanner("login-error", "Could not delete expense. Try again.");
+          showBanner("login-error", result.message);
         }
       });
     }
@@ -116,8 +116,8 @@ function deleteExpense(expId) {
     _lastDeleted = null;
     hideUndoToast();
     if (toDelete) {
-      dbDeleteExpense(toDelete.expense.id).then((ok) => {
-        if (!ok) {
+      dbDeleteExpense(toDelete.expense.id).then((result) => {
+        if (!result.ok) {
           const tMonth = state.months.find((x) => x.id === toDelete.monthId);
           if (tMonth) {
             tMonth.expenses.splice(toDelete.index, 0, toDelete.expense);
@@ -126,7 +126,7 @@ function deleteExpense(expId) {
               renderExpenses(tMonth);
             }
           }
-          showBanner("login-error", "Could not delete expense. Try again.");
+          showBanner("login-error", result.message);
         }
       });
     }
@@ -221,12 +221,17 @@ document
       if (el) el.textContent = name + " already exists.";
       return;
     }
-    const newId = await dbAddMonth(y, m + 1, name, () =>
+    const result = await dbAddMonth(y, m + 1, name, () =>
       handleSessionInvalid("SESSION_INVALID"),
     );
-    if (!newId) return;
+    if (!result) return; // null = no session (onAuthError already called)
+    if (!result.ok) {
+      const el = document.getElementById("pick-error");
+      if (el) el.textContent = result.message;
+      return;
+    }
     state.months.push({
-      id: newId,
+      id: result.data,
       name,
       year: y,
       month: m,
@@ -236,7 +241,7 @@ document
     sortMonths();
     closeMonthPicker();
     renderHistory();
-    openMonth(newId);
+    openMonth(result.data);
   });
 
 // -- ESCAPE KEY
@@ -322,15 +327,15 @@ btnSetBudget.addEventListener("click", async () => {
   renderStats(m);
   renderExpenses(m);
 
-  const ok = await dbUpdateBudget(m.id, val);
-  if (!ok) {
+  const result = await dbUpdateBudget(m.id, val);
+  if (!result.ok) {
     m.budget = prevBudget;
     budgetSetupBox.classList.remove("hidden");
     statsSection.classList.add("hidden");
     addExpenseSection.classList.add("hidden");
     renderStats(m);
     renderExpenses(m);
-    showBanner("login-error", "Could not save budget. Try again.");
+    showBanner("login-error", result.message);
   }
 });
 
@@ -414,21 +419,21 @@ async function addExpense() {
   clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
 
-  const row = await dbAddExpense(m.id, desc, val, dateVal);
-  if (!row) {
+  const result = await dbAddExpense(m.id, desc, val, dateVal);
+  if (!result.ok) {
     // Rollback: remove the optimistic expense
     const tmpIdx = m.expenses.findIndex((e) => e.id === tmpId);
     if (tmpIdx !== -1) m.expenses.splice(tmpIdx, 1);
     renderStats(m);
     renderExpenses(m);
-    showBanner("login-error", "Could not save expense. Try again.");
+    showBanner("login-error", result.message);
     return;
   }
   // Success: replace tmp id with real row data
   const saved = m.expenses.find((e) => e.id === tmpId);
   if (saved) {
-    saved.id = row.id;
-    saved.createdAt = row.created_at;
+    saved.id = result.data.id;
+    saved.createdAt = result.data.created_at;
   }
 }
 
@@ -492,15 +497,15 @@ document
     renderExpenses(m);
     closeEditExpenseModal();
 
-    const ok = await dbUpdateExpense(exp.id, newDesc, newVal, newDate);
-    if (!ok) {
+    const result = await dbUpdateExpense(exp.id, newDesc, newVal, newDate);
+    if (!result.ok) {
       // Rollback
       exp.desc = prevDesc;
       exp.val = prevVal;
       exp.date = prevDate;
       renderStats(m);
       renderExpenses(m);
-      showBanner("login-error", "Could not update expense. Try again.");
+      showBanner("login-error", result.message);
     }
   });
 
@@ -525,14 +530,14 @@ document
     closeDeleteMonthModal();
     renderHistory();
 
-    const ok = await dbDeleteMonth(id);
-    if (!ok) {
+    const result = await dbDeleteMonth(id);
+    if (!result.ok) {
       // Rollback: re-insert at original index
       const restored = [...state.months];
       restored.splice(idx, 0, savedMonth);
       setState({ months: restored, displayName: state.displayName });
       renderHistory();
-      showBanner("login-error", "Could not delete month. Try again.");
+      showBanner("login-error", result.message);
     }
   });
 document
@@ -575,7 +580,15 @@ document
     const confirmPass = document.getElementById("confirm-pass-input").value;
     const btn = document.getElementById("btn-profile-save");
     if (newName) {
-      await dbUpdateDisplayName(newName);
+      const nameResult = await dbUpdateDisplayName(newName);
+      if (!nameResult.ok) {
+        const nameErrEl = document.getElementById("err-current-pass");
+        if (nameErrEl) {
+          nameErrEl.textContent = nameResult.message;
+          nameErrEl.style.color = "";
+        }
+        return;
+      }
       cacheDisplayName(newName);
       state.displayName = newName;
       await renderWelcomeName();
@@ -605,11 +618,7 @@ document
       try {
         const result = await dbUpdatePassword(newPass);
         if (!result.ok) {
-          showFieldError(
-            cpEl,
-            "err-current-pass",
-            "Could not update password. Try again.",
-          );
+          showFieldError(cpEl, "err-current-pass", result.message);
           return;
         }
         [cpEl, npEl, cfEl].forEach((el) => {

@@ -68,7 +68,7 @@ export async function doLogin() {
     setState(loaded);
     writeLocalCache(state);
   } catch (err) {
-    if (err.isJwt) {
+    if (err.kind === "auth") {
       handleSessionInvalid("SESSION_INVALID");
       throw new Error("SESSION_INVALID");
     }

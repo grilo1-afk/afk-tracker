@@ -4,6 +4,35 @@ import { dbRowsToState, getDisplayName, cacheDisplayName } from "./state.js";
 // Callers should catch errors and call handleSessionInvalid if needed.
 // api.js does not import auth.js to avoid circular dependencies.
 
+function classifyError(error) {
+  // Network-level failures (fetch couldn't reach the server) have no .code
+  if (!error || (!error.code && !error.message)) {
+    return { kind: "network", message: "You're offline — check your connection and try again." };
+  }
+
+  const msg = (error.message || "").toLowerCase();
+  const code = error.code || "";
+
+  if (code === "PGRST301" || msg.includes("jwt")) {
+    return { kind: "auth", message: "Your session has expired. Please log in again." };
+  }
+  if (code === "42501" || msg.includes("row-level security")) {
+    return { kind: "permission", message: "You don't have permission to do that." };
+  }
+  if (["23505", "23502", "23503", "23514"].includes(code)) {
+    // unique violation, not-null violation, foreign key violation, check constraint
+    return { kind: "validation", message: "That value isn't valid. Check your entry and try again." };
+  }
+  if (
+    error.name === "TypeError" ||
+    (typeof navigator !== "undefined" && navigator.onLine === false)
+  ) {
+    return { kind: "network", message: "You're offline — check your connection and try again." };
+  }
+
+  return { kind: "unknown", message: "Something went wrong. Try again." };
+}
+
 export async function loadState() {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
@@ -24,12 +53,8 @@ export async function loadState() {
   ]);
 
   if (monthsResult.error) {
-    throw Object.assign(new Error(monthsResult.error.message || "DB_ERROR"), {
-      isJwt: !!(
-        monthsResult.error.message &&
-        monthsResult.error.message.toLowerCase().includes("jwt")
-      ),
-    });
+    const classified = classifyError(monthsResult.error);
+    throw Object.assign(new Error(classified.message), { kind: classified.kind });
   }
 
   const newState = dbRowsToState(monthsResult.data || []);
@@ -56,9 +81,9 @@ export async function dbAddMonth(year, monthOneBased, name, onAuthError) {
 
   if (error) {
     console.error("dbAddMonth:", error);
-    return null;
+    return { ok: false, ...classifyError(error) };
   }
-  return data.id;
+  return { ok: true, data: data.id };
 }
 
 export async function dbUpdateBudget(monthUuid, budget) {
@@ -69,9 +94,9 @@ export async function dbUpdateBudget(monthUuid, budget) {
 
   if (error) {
     console.error("dbUpdateBudget:", error);
-    return false;
+    return { ok: false, ...classifyError(error) };
   }
-  return true;
+  return { ok: true, data: undefined };
 }
 
 export async function dbDeleteMonth(monthUuid) {
@@ -79,9 +104,9 @@ export async function dbDeleteMonth(monthUuid) {
 
   if (error) {
     console.error("dbDeleteMonth:", error);
-    return false;
+    return { ok: false, ...classifyError(error) };
   }
-  return true;
+  return { ok: true, data: undefined };
 }
 
 export async function dbAddExpense(monthUuid, desc, amount, expenseDate) {
@@ -98,9 +123,9 @@ export async function dbAddExpense(monthUuid, desc, amount, expenseDate) {
 
   if (error) {
     console.error("dbAddExpense:", error);
-    return null;
+    return { ok: false, ...classifyError(error) };
   }
-  return data;
+  return { ok: true, data: data };
 }
 
 export async function dbUpdateExpense(expenseUuid, desc, amount, expenseDate) {
@@ -111,9 +136,9 @@ export async function dbUpdateExpense(expenseUuid, desc, amount, expenseDate) {
 
   if (error) {
     console.error("dbUpdateExpense:", error);
-    return false;
+    return { ok: false, ...classifyError(error) };
   }
-  return true;
+  return { ok: true, data: undefined };
 }
 
 export async function dbDeleteExpense(expenseUuid) {
@@ -124,15 +149,15 @@ export async function dbDeleteExpense(expenseUuid) {
 
   if (error) {
     console.error("dbDeleteExpense:", error);
-    return false;
+    return { ok: false, ...classifyError(error) };
   }
-  return true;
+  return { ok: true, data: undefined };
 }
 
 export async function dbUpdateDisplayName(name) {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
-  if (!user) return false;
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
 
   const { error } = await supabase
     .from("profiles")
@@ -141,16 +166,16 @@ export async function dbUpdateDisplayName(name) {
 
   if (error) {
     console.error("dbUpdateDisplayName:", error);
-    return false;
+    return { ok: false, ...classifyError(error) };
   }
-  return true;
+  return { ok: true, data: undefined };
 }
 
 export async function dbUpdatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) {
     console.error("dbUpdatePassword:", error);
-    return { ok: false, message: error.message };
+    return { ok: false, ...classifyError(error) };
   }
-  return { ok: true };
+  return { ok: true, data: undefined };
 }
