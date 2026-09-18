@@ -42,7 +42,9 @@ export async function loadState() {
       .from("months")
       .select("*, expenses(*)")
       .order("year", { ascending: false })
-      .order("month", { ascending: false }),
+      .order("month", { ascending: false })
+      .order("expense_date", { foreignTable: "expenses", ascending: false })
+      .order("created_at", { foreignTable: "expenses", ascending: false }),
     user
       ? supabase
           .from("profiles")

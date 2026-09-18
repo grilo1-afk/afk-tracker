@@ -239,6 +239,11 @@ export function registerDeleteExpenseCb(fn) {
 }
 
 export function renderExpenses(m) {
+  m.expenses.sort((a, b) =>
+    a.date !== b.date
+      ? a.date < b.date ? 1 : -1
+      : a.createdAt < b.createdAt ? 1 : -1
+  );
   if (window.innerWidth <= 480) {
     _renderExpenseCards(m);
   } else {
