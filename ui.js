@@ -148,7 +148,7 @@ export function renderHistory() {
     btn.textContent = "Delete";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      openDeleteMonthModal(m.id);
+      openDeleteMonthModal(m.id, btn);
     });
     rightDiv.appendChild(btn);
 
@@ -296,7 +296,7 @@ function _renderExpenseTable(m) {
     btnEdit.title = "Edit expense";
     btnEdit.innerHTML =
       '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
-    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
+    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
@@ -355,7 +355,7 @@ function _renderExpenseCards(m) {
     btnEdit.title = "Edit expense";
     btnEdit.innerHTML =
       '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
-    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id));
+    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
@@ -387,10 +387,48 @@ export function hideUndoToast() {
   if (toast) toast.classList.add("hidden");
 }
 
+// -- FOCUS TRAP HELPERS (modal-internal, not exported)
+let _lastFocusedTrigger = null;
+
+function trapFocus(overlayEl) {
+  const focusable = overlayEl.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  function handleKeydown(e) {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+  overlayEl.addEventListener("keydown", handleKeydown);
+  overlayEl._focusTrapHandler = handleKeydown;
+}
+
+function releaseFocusTrap(overlayEl) {
+  if (overlayEl._focusTrapHandler) {
+    overlayEl.removeEventListener("keydown", overlayEl._focusTrapHandler);
+    overlayEl._focusTrapHandler = null;
+  }
+}
+
+function returnFocusToTrigger() {
+  if (_lastFocusedTrigger && document.body.contains(_lastFocusedTrigger)) {
+    _lastFocusedTrigger.focus();
+  }
+  _lastFocusedTrigger = null;
+}
+
 // -- EXPENSE EDIT MODAL
 let _editingExpenseId = null;
 
-export function openEditExpenseModal(expId) {
+export function openEditExpenseModal(expId, triggerEl) {
   const m = getActiveMonth();
   if (!m) return;
   const exp = m.expenses.find((e) => e.id === expId);
@@ -413,13 +451,18 @@ export function openEditExpenseModal(expId) {
       if (el) el.textContent = "";
     },
   );
-  document.getElementById("edit-expense-overlay").classList.remove("hidden");
+  const eeOverlay = document.getElementById("edit-expense-overlay");
+  eeOverlay.classList.remove("hidden");
+  trapFocus(eeOverlay);
   descEl.focus();
 }
 
 export function closeEditExpenseModal() {
   _editingExpenseId = null;
-  document.getElementById("edit-expense-overlay").classList.add("hidden");
+  const eeOverlay = document.getElementById("edit-expense-overlay");
+  releaseFocusTrap(eeOverlay);
+  eeOverlay.classList.add("hidden");
+  returnFocusToTrigger();
 }
 
 export function getEditingExpenseId() {
@@ -429,10 +472,11 @@ export function getEditingExpenseId() {
 // -- DELETE MONTH MODAL
 let _pendingDeleteMonthId = null;
 
-export function openDeleteMonthModal(id) {
+export function openDeleteMonthModal(id, triggerEl) {
   const m = state.months.find((x) => x.id === id);
   if (!m) return;
   _pendingDeleteMonthId = id;
+  _lastFocusedTrigger = triggerEl || null;
   const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
   const expCount = m.expenses.length;
   document.getElementById("delete-month-name").textContent =
@@ -444,12 +488,19 @@ export function openDeleteMonthModal(id) {
     " \u00B7 " +
     fmt(totalSpent) +
     " spent";
-  document.getElementById("delete-month-overlay").classList.remove("hidden");
+  const dmOverlay = document.getElementById("delete-month-overlay");
+  dmOverlay.classList.remove("hidden");
+  trapFocus(dmOverlay);
+  const cancelBtn = document.getElementById("btn-delete-month-cancel");
+  if (cancelBtn) cancelBtn.focus();
 }
 
 export function closeDeleteMonthModal() {
   _pendingDeleteMonthId = null;
-  document.getElementById("delete-month-overlay").classList.add("hidden");
+  const dmOverlay = document.getElementById("delete-month-overlay");
+  releaseFocusTrap(dmOverlay);
+  dmOverlay.classList.add("hidden");
+  returnFocusToTrigger();
 }
 
 export function getPendingDeleteMonthId() {
@@ -457,21 +508,29 @@ export function getPendingDeleteMonthId() {
 }
 
 // -- MONTH PICKER MODAL
-export function openMonthPicker() {
+export function openMonthPicker(event) {
   const now = new Date();
   document.getElementById("pick-month").value = now.getMonth();
   document.getElementById("pick-year").value = now.getFullYear();
-  document.getElementById("month-picker-overlay").classList.remove("hidden");
+  _lastFocusedTrigger = (event && event.currentTarget) || null;
+  const mpOverlay = document.getElementById("month-picker-overlay");
+  mpOverlay.classList.remove("hidden");
+  trapFocus(mpOverlay);
+  const pickMonth = document.getElementById("pick-month");
+  if (pickMonth) pickMonth.focus();
 }
 
 export function closeMonthPicker() {
-  document.getElementById("month-picker-overlay").classList.add("hidden");
+  const mpOverlay = document.getElementById("month-picker-overlay");
+  releaseFocusTrap(mpOverlay);
+  mpOverlay.classList.add("hidden");
+  returnFocusToTrigger();
 }
 
 // -- PROFILE MODAL
 export const profileOverlay = document.getElementById("profile-overlay");
 
-export async function openProfileModal() {
+export async function openProfileModal(event) {
   try {
     const { data: authData } = await supabase.auth.getUser();
     const user = authData && authData.user;
@@ -489,11 +548,17 @@ export async function openProfileModal() {
   document.getElementById("current-pass-input").value = "";
   document.getElementById("new-pass-input").value = "";
   document.getElementById("confirm-pass-input").value = "";
+  _lastFocusedTrigger = (event && event.currentTarget) || null;
   profileOverlay.classList.remove("hidden");
+  trapFocus(profileOverlay);
+  const nameInput = document.getElementById("display-name-input");
+  if (nameInput) nameInput.focus();
 }
 
 export function closeProfileModal() {
+  releaseFocusTrap(profileOverlay);
   profileOverlay.classList.add("hidden");
+  returnFocusToTrigger();
 }
 
 // -- SYNC STATUS INDICATOR
