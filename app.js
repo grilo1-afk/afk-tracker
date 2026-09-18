@@ -78,78 +78,82 @@ registerAuthCallbacks({
 let _lastDeleted = null;
 let _undoTimer = null;
 
-function deleteExpense(expId) {
+async function deleteExpense(expId) {
   const m = getActiveMonth();
   if (!m) return;
   if (_undoTimer) {
     clearTimeout(_undoTimer);
     _undoTimer = null;
-    const prev = _lastDeleted;
     _lastDeleted = null;
     hideUndoToast();
-    if (prev) {
-      dbDeleteExpense(prev.expense.id).then((result) => {
-        if (!result.ok) {
-          const prevMonth = state.months.find((x) => x.id === prev.monthId);
-          if (prevMonth) {
-            prevMonth.expenses.splice(prev.index, 0, prev.expense);
-            if (prevMonth.id === activeMonthId) {
-              renderStats(prevMonth);
-              renderExpenses(prevMonth);
-            }
-          }
-          showBanner("login-error", result.message);
-        }
-      });
-    }
   }
   const idx = m.expenses.findIndex((e) => e.id === expId);
   if (idx === -1) return;
-  _lastDeleted = { expense: m.expenses[idx], index: idx, monthId: m.id };
+  const saved = { expense: m.expenses[idx], index: idx, monthId: m.id };
+  _lastDeleted = saved;
   m.expenses.splice(idx, 1);
   renderStats(m);
   renderExpenses(m);
   showUndoToast("Expense deleted");
-  _undoTimer = setTimeout(() => {
+
+  // Fire the delete immediately — undo window is purely about re-creation
+  const result = await dbDeleteExpense(saved.expense.id);
+  if (!result.ok) {
+    // Rollback: splice the expense back in at its original position
+    const failMonth = state.months.find((x) => x.id === saved.monthId);
+    if (failMonth) {
+      failMonth.expenses.splice(saved.index, 0, saved.expense);
+      if (failMonth.id === activeMonthId) {
+        renderStats(failMonth);
+        renderExpenses(failMonth);
+      }
+    }
+    // Cancel the undo window — there's nothing to undo
+    clearTimeout(_undoTimer);
     _undoTimer = null;
-    const toDelete = _lastDeleted;
     _lastDeleted = null;
     hideUndoToast();
-    if (toDelete) {
-      dbDeleteExpense(toDelete.expense.id).then((result) => {
-        if (!result.ok) {
-          const tMonth = state.months.find((x) => x.id === toDelete.monthId);
-          if (tMonth) {
-            tMonth.expenses.splice(toDelete.index, 0, toDelete.expense);
-            if (tMonth.id === activeMonthId) {
-              renderStats(tMonth);
-              renderExpenses(tMonth);
-            }
-          }
-          showBanner("login-error", result.message);
-        }
-      });
-    }
+    showBanner("login-error", result.message);
+    return;
+  }
+
+  _undoTimer = setTimeout(() => {
+    _undoTimer = null;
+    _lastDeleted = null;
+    hideUndoToast();
   }, 4000);
 }
 
-function undoDeleteExpense() {
+async function undoDeleteExpense() {
   if (!_lastDeleted) return;
   clearTimeout(_undoTimer);
   _undoTimer = null;
   const { expense, index, monthId } = _lastDeleted;
   _lastDeleted = null;
+  hideUndoToast();
   const m = state.months.find((x) => x.id === monthId);
-  if (!m) {
-    hideUndoToast();
+  if (!m) return;
+
+  // Expense is already gone from DB — undo means re-creating it
+  const result = await dbAddExpense(monthId, expense.desc, expense.val, expense.date);
+  if (!result.ok) {
+    showBanner("login-error", "Could not restore expense. Try again.");
     return;
   }
-  m.expenses.splice(index, 0, expense);
+  // Build restored expense from the new row
+  const restored = {
+    id: result.data.id,
+    desc: expense.desc,
+    val: expense.val,
+    date: expense.date,
+    createdAt: result.data.created_at,
+  };
+  const clampedIndex = Math.min(index, m.expenses.length);
+  m.expenses.splice(clampedIndex, 0, restored);
   if (m.id === activeMonthId) {
     renderStats(m);
     renderExpenses(m);
   }
-  hideUndoToast();
 }
 
 // Register delete callback so ui.js can call it without importing app.js
