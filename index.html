@@ -313,6 +313,22 @@
             </button>
             <button id="btn-add-expense" class="btn-exp-action">Add</button>
           </div>
+          <div class="category-row">
+            <div id="category-picker" class="category-picker">
+              <!-- rendered by renderCategoryPicker() in app.js -->
+            </div>
+            <div id="category-inline-add" class="category-inline-add hidden">
+              <input
+                type="text"
+                id="category-new-input"
+                placeholder="Category name"
+                maxlength="50"
+              />
+              <button type="button" id="btn-category-new-confirm" class="btn-secondary btn-sm">Add</button>
+              <button type="button" id="btn-category-new-cancel" class="btn-secondary btn-sm">&#x2715;</button>
+            </div>
+            <span class="field-error" id="err-category-inline"></span>
+          </div>
           <span class="field-error" id="err-exp-date"></span>
 
           <table>
@@ -320,6 +336,7 @@
               <tr>
                 <th>Date</th>
                 <th>Description</th>
+                <th class="category-col">Category</th>
                 <th>Amount</th>
                 <th class="action-col action-col--wide">Action</th>
               </tr>
@@ -386,6 +403,10 @@
             </button>
           </div>
           <span class="field-error" id="err-edit-exp-date"></span>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <div id="edit-exp-category-picker" class="category-picker"></div>
         </div>
         <div class="modal-actions" style="margin-top: 16px">
           <button id="btn-edit-expense-save">Save Changes</button>
@@ -489,6 +510,22 @@
                 </button>
               </div>
               <span class="field-error" id="err-preset"></span>
+            </div>
+            <div class="form-group">
+              <label>Categories</label>
+              <div id="category-list" class="preset-list"></div>
+              <div class="preset-add-row">
+                <input
+                  type="text"
+                  id="category-settings-input"
+                  placeholder="New category name"
+                  maxlength="50"
+                />
+                <button type="button" id="btn-add-category-settings" class="btn-secondary btn-sm">
+                  Add
+                </button>
+              </div>
+              <span class="field-error" id="err-category-settings"></span>
             </div>
           </div>
 

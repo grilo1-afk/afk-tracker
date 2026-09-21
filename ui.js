@@ -262,6 +262,12 @@ export function registerDeleteExpenseCb(fn) {
   _deleteExpenseCb = fn;
 }
 
+// openEditExpense callback — lets app.js populate _editSelectedCategoryId on modal open
+let _openEditExpenseCb = null;
+export function registerOpenEditExpenseCb(fn) {
+  _openEditExpenseCb = fn;
+}
+
 export function renderExpenses(m) {
   m.expenses.sort((a, b) =>
     a.date !== b.date
@@ -283,7 +289,7 @@ function _renderExpenseTable(m) {
   tableBody.innerHTML = "";
   if (m.expenses.length === 0) {
     tableBody.innerHTML =
-      '<tr class="expense-row"><td colspan="4" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
+      '<tr class="expense-row"><td colspan="5" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
     return;
   }
   m.expenses.forEach((exp) => {
@@ -293,6 +299,10 @@ function _renderExpenseTable(m) {
     tdDate.textContent = formatExpenseDate(exp.date);
     const tdDesc = document.createElement("td");
     tdDesc.textContent = exp.desc;
+    const catTd = document.createElement("td");
+    catTd.className = "category-col";
+    const cat = state.categories.find((c) => c.id === exp.categoryId);
+    catTd.textContent = cat ? cat.name : "—";
     const tdVal = document.createElement("td");
     tdVal.className = "value-col";
     tdVal.textContent = fmt(exp.val);
@@ -317,6 +327,7 @@ function _renderExpenseTable(m) {
     tdAction.appendChild(btnDel);
     tr.appendChild(tdDate);
     tr.appendChild(tdDesc);
+    tr.appendChild(catTd);
     tr.appendChild(tdVal);
     tr.appendChild(tdAction);
     tableBody.appendChild(tr);
@@ -349,6 +360,16 @@ function _renderExpenseCards(m) {
     const descEl = document.createElement("div");
     descEl.className = "expense-card-desc";
     descEl.textContent = exp.desc;
+    const cat = state.categories.find((c) => c.id === exp.categoryId);
+    if (cat) {
+      const catLabel = document.createElement("span");
+      catLabel.className = "expense-card-category";
+      catLabel.textContent = cat.name;
+      card.appendChild(descEl);
+      card.appendChild(catLabel);
+    } else {
+      card.appendChild(descEl);
+    }
     const row = document.createElement("div");
     row.className = "expense-card-row";
     const dateEl = document.createElement("span");
@@ -379,7 +400,6 @@ function _renderExpenseCards(m) {
     row.appendChild(dateEl);
     row.appendChild(valEl);
     row.appendChild(actionsEl);
-    card.appendChild(descEl);
     card.appendChild(row);
     cardList.appendChild(card);
   });
@@ -463,6 +483,7 @@ export function openEditExpenseModal(expId, triggerEl) {
       if (el) el.textContent = "";
     },
   );
+  if (_openEditExpenseCb) _openEditExpenseCb(expId);
   const eeOverlay = document.getElementById("edit-expense-overlay");
   eeOverlay.classList.remove("hidden");
   trapFocus(eeOverlay);

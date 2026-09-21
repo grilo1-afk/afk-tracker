@@ -24,6 +24,9 @@ import {
   dbDeleteExpense,
   dbUpdateDisplayName,
   dbUpdatePassword,
+  dbAddCategory,
+  dbDeleteCategory,
+  dbUpdateExpenseCategory,
 } from "./api.js";
 import {
   registerAuthCallbacks,
@@ -62,6 +65,7 @@ import {
   openProfileModal,
   closeProfileModal,
   registerDeleteExpenseCb,
+  registerOpenEditExpenseCb,
   parseMoneyInput,
   setSyncStatus,
 } from "./ui.js";
@@ -85,6 +89,10 @@ registerAuthCallbacks({
 // -- UNDO STATE
 let _lastDeleted = null;
 let _undoTimer = null;
+
+// -- CATEGORY STATE
+let _selectedCategoryId = null;
+let _editSelectedCategoryId = null;
 
 async function deleteExpense(expId) {
   const m = getActiveMonth();
@@ -143,7 +151,7 @@ async function undoDeleteExpense() {
   if (!m) return;
 
   // Expense is already gone from DB — undo means re-creating it
-  const result = await dbAddExpense(monthId, expense.desc, expense.val / 100, expense.date);
+  const result = await dbAddExpense(monthId, expense.desc, expense.val / 100, expense.date, expense.categoryId || null);
   if (!result.ok) {
     showBanner("login-error", "Could not restore expense. Try again.");
     return;
@@ -155,6 +163,7 @@ async function undoDeleteExpense() {
     val: expense.val,
     date: expense.date,
     createdAt: result.data.created_at,
+    categoryId: expense.categoryId || null,
   };
   const clampedIndex = Math.min(index, m.expenses.length);
   m.expenses.splice(clampedIndex, 0, restored);
@@ -166,6 +175,30 @@ async function undoDeleteExpense() {
 
 // Register delete callback so ui.js can call it without importing app.js
 registerDeleteExpenseCb(deleteExpense);
+
+// When the edit modal opens, sync _editSelectedCategoryId and render the edit picker
+registerOpenEditExpenseCb((expId) => {
+  const m = getActiveMonth();
+  const exp = m && m.expenses.find((e) => e.id === expId);
+  _editSelectedCategoryId = (exp && exp.categoryId) || null;
+
+  const editPicker = document.getElementById("edit-exp-category-picker");
+  if (!editPicker) return;
+  editPicker.innerHTML = "";
+  state.categories.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "category-pill" + (cat.id === _editSelectedCategoryId ? " selected" : "");
+    btn.textContent = cat.name;
+    btn.addEventListener("click", () => {
+      _editSelectedCategoryId = (cat.id === _editSelectedCategoryId) ? null : cat.id;
+      // Re-render to update selected state
+      editPicker.querySelectorAll(".category-pill").forEach((p) => p.classList.remove("selected"));
+      btn.classList.toggle("selected", cat.id === _editSelectedCategoryId);
+    });
+    editPicker.appendChild(btn);
+  });
+});
 
 // -- DOM REFS
 const loginScreen = document.getElementById("login-screen");
@@ -254,6 +287,7 @@ document
     renderHistory();
     openMonth(result.data);
     renderPresetStrip();
+    renderCategoryPicker();
   });
 
 // -- ESCAPE KEY
@@ -320,6 +354,152 @@ document.getElementById("btn-refresh").addEventListener("click", async () => {
   } finally {
     btn.disabled = false;
   }
+});
+
+// -- CATEGORIES
+
+function renderCategoryPicker() {
+  const picker = document.getElementById("category-picker");
+  if (!picker) return;
+  picker.innerHTML = "";
+
+  if (_selectedCategoryId && !state.categories.find((c) => c.id === _selectedCategoryId)) {
+    _selectedCategoryId = null;
+  }
+
+  state.categories.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "category-pill" + (cat.id === _selectedCategoryId ? " selected" : "");
+    btn.textContent = cat.name;
+    btn.addEventListener("click", () => {
+      _selectedCategoryId = (cat.id === _selectedCategoryId) ? null : cat.id;
+      renderCategoryPicker();
+    });
+    picker.appendChild(btn);
+  });
+
+  const newPill = document.createElement("button");
+  newPill.type = "button";
+  newPill.className = "category-pill new-pill";
+  newPill.textContent = "+ New";
+  newPill.addEventListener("click", () => {
+    document.getElementById("category-inline-add")?.classList.remove("hidden");
+    document.getElementById("category-picker")?.classList.add("hidden");
+    document.getElementById("category-new-input")?.focus();
+  });
+  picker.appendChild(newPill);
+}
+
+function renderCategorySettingsList() {
+  const list = document.getElementById("category-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  if (state.categories.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "preset-empty";
+    empty.textContent = "No categories yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  const usedIds = new Set(
+    state.months.flatMap((m) => m.expenses.map((e) => e.categoryId).filter(Boolean))
+  );
+
+  state.categories.forEach((cat) => {
+    const row = document.createElement("div");
+    row.className = "preset-row";
+    const label = document.createElement("span");
+    label.className = "preset-row-label";
+    label.textContent = cat.name;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-danger btn-sm";
+    del.textContent = "Remove";
+    if (usedIds.has(cat.id)) {
+      del.disabled = true;
+      del.title = "Category is in use — remove it from all expenses first.";
+      del.style.opacity = "0.4";
+      del.style.cursor = "not-allowed";
+    } else {
+      del.addEventListener("click", async () => {
+        const result = await dbDeleteCategory(cat.id);
+        if (!result.ok) {
+          const errEl = document.getElementById("err-category-settings");
+          if (errEl) errEl.textContent = result.message;
+          return;
+        }
+        state.categories = state.categories.filter((c) => c.id !== cat.id);
+        if (_selectedCategoryId === cat.id) _selectedCategoryId = null;
+        renderCategorySettingsList();
+        renderCategoryPicker();
+      });
+    }
+    row.appendChild(label);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("btn-category-new-confirm").addEventListener("click", async () => {
+  const input = document.getElementById("category-new-input");
+  const errEl = document.getElementById("err-category-inline");
+  const name = input.value.trim();
+  if (!name) {
+    if (errEl) errEl.textContent = "Enter a category name.";
+    return;
+  }
+  if (state.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    if (errEl) errEl.textContent = "A category with that name already exists.";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+  const result = await dbAddCategory(name);
+  if (!result.ok) {
+    if (errEl) errEl.textContent = result.message;
+    return;
+  }
+  state.categories.push(result.data);
+  _selectedCategoryId = result.data.id;
+  input.value = "";
+  document.getElementById("category-inline-add")?.classList.add("hidden");
+  document.getElementById("category-picker")?.classList.remove("hidden");
+  renderCategoryPicker();
+  renderCategorySettingsList();
+});
+
+document.getElementById("btn-category-new-cancel").addEventListener("click", () => {
+  document.getElementById("category-new-input").value = "";
+  const errEl = document.getElementById("err-category-inline");
+  if (errEl) errEl.textContent = "";
+  document.getElementById("category-inline-add")?.classList.add("hidden");
+  document.getElementById("category-picker")?.classList.remove("hidden");
+});
+
+document.getElementById("btn-add-category-settings").addEventListener("click", async () => {
+  const input = document.getElementById("category-settings-input");
+  const errEl = document.getElementById("err-category-settings");
+  const name = input.value.trim();
+  if (!name) {
+    if (errEl) errEl.textContent = "Enter a category name.";
+    return;
+  }
+  if (state.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    if (errEl) errEl.textContent = "A category with that name already exists.";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+  const result = await dbAddCategory(name);
+  if (!result.ok) {
+    if (errEl) errEl.textContent = result.message;
+    return;
+  }
+  state.categories.push(result.data);
+  input.value = "";
+  renderCategorySettingsList();
+  renderCategoryPicker();
 });
 
 // -- PRESETS
@@ -438,6 +618,7 @@ btnSetBudget.addEventListener("click", async () => {
   statsSection.classList.remove("hidden");
   addExpenseSection.classList.remove("hidden");
   renderPresetStrip();
+  renderCategoryPicker();
   const today = new Date().toISOString().slice(0, 10);
   expDateInput.value = today;
   const lastDay = new Date(m.year, m.month + 1, 0).getDate();
@@ -529,7 +710,7 @@ async function addExpense() {
 
   // Optimistic: push with tmp id, render and clear form immediately
   const tmpId = `tmp-${crypto.randomUUID()}`;
-  const optimisticExpense = { id: tmpId, desc, val: Math.round(val * 100), date: dateVal, createdAt: null };
+  const optimisticExpense = { id: tmpId, desc, val: Math.round(val * 100), date: dateVal, createdAt: null, categoryId: _selectedCategoryId };
   m.expenses.push(optimisticExpense);
   renderStats(m);
   renderExpenses(m);
@@ -539,7 +720,7 @@ async function addExpense() {
   clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
 
-  const result = await dbAddExpense(m.id, desc, val, dateVal);
+  const result = await dbAddExpense(m.id, desc, val, dateVal, _selectedCategoryId);
   if (!result.ok) {
     // Rollback: remove the optimistic expense
     const tmpIdx = m.expenses.findIndex((e) => e.id === tmpId);
@@ -555,6 +736,8 @@ async function addExpense() {
     saved.id = result.data.id;
     saved.createdAt = result.data.created_at;
   }
+  _selectedCategoryId = null;
+  renderCategoryPicker();
 }
 
 // -- EXPENSE EDIT MODAL
@@ -610,19 +793,26 @@ document
     const prevDesc = exp.desc;
     const prevVal = exp.val;
     const prevDate = exp.date;
+    const prevCatId = exp.categoryId;
     exp.desc = newDesc;
     exp.val = Math.round(newVal * 100);
     exp.date = newDate;
+    exp.categoryId = _editSelectedCategoryId;
     renderStats(m);
     renderExpenses(m);
     closeEditExpenseModal();
 
-    const result = await dbUpdateExpense(exp.id, newDesc, newVal, newDate);
+    const [descResult, catResult] = await Promise.all([
+      dbUpdateExpense(exp.id, newDesc, newVal, newDate),
+      dbUpdateExpenseCategory(exp.id, _editSelectedCategoryId),
+    ]);
+    const result = descResult.ok ? catResult : descResult;
     if (!result.ok) {
       // Rollback
       exp.desc = prevDesc;
       exp.val = prevVal;
       exp.date = prevDate;
+      exp.categoryId = prevCatId;
       renderStats(m);
       renderExpenses(m);
       showBanner("login-error", result.message);
@@ -680,10 +870,10 @@ document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
 });
 document
   .getElementById("btn-profile")
-  .addEventListener("click", () => { openProfileModal(); renderPresetList(); });
+  .addEventListener("click", () => { openProfileModal(); renderPresetList(); renderCategorySettingsList(); });
 document
   .getElementById("btn-profile-2")
-  .addEventListener("click", () => { openProfileModal(); renderPresetList(); });
+  .addEventListener("click", () => { openProfileModal(); renderPresetList(); renderCategorySettingsList(); });
 document
   .getElementById("btn-profile-close-x")
   .addEventListener("click", closeProfileModal);

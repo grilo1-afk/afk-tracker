@@ -1,6 +1,6 @@
 // -- SHARED STATE
-// Schema: { displayName, months: [{ id(uuid), name, year, month(0-based), budget(null|number), expenses:[{id(uuid),desc,val,date,createdAt}] }] }
-export let state = { displayName: null, months: [] };
+// Schema: { displayName, months: [{ id(uuid), name, year, month(0-based), budget(null|number), expenses:[{id(uuid),desc,val,date,createdAt,categoryId}] }], categories: [{id,name}] }
+export let state = { displayName: null, months: [], categories: [] };
 
 // Mutates state in-place so all module references stay live
 export function setState(newState) {
@@ -140,6 +140,7 @@ export function dbRowsToState(monthRows) {
       val: Math.round(parseFloat(e.amount) * 100),
       date: e.expense_date,
       createdAt: e.created_at,
+      categoryId: e.category_id || null,
     })),
   }));
   return { months };

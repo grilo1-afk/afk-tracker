@@ -709,6 +709,11 @@ button.btn-danger.btn--loading::after {
   padding: 16px 0;
   font-style: italic;
 }
+.expense-card-category {
+  font-size: 11px;
+  color: #777;
+  letter-spacing: 0.3px;
+}
 .stat-box--editable {
   position: relative;
 }
@@ -1078,6 +1083,66 @@ td.action-col {
   padding: 4px 0;
 }
 
+/* ── CATEGORY PICKER (expense form) ── */
+.category-row {
+  margin: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.category-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.category-pill {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid #444;
+  color: var(--text-light);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 32px;
+  width: auto;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.category-pill:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: none;
+  box-shadow: none;
+}
+.category-pill.selected {
+  background-color: var(--gold);
+  border-color: var(--gold);
+  color: var(--bg-color);
+}
+.category-pill.new-pill {
+  border-style: dashed;
+  color: #777;
+  border-color: #555;
+}
+.category-pill.new-pill:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.category-inline-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.category-inline-add input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */
@@ -1164,6 +1229,9 @@ td.action-col {
     font-size: 13px;
   }
   .badge-current {
+    display: none;
+  }
+  .category-col {
     display: none;
   }
 }
