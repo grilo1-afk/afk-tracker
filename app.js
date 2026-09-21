@@ -65,6 +65,13 @@ import {
   setSyncStatus,
 } from "./ui.js";
 
+// -- SERVICE WORKER
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js");
+  });
+}
+
 // -- WIRE AUTH CALLBACKS (breaks circular dep)
 registerAuthCallbacks({
   showScreen,
@@ -290,6 +297,26 @@ document.getElementById("btn-today-edit-exp").addEventListener("click", () => {
     dateEl.value = new Date().toISOString().slice(0, 10);
     dateEl.classList.remove("is-invalid");
     clearFieldError(dateEl, "err-edit-exp-date");
+  }
+});
+
+// -- REFRESH
+document.getElementById("btn-refresh").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-refresh");
+  btn.disabled = true;
+  setSyncStatus("syncing");
+  try {
+    const fresh = await loadState();
+    setState(fresh);
+    writeLocalCache(state);
+    sortMonths();
+    renderHistory();
+    setSyncStatus(null);
+  } catch (e) {
+    console.error("Manual refresh failed:", e);
+    setSyncStatus("stale");
+  } finally {
+    btn.disabled = false;
   }
 });
 

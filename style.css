@@ -927,7 +927,10 @@ td.action-col {
   justify-content: center;
   align-items: center;
   z-index: 100;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top))
+           max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom))
+           max(16px, env(safe-area-inset-left));
 }
 .modal-box {
   background: var(--panel-bg);
@@ -987,7 +990,7 @@ td.action-col {
 }
 /* Desktop: give screen-header its padding */
 .screen-header {
-  padding: 16px 24px 14px;
+  padding: max(16px, env(safe-area-inset-top) + 8px) 24px 14px;
 }
 
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
@@ -1009,13 +1012,13 @@ td.action-col {
   }
 
   .screen-header {
-    padding: 14px 18px 12px;
+    padding: max(14px, env(safe-area-inset-top) + 8px) 18px 12px;
   }
   .scroll-content {
     padding: 14px 18px;
   }
   .screen-footer {
-    padding: 10px 18px 20px;
+    padding: 10px 18px max(20px, env(safe-area-inset-bottom) + 8px);
   }
 
   /* Character art smaller on narrow screens */
@@ -1160,7 +1163,7 @@ td.action-col {
 }
 @media (max-width: 480px) {
   .undo-toast {
-    bottom: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom) + 8px);
     left: 16px;
     right: 16px;
     transform: none;
