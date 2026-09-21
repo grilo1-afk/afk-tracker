@@ -301,12 +301,14 @@ function _renderExpenseTable(m) {
     const btnEdit = document.createElement("button");
     btnEdit.className = "btn-edit-expense";
     btnEdit.title = "Edit expense";
+    btnEdit.setAttribute("aria-label", "Edit expense");
     btnEdit.innerHTML =
       '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
     btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
+    btnDel.setAttribute("aria-label", "Delete expense");
     btnDel.addEventListener(
       "click",
       () => _deleteExpenseCb && _deleteExpenseCb(exp.id),
@@ -360,12 +362,14 @@ function _renderExpenseCards(m) {
     const btnEdit = document.createElement("button");
     btnEdit.className = "btn-edit-expense";
     btnEdit.title = "Edit expense";
+    btnEdit.setAttribute("aria-label", "Edit expense");
     btnEdit.innerHTML =
       '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
     btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
     const btnDel = document.createElement("button");
     btnDel.className = "btn-danger btn-del-expense";
     btnDel.textContent = "Del";
+    btnDel.setAttribute("aria-label", "Delete expense");
     btnDel.addEventListener(
       "click",
       () => _deleteExpenseCb && _deleteExpenseCb(exp.id),

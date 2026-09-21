@@ -93,7 +93,7 @@
       <div id="login-error" class="error-banner hidden"></div>
       <div class="form-group">
         <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Enter your username" />
+        <input type="text" id="username" placeholder="Enter your username" aria-describedby="err-username" />
         <span class="field-error" id="err-username"></span>
       </div>
       <div class="form-group">
@@ -103,6 +103,7 @@
             type="password"
             id="password"
             placeholder="Enter your password"
+            aria-describedby="err-password"
           />
           <button
             type="button"
@@ -220,12 +221,14 @@
               inputmode="decimal"
               id="budget-input"
               placeholder="$ 0.00"
+              aria-describedby="err-budget"
             />
             <button id="btn-set-budget">Confirm</button>
             <button type="button" id="btn-cancel-budget" class="btn-secondary">
               Cancel
             </button>
           </div>
+          <span class="field-error" id="err-budget"></span>
         </div>
 
         <!-- Stats (shown once budget is set) -->
@@ -267,7 +270,8 @@
           <div class="expense-form-row">
             <div class="exp-field exp-desc">
               <label for="desc">Description</label>
-              <input type="text" id="desc" placeholder="e.g. Premium Pass" />
+              <input type="text" id="desc" placeholder="e.g. Premium Pass" aria-describedby="err-exp-desc" />
+              <span class="field-error" id="err-exp-desc"></span>
             </div>
             <div class="exp-field exp-amount">
               <label for="val">Amount ($)</label>
@@ -276,11 +280,13 @@
                 inputmode="decimal"
                 id="val"
                 placeholder="0.00"
+                aria-describedby="err-exp-val"
               />
+              <span class="field-error" id="err-exp-val"></span>
             </div>
             <div class="exp-field exp-date">
               <label for="exp-date">Date</label>
-              <input type="date" id="exp-date" />
+              <input type="date" id="exp-date" aria-describedby="err-exp-date" />
             </div>
             <button
               type="button"
@@ -335,6 +341,7 @@
             type="text"
             id="edit-exp-desc"
             placeholder="e.g. Premium Pass"
+            aria-describedby="err-edit-exp-desc"
           />
           <span class="field-error" id="err-edit-exp-desc"></span>
         </div>
@@ -345,13 +352,14 @@
             inputmode="decimal"
             id="edit-exp-val"
             placeholder="0.00"
+            aria-describedby="err-edit-exp-val"
           />
           <span class="field-error" id="err-edit-exp-val"></span>
         </div>
         <div class="form-group">
           <label for="edit-exp-date">Date</label>
           <div class="date-with-today">
-            <input type="date" id="edit-exp-date" />
+            <input type="date" id="edit-exp-date" aria-describedby="err-edit-exp-date" />
             <button
               type="button"
               id="btn-today-edit-exp"
@@ -456,6 +464,7 @@
                   type="password"
                   id="current-pass-input"
                   placeholder="Current password"
+                  aria-describedby="err-current-pass"
                 />
                 <button
                   type="button"
@@ -475,6 +484,7 @@
                   type="password"
                   id="new-pass-input"
                   placeholder="New password"
+                  aria-describedby="err-new-pass"
                 />
                 <button
                   type="button"
@@ -491,6 +501,7 @@
                   type="password"
                   id="confirm-pass-input"
                   placeholder="Confirm new password"
+                  aria-describedby="err-confirm-pass"
                 />
                 <button
                   type="button"

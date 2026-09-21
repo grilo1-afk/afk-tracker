@@ -309,11 +309,10 @@ btnSetBudget.addEventListener("click", async () => {
   if (!m) return;
   const val = parseMoneyInput(budgetInput.value);
   if (Number.isNaN(val) || val < 0) {
-    budgetInput.classList.add("is-invalid");
-    budgetInput.setAttribute("placeholder", "Enter a valid amount");
+    showFieldError(budgetInput, "err-budget", "Enter a valid amount.");
     return;
   }
-  budgetInput.classList.remove("is-invalid");
+  clearFieldError(budgetInput, "err-budget");
 
   // Optimistic: apply immediately, then persist
   const prevBudget = m.budget;
@@ -383,13 +382,13 @@ async function addExpense() {
   const dateVal = expDateInput.value;
   let valid = true;
   if (!desc) {
-    descInput.classList.add("is-invalid");
+    showFieldError(descInput, "err-exp-desc", "Description is required.");
     valid = false;
-  } else descInput.classList.remove("is-invalid");
+  } else clearFieldError(descInput, "err-exp-desc");
   if (!val || val <= 0) {
-    valInput.classList.add("is-invalid");
+    showFieldError(valInput, "err-exp-val", "Enter a valid amount.");
     valid = false;
-  } else valInput.classList.remove("is-invalid");
+  } else clearFieldError(valInput, "err-exp-val");
   if (!dateVal) {
     showFieldError(expDateInput, "err-exp-date", "Date is required.");
     valid = false;

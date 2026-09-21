@@ -346,6 +346,40 @@ button.btn-secondary:hover {
   transform: translateY(-50%);
   box-shadow: none;
 }
+/* ── FOCUS VISIBILITY ── */
+/* Use focus-visible so mouse users don't see outlines (matches browser intent)
+   but keyboard/AT users always get a clear indicator in both themes.           */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+/* Inputs already have a gold border — use a distinct offset ring so it reads
+   clearly on top of the existing border rather than merging with it.           */
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px rgba(232, 184, 75, 0.35);
+}
+/* Light theme: gold ring is still readable but use the light-theme gold value  */
+[data-theme="light"] :focus-visible {
+  outline-color: var(--gold);
+}
+[data-theme="light"] input:focus-visible,
+[data-theme="light"] select:focus-visible {
+  box-shadow: 0 0 0 3px rgba(139, 105, 20, 0.3);
+}
+/* btn-icon (round icon buttons) — circular focus ring matches the shape        */
+.btn-icon:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+/* btn-eye sits inside input-with-toggle; give it a contained ring              */
+.btn-eye:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
 /* ── INLINE VALIDATION ── */
 .field-error {
   display: block;
