@@ -1,4 +1,5 @@
 import { supabase } from "./supabase-client.js";
+import { readPresets, writePresets } from "./presets.js";
 import {
   state,
   setState,
@@ -252,6 +253,7 @@ document
     closeMonthPicker();
     renderHistory();
     openMonth(result.data);
+    renderPresetStrip();
   });
 
 // -- ESCAPE KEY
@@ -320,6 +322,94 @@ document.getElementById("btn-refresh").addEventListener("click", async () => {
   }
 });
 
+// -- PRESETS
+
+function renderPresetStrip() {
+  const strip = document.getElementById("preset-strip");
+  if (!strip) return;
+  const presets = readPresets();
+  strip.innerHTML = "";
+  if (presets.length === 0) {
+    strip.classList.add("hidden");
+    return;
+  }
+  strip.classList.remove("hidden");
+  presets.forEach((p) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "preset-pill";
+    btn.textContent = `${p.desc}  $${parseFloat(p.amount).toFixed(2)}`;
+    btn.addEventListener("click", () => {
+      descInput.value = p.desc;
+      valInput.value = parseFloat(p.amount).toFixed(2);
+      expDateInput.value = new Date().toISOString().slice(0, 10);
+      clearFieldError(descInput, "err-exp-desc");
+      clearFieldError(valInput, "err-exp-val");
+      clearFieldError(expDateInput, "err-exp-date");
+      descInput.focus();
+    });
+    strip.appendChild(btn);
+  });
+}
+
+function renderPresetList() {
+  const list = document.getElementById("preset-list");
+  if (!list) return;
+  const presets = readPresets();
+  list.innerHTML = "";
+  if (presets.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "preset-empty";
+    empty.textContent = "No presets yet.";
+    list.appendChild(empty);
+    return;
+  }
+  presets.forEach((p) => {
+    const row = document.createElement("div");
+    row.className = "preset-row";
+    const label = document.createElement("span");
+    label.className = "preset-row-label";
+    label.textContent = p.desc;
+    const amount = document.createElement("span");
+    amount.className = "preset-row-amount";
+    amount.textContent = `$${parseFloat(p.amount).toFixed(2)}`;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-danger btn-sm";
+    del.textContent = "Remove";
+    del.addEventListener("click", () => {
+      const updated = readPresets().filter((x) => x.id !== p.id);
+      writePresets(updated);
+      renderPresetList();
+      renderPresetStrip();
+    });
+    row.appendChild(label);
+    row.appendChild(amount);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("btn-add-preset").addEventListener("click", () => {
+  const descEl = document.getElementById("preset-desc-input");
+  const amountEl = document.getElementById("preset-amount-input");
+  const errEl = document.getElementById("err-preset");
+  const desc = descEl.value.trim();
+  const amount = parseMoneyInput(amountEl.value);
+  if (!desc || !amount || amount <= 0) {
+    if (errEl) errEl.textContent = "Enter a description and a valid amount.";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+  const presets = readPresets();
+  presets.push({ id: crypto.randomUUID(), desc, amount });
+  writePresets(presets);
+  descEl.value = "";
+  amountEl.value = "";
+  renderPresetList();
+  renderPresetStrip();
+});
+
 // -- NAVIGATION
 document.getElementById("btn-back").addEventListener("click", () => {
   setActiveMonthId(null);
@@ -347,6 +437,7 @@ btnSetBudget.addEventListener("click", async () => {
   budgetSetupBox.classList.add("hidden");
   statsSection.classList.remove("hidden");
   addExpenseSection.classList.remove("hidden");
+  renderPresetStrip();
   const today = new Date().toISOString().slice(0, 10);
   expDateInput.value = today;
   const lastDay = new Date(m.year, m.month + 1, 0).getDate();
@@ -589,10 +680,10 @@ document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
 });
 document
   .getElementById("btn-profile")
-  .addEventListener("click", openProfileModal);
+  .addEventListener("click", () => { openProfileModal(); renderPresetList(); });
 document
   .getElementById("btn-profile-2")
-  .addEventListener("click", openProfileModal);
+  .addEventListener("click", () => { openProfileModal(); renderPresetList(); });
 document
   .getElementById("btn-profile-close-x")
   .addEventListener("click", closeProfileModal);

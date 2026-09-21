@@ -281,6 +281,7 @@
 
         <!-- Add Expense + Table (shown once budget is set) -->
         <div id="add-expense-section" class="hidden">
+          <div id="preset-strip" class="preset-strip hidden"></div>
           <div class="section-title">New Expense</div>
           <div class="expense-form-row">
             <div class="exp-field exp-desc">
@@ -464,9 +465,31 @@
             </div>
           </div>
 
-          <!-- Tracker section (empty — E1, E2, D4 will populate) -->
+          <!-- Tracker section -->
           <div class="settings-section" id="settings-section-tracker">
             <h4>Tracker</h4>
+            <div class="form-group">
+              <label>Quick-add Presets</label>
+              <div id="preset-list" class="preset-list"></div>
+              <div class="preset-add-row">
+                <input
+                  type="text"
+                  id="preset-desc-input"
+                  placeholder="Description"
+                  maxlength="80"
+                />
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  id="preset-amount-input"
+                  placeholder="0.00"
+                />
+                <button type="button" id="btn-add-preset" class="btn-secondary btn-sm">
+                  Add
+                </button>
+              </div>
+              <span class="field-error" id="err-preset"></span>
+            </div>
           </div>
 
           <!-- Security section -->
