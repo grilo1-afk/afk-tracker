@@ -1149,6 +1149,36 @@ td.action-col {
   font-size: 14px;
 }
 
+/* ── SECONDARY STATS (D1) ── */
+.stats-secondary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--bg-color);
+  border: 1px solid #2a2f38;
+  border-radius: 5px;
+}
+.stat-secondary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+.stat-secondary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+}
+.stat-secondary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */

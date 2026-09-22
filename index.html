@@ -279,6 +279,22 @@
           <span id="budget-pct-text" class="budget-pct-text"></span>
         </div>
 
+        <!-- Secondary stats (D1) — shown once budget is set and has expenses -->
+        <div id="stats-secondary" class="stats-secondary hidden">
+          <div class="stat-secondary-item">
+            <span class="stat-secondary-label">Purchases</span>
+            <span class="stat-secondary-value" id="display-purchase-count">0</span>
+          </div>
+          <div class="stat-secondary-item">
+            <span class="stat-secondary-label">Average</span>
+            <span class="stat-secondary-value" id="display-avg-purchase">$ 0.00</span>
+          </div>
+          <div class="stat-secondary-item">
+            <span class="stat-secondary-label">Largest</span>
+            <span class="stat-secondary-value" id="display-max-purchase">$ 0.00</span>
+          </div>
+        </div>
+
         <!-- Add Expense + Table (shown once budget is set) -->
         <div id="add-expense-section" class="hidden">
           <div id="preset-strip" class="preset-strip hidden"></div>

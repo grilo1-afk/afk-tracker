@@ -176,6 +176,12 @@ const displaySpent = document.getElementById("display-spent");
 const displayRemaining = document.getElementById("display-remaining");
 const tableBody = document.getElementById("expense-table-body");
 
+// -- SECONDARY STATS (D1)
+const statsSecondary = document.getElementById("stats-secondary");
+const displayPurchaseCount = document.getElementById("display-purchase-count");
+const displayAvgPurchase = document.getElementById("display-avg-purchase");
+const displayMaxPurchase = document.getElementById("display-max-purchase");
+
 export function openMonth(id) {
   setActiveMonthId(id);
   const m = getActiveMonth();
@@ -185,6 +191,7 @@ export function openMonth(id) {
     budgetSetupBox.classList.remove("hidden");
     statsSection.classList.add("hidden");
     addExpenseSection.classList.add("hidden");
+    if (statsSecondary) statsSecondary.classList.add("hidden");
     document.getElementById("budget-input").value = "";
   } else {
     budgetSetupBox.classList.add("hidden");
@@ -244,6 +251,23 @@ export function renderStats(m) {
     progressWrap.classList.remove("hidden");
   } else if (progressWrap) {
     progressWrap.classList.add("hidden");
+  }
+
+  // -- Secondary stats (D1)
+  if (statsSecondary) {
+    const count = m.expenses.length;
+    if (count === 0) {
+      statsSecondary.classList.add("hidden");
+    } else {
+      const avg = Math.round(
+        m.expenses.reduce((s, e) => s + e.val, 0) / count
+      );
+      const max = Math.max(...m.expenses.map((e) => e.val));
+      displayPurchaseCount.textContent = count;
+      displayAvgPurchase.textContent = fmt(avg);
+      displayMaxPurchase.textContent = fmt(max);
+      statsSecondary.classList.remove("hidden");
+    }
   }
 }
 
