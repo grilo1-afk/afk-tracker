@@ -111,7 +111,6 @@ export function renderYearSummary() {
 
   if (state.months.length === 0) return;
 
-  // Group months by year, preserving sort order (newest first already applied by sortMonths)
   const byYear = new Map();
   state.months.forEach((m) => {
     if (!byYear.has(m.year)) byYear.set(m.year, []);
@@ -119,9 +118,8 @@ export function renderYearSummary() {
   });
 
   byYear.forEach((months, year) => {
-    // Only months with a budget set contribute to the summary
     const budgeted = months.filter((m) => m.budget !== null);
-    if (budgeted.length === 0) return; // skip years with no budgeted months
+    if (budgeted.length === 0) return;
 
     const totalSpent  = budgeted.reduce((s, m) => s + m.expenses.reduce((ss, e) => ss + e.val, 0), 0);
     const totalBudget = budgeted.reduce((s, m) => s + m.budget, 0);
@@ -194,73 +192,182 @@ export function renderLifetimeTotal() {
   wrap.classList.remove("hidden");
 }
 
+// -- CHARTS (D5)
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) { Object.keys(attrs).forEach(function(k) { el.setAttribute(k, attrs[k]); }); }
+  return el;
+}
+
+function _renderSpendingChart(container) {
+  container.innerHTML = '';
+  var months = state.months.slice().filter(function(m) { return m.expenses.length > 0; }).slice(0, 12).reverse();
+  if (months.length === 0) return;
+  var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
+  var chartW = W - PAD.left - PAD.right;
+  var chartH = H - PAD.top - PAD.bottom;
+  var values = months.map(function(m) { return m.expenses.reduce(function(s, e) { return s + e.val; }, 0); });
+  var maxVal = Math.max.apply(null, values.concat([1]));
+  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
+  var barW = Math.floor(chartW / months.length) - 2;
+  months.forEach(function(m, i) {
+    var val = values[i];
+    var barH = Math.max(Math.round((val / maxVal) * chartH), 2);
+    var x = PAD.left + i * (barW + 2);
+    var y = PAD.top + chartH - barH;
+    svg.appendChild(svgEl('rect', { x: x, y: y, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
+    var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 14, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
+    label.textContent = MONTH_NAMES[m.month].slice(0, 3);
+    svg.appendChild(label);
+  });
+  container.appendChild(svg);
+}
+
+function _renderVsBudgetChart(container) {
+  container.innerHTML = '';
+  var months = state.months.slice().filter(function(m) { return m.budget !== null && m.budget > 0; }).slice(0, 12).reverse();
+  if (months.length === 0) return;
+  var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
+  var chartW = W - PAD.left - PAD.right;
+  var chartH = H - PAD.top - PAD.bottom;
+  var spentVals  = months.map(function(m) { return m.expenses.reduce(function(s, e) { return s + e.val; }, 0); });
+  var budgetVals = months.map(function(m) { return m.budget; });
+  var maxVal = Math.max.apply(null, spentVals.concat(budgetVals).concat([1]));
+  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
+  var groupW = Math.floor(chartW / months.length);
+  var barW   = Math.floor(groupW * 0.4);
+  months.forEach(function(m, i) {
+    var spent  = spentVals[i];
+    var budget = budgetVals[i];
+    var gx = PAD.left + i * groupW;
+    var budgetH = Math.max(Math.round((budget / maxVal) * chartH), 2);
+    svg.appendChild(svgEl('rect', { x: gx + 1, y: PAD.top + chartH - budgetH, width: barW, height: budgetH, fill: 'var(--gold)', opacity: 0.25, rx: 2 }));
+    var spentH = Math.max(Math.round((spent / maxVal) * chartH), 2);
+    svg.appendChild(svgEl('rect', { x: gx + 1 + barW + 2, y: PAD.top + chartH - spentH, width: barW, height: spentH, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85, rx: 2 }));
+    var label = svgEl('text', { x: gx + groupW / 2, y: PAD.top + chartH + 14, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
+    label.textContent = MONTH_NAMES[m.month].slice(0, 3);
+    svg.appendChild(label);
+  });
+  container.appendChild(svg);
+}
+
+function _renderCategoryChart(container) {
+  container.innerHTML = '';
+  if (state.categories.length === 0) return;
+  var totals = new Map();
+  state.categories.forEach(function(c) { totals.set(c.id, 0); });
+  state.months.forEach(function(m) {
+    m.expenses.forEach(function(e) {
+      if (e.categoryId && totals.has(e.categoryId)) {
+        totals.set(e.categoryId, totals.get(e.categoryId) + e.val);
+      }
+    });
+  });
+  var rows = state.categories
+    .map(function(c) { return { name: c.name, total: totals.get(c.id) || 0 }; })
+    .filter(function(r) { return r.total > 0; })
+    .sort(function(a, b) { return b.total - a.total; })
+    .slice(0, 8);
+  if (rows.length === 0) return;
+  var ROW_H = 18;
+  var LABEL_W = 70;
+  var BAR_MAX_W = 140;
+  var W = LABEL_W + BAR_MAX_W + 60;
+  var H = rows.length * ROW_H + 4;
+  var maxVal = rows[0].total;
+  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
+  rows.forEach(function(row, i) {
+    var y = i * ROW_H + 2;
+    var barW = Math.max(Math.round((row.total / maxVal) * BAR_MAX_W), 2);
+    var labelEl = svgEl('text', { x: LABEL_W - 4, y: y + ROW_H * 0.65, 'text-anchor': 'end', 'font-size': 9, fill: 'var(--text-light)', opacity: 0.75 });
+    labelEl.textContent = row.name.length > 11 ? row.name.slice(0, 10) + '…' : row.name;
+    svg.appendChild(labelEl);
+    svg.appendChild(svgEl('rect', { x: LABEL_W, y: y + 3, width: barW, height: ROW_H - 6, fill: 'var(--gold)', opacity: 0.75, rx: 2 }));
+    var valEl = svgEl('text', { x: LABEL_W + barW + 4, y: y + ROW_H * 0.65, 'font-size': 9, fill: 'var(--text-light)', opacity: 0.6 });
+    valEl.textContent = fmt(row.total);
+    svg.appendChild(valEl);
+  });
+  container.appendChild(svg);
+}
+
+export function renderCharts() {
+  var section = document.getElementById('charts-section');
+  if (!section) return;
+  var c1 = document.getElementById('chart-spending');
+  var c2 = document.getElementById('chart-vs-budget');
+  var c3 = document.getElementById('chart-by-category');
+  if (c1) _renderSpendingChart(c1);
+  if (c2) _renderVsBudgetChart(c2);
+  if (c3) _renderCategoryChart(c3);
+  var hasContent = (c1 && c1.children.length > 0) || (c2 && c2.children.length > 0) || (c3 && c3.children.length > 0);
+  section.classList.toggle('hidden', !hasContent);
+}
+
 export function renderHistory() {
-  const monthList = document.getElementById("month-list");
-  const currentObj = getCurrentMonthObj();
+  var monthList = document.getElementById('month-list');
+  var currentObj = getCurrentMonthObj();
   renderYearSummary();
   renderLifetimeTotal();
-  monthList.innerHTML = "";
+  renderCharts();
+  monthList.innerHTML = '';
   if (state.months.length === 0) {
-    monthList.innerHTML =
-      '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
+    monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
     return;
   }
-  state.months.forEach((m) => {
-    const isCurrent = currentObj && m.id === currentObj.id;
-    const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
-    const hasBudget = m.budget !== null;
-    const metaText = hasBudget
-      ? "Budget: " + fmt(m.budget) + " \u2022 Spent: " + fmt(totalSpent)
-      : "Budget not set yet";
+  state.months.forEach(function(m) {
+    var isCurrent = currentObj && m.id === currentObj.id;
+    var totalSpent = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
+    var hasBudget = m.budget !== null;
+    var metaText = hasBudget
+      ? 'Budget: ' + fmt(m.budget) + ' • Spent: ' + fmt(totalSpent)
+      : 'Budget not set yet';
 
-    const card = document.createElement("div");
-    card.className = "month-card";
+    var card = document.createElement('div');
+    card.className = 'month-card';
 
-    const clickable = document.createElement("div");
-    clickable.className = "month-card-clickable month-card-info";
+    var clickable = document.createElement('div');
+    clickable.className = 'month-card-clickable month-card-info';
     clickable.dataset.id = m.id;
-    clickable.addEventListener("click", () => openMonth(m.id));
+    clickable.addEventListener('click', function() { openMonth(m.id); });
 
-    const nameDiv = document.createElement("div");
-    nameDiv.className = "month-card-name";
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'month-card-name';
     nameDiv.textContent = m.name;
 
-    const metaDiv = document.createElement("div");
-    metaDiv.className = "month-card-meta" + (hasBudget ? "" : " needs-setup");
+    var metaDiv = document.createElement('div');
+    metaDiv.className = 'month-card-meta' + (hasBudget ? '' : ' needs-setup');
     metaDiv.textContent = metaText;
 
     clickable.appendChild(nameDiv);
     clickable.appendChild(metaDiv);
 
     if (hasBudget && m.budget > 0) {
-      const pct = Math.min((totalSpent / m.budget) * 100, 100);
-      const colorClass = pct >= 100 ? "over" : pct >= 80 ? "warn" : "";
-
-      const barWrap = document.createElement("div");
-      barWrap.className = "history-bar-wrap";
-
-      const bar = document.createElement("div");
-      bar.className = "history-bar-fill" + (colorClass ? " " + colorClass : "");
-      bar.style.width = pct.toFixed(1) + "%";
-
+      var pct = Math.min((totalSpent / m.budget) * 100, 100);
+      var colorClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+      var barWrap = document.createElement('div');
+      barWrap.className = 'history-bar-wrap';
+      var bar = document.createElement('div');
+      bar.className = 'history-bar-fill' + (colorClass ? ' ' + colorClass : '');
+      bar.style.width = pct.toFixed(1) + '%';
       barWrap.appendChild(bar);
       clickable.appendChild(barWrap);
     }
 
-    const rightDiv = document.createElement("div");
-    rightDiv.className = "month-card-right";
+    var rightDiv = document.createElement('div');
+    rightDiv.className = 'month-card-right';
 
     if (isCurrent) {
-      const badge = document.createElement("span");
-      badge.className = "badge-current";
-      badge.textContent = "Current";
+      var badge = document.createElement('span');
+      badge.className = 'badge-current';
+      badge.textContent = 'Current';
       rightDiv.appendChild(badge);
     }
 
-    const btn = document.createElement("button");
-    btn.className = "btn-danger btn-delete-month";
-    btn.textContent = "Delete";
-    btn.addEventListener("click", (e) => {
+    var btn = document.createElement('button');
+    btn.className = 'btn-danger btn-delete-month';
+    btn.textContent = 'Delete';
+    btn.addEventListener('click', function(e) {
       e.stopPropagation();
       openDeleteMonthModal(m.id, btn);
     });
@@ -273,264 +380,219 @@ export function renderHistory() {
 }
 
 // -- MONTH VIEW
-const monthViewTitle = document.getElementById("month-view-title");
-const budgetSetupBox = document.getElementById("budget-setup-box");
-const statsSection = document.getElementById("stats-section");
-const addExpenseSection = document.getElementById("add-expense-section");
-const expDateInput = document.getElementById("exp-date");
-const displayBudget = document.getElementById("display-budget");
-const displaySpent = document.getElementById("display-spent");
-const displayRemaining = document.getElementById("display-remaining");
-const tableBody = document.getElementById("expense-table-body");
-
-// -- SECONDARY STATS (D1)
-const statsSecondary = document.getElementById("stats-secondary");
-const displayPurchaseCount = document.getElementById("display-purchase-count");
-const displayAvgPurchase = document.getElementById("display-avg-purchase");
-const displayMaxPurchase = document.getElementById("display-max-purchase");
+var monthViewTitle = document.getElementById('month-view-title');
+var budgetSetupBox = document.getElementById('budget-setup-box');
+var statsSection = document.getElementById('stats-section');
+var addExpenseSection = document.getElementById('add-expense-section');
+var expDateInput = document.getElementById('exp-date');
+var displayBudget = document.getElementById('display-budget');
+var displaySpent = document.getElementById('display-spent');
+var displayRemaining = document.getElementById('display-remaining');
+var tableBody = document.getElementById('expense-table-body');
+var statsSecondary = document.getElementById('stats-secondary');
+var displayPurchaseCount = document.getElementById('display-purchase-count');
+var displayAvgPurchase = document.getElementById('display-avg-purchase');
+var displayMaxPurchase = document.getElementById('display-max-purchase');
 
 export function openMonth(id) {
   setActiveMonthId(id);
-  const m = getActiveMonth();
+  var m = getActiveMonth();
   if (!m) return;
   monthViewTitle.textContent = m.name;
   if (m.budget === null) {
-    budgetSetupBox.classList.remove("hidden");
-    statsSection.classList.add("hidden");
-    addExpenseSection.classList.add("hidden");
-    if (statsSecondary) statsSecondary.classList.add("hidden");
-    document.getElementById("budget-input").value = "";
+    budgetSetupBox.classList.remove('hidden');
+    statsSection.classList.add('hidden');
+    addExpenseSection.classList.add('hidden');
+    if (statsSecondary) statsSecondary.classList.add('hidden');
+    document.getElementById('budget-input').value = '';
   } else {
-    budgetSetupBox.classList.add("hidden");
-    statsSection.classList.remove("hidden");
-    addExpenseSection.classList.remove("hidden");
-    const today = new Date().toISOString().slice(0, 10);
+    budgetSetupBox.classList.add('hidden');
+    statsSection.classList.remove('hidden');
+    addExpenseSection.classList.remove('hidden');
+    var today = new Date().toISOString().slice(0, 10);
     expDateInput.value = today;
-    const lastDay = new Date(m.year, m.month + 1, 0).getDate();
-    const mm = String(m.month + 1).padStart(2, "0");
-    expDateInput.min = m.year + "-" + mm + "-01";
-    expDateInput.max =
-      m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
+    var lastDay = new Date(m.year, m.month + 1, 0).getDate();
+    var mm = String(m.month + 1).padStart(2, '0');
+    expDateInput.min = m.year + '-' + mm + '-01';
+    expDateInput.max = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
     renderStats(m);
     renderExpenses(m);
   }
-  showScreen("month");
+  showScreen('month');
 }
 
 export function renderStats(m) {
-  const spent = m.expenses.reduce((s, e) => s + e.val, 0);
-  const remaining = m.budget - spent;
+  var spent = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
+  var remaining = m.budget - spent;
   displayBudget.textContent = fmt(m.budget);
   displaySpent.textContent = fmt(spent);
   displayRemaining.textContent = fmt(remaining);
-  displayRemaining.classList.toggle("over-budget", remaining < 0);
-
-  const progressWrap = document.getElementById("budget-progress-wrap");
-  const barFill = document.getElementById("budget-bar-fill");
-  const pctText = document.getElementById("budget-pct-text");
+  displayRemaining.classList.toggle('over-budget', remaining < 0);
+  var progressWrap = document.getElementById('budget-progress-wrap');
+  var barFill = document.getElementById('budget-bar-fill');
+  var pctText = document.getElementById('budget-pct-text');
   if (progressWrap && barFill && pctText && m.budget !== null) {
     if (m.budget === 0) {
       if (spent === 0) {
-        // Zero budget, nothing spent — show bar at 0%, no special styling
-        barFill.style.width = "0%";
-        barFill.className = "budget-bar-fill";
-        pctText.textContent = "0.0% of budget used";
-        pctText.className = "budget-pct-text";
+        barFill.style.width = '0%'; barFill.className = 'budget-bar-fill';
+        pctText.textContent = '0.0% of budget used'; pctText.className = 'budget-pct-text';
       } else {
-        // Zero budget, any spending — over budget by definition
-        barFill.style.width = "100%";
-        barFill.className = "budget-bar-fill over";
-        pctText.textContent = "100%+ of budget used";
-        pctText.className = "budget-pct-text over";
+        barFill.style.width = '100%'; barFill.className = 'budget-bar-fill over';
+        pctText.textContent = '100%+ of budget used'; pctText.className = 'budget-pct-text over';
       }
     } else {
-      // Normal case: budget > 0
-      const rawPct = (spent / m.budget) * 100;
-      const clampPct = Math.min(rawPct, 100);
-      const colorClass = rawPct >= 100 ? "over" : rawPct >= 80 ? "warn" : "";
-      barFill.style.width = clampPct + "%";
-      barFill.className =
-        "budget-bar-fill" + (colorClass ? " " + colorClass : "");
-      pctText.textContent = rawPct.toFixed(1) + "% of budget used";
-      pctText.className =
-        "budget-pct-text" + (colorClass ? " " + colorClass : "");
+      var rawPct = (spent / m.budget) * 100;
+      var clampPct = Math.min(rawPct, 100);
+      var colorClass = rawPct >= 100 ? 'over' : rawPct >= 80 ? 'warn' : '';
+      barFill.style.width = clampPct + '%';
+      barFill.className = 'budget-bar-fill' + (colorClass ? ' ' + colorClass : '');
+      pctText.textContent = rawPct.toFixed(1) + '% of budget used';
+      pctText.className = 'budget-pct-text' + (colorClass ? ' ' + colorClass : '');
     }
-    progressWrap.classList.remove("hidden");
+    progressWrap.classList.remove('hidden');
   } else if (progressWrap) {
-    progressWrap.classList.add("hidden");
+    progressWrap.classList.add('hidden');
   }
-
-  // -- Secondary stats (D1)
   if (statsSecondary) {
-    const count = m.expenses.length;
+    var count = m.expenses.length;
     if (count === 0) {
-      statsSecondary.classList.add("hidden");
+      statsSecondary.classList.add('hidden');
     } else {
-      const avg = Math.round(
-        m.expenses.reduce((s, e) => s + e.val, 0) / count
-      );
-      const max = Math.max(...m.expenses.map((e) => e.val));
+      var avg = Math.round(m.expenses.reduce(function(s, e) { return s + e.val; }, 0) / count);
+      var max = Math.max.apply(null, m.expenses.map(function(e) { return e.val; }));
       displayPurchaseCount.textContent = count;
       displayAvgPurchase.textContent = fmt(avg);
       displayMaxPurchase.textContent = fmt(max);
-      statsSecondary.classList.remove("hidden");
+      statsSecondary.classList.remove('hidden');
     }
   }
 }
 
 function formatExpenseDate(isoDate) {
-  if (!isoDate) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
-    const [y, mo, d] = isoDate.split("-").map(Number);
-    return new Date(y, mo - 1, d).toLocaleDateString("en-US");
+  if (!isoDate) return '';
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(isoDate)) {
+    var parts = isoDate.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString('en-US');
   }
   return isoDate;
 }
 
-// deleteExpense callback registered by app.js to avoid circular imports
-let _deleteExpenseCb = null;
-export function registerDeleteExpenseCb(fn) {
-  _deleteExpenseCb = fn;
-}
-
-// openEditExpense callback — lets app.js populate _editSelectedCategoryId on modal open
-let _openEditExpenseCb = null;
-export function registerOpenEditExpenseCb(fn) {
-  _openEditExpenseCb = fn;
-}
+var _deleteExpenseCb = null;
+export function registerDeleteExpenseCb(fn) { _deleteExpenseCb = fn; }
+var _openEditExpenseCb = null;
+export function registerOpenEditExpenseCb(fn) { _openEditExpenseCb = fn; }
 
 export function renderExpenses(m) {
-  m.expenses.sort((a, b) =>
-    a.date !== b.date
-      ? a.date < b.date ? 1 : -1
-      : a.createdAt < b.createdAt ? 1 : -1
-  );
-  if (window.innerWidth <= 480) {
-    _renderExpenseCards(m);
-  } else {
-    _renderExpenseTable(m);
-  }
+  m.expenses.sort(function(a, b) {
+    return a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.createdAt < b.createdAt ? 1 : -1);
+  });
+  if (window.innerWidth <= 480) { _renderExpenseCards(m); } else { _renderExpenseTable(m); }
 }
 
 function _renderExpenseTable(m) {
-  const existingCards = document.getElementById("expense-card-list");
+  var existingCards = document.getElementById('expense-card-list');
   if (existingCards) existingCards.remove();
-  const table = tableBody.closest("table");
-  if (table) table.style.display = "";
-  tableBody.innerHTML = "";
+  var table = tableBody.closest('table');
+  if (table) table.style.display = '';
+  tableBody.innerHTML = '';
   if (m.expenses.length === 0) {
-    tableBody.innerHTML =
-      '<tr class="expense-row"><td colspan="5" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
+    tableBody.innerHTML = '<tr class="expense-row"><td colspan="5" style="text-align:center;color:#555;">No expenses recorded yet.</td></tr>';
     return;
   }
-  m.expenses.forEach((exp) => {
-    const tr = document.createElement("tr");
-    tr.className = "expense-row";
-    const tdDate = document.createElement("td");
+  m.expenses.forEach(function(exp) {
+    var tr = document.createElement('tr');
+    tr.className = 'expense-row';
+    var tdDate = document.createElement('td');
     tdDate.textContent = formatExpenseDate(exp.date);
-    const tdDesc = document.createElement("td");
+    var tdDesc = document.createElement('td');
     tdDesc.textContent = exp.desc;
-    const catTd = document.createElement("td");
-    catTd.className = "category-col";
-    const cat = state.categories.find((c) => c.id === exp.categoryId);
-    catTd.textContent = cat ? cat.name : "—";
-    const tdVal = document.createElement("td");
-    tdVal.className = "value-col";
+    var catTd = document.createElement('td');
+    catTd.className = 'category-col';
+    var cat = state.categories.find(function(c) { return c.id === exp.categoryId; });
+    catTd.textContent = cat ? cat.name : '\u2014';
+    var tdVal = document.createElement('td');
+    tdVal.className = 'value-col';
     tdVal.textContent = fmt(exp.val);
-    const tdAction = document.createElement("td");
-    tdAction.className = "action-col action-col--wide";
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "btn-edit-expense";
-    btnEdit.title = "Edit expense";
-    btnEdit.setAttribute("aria-label", "Edit expense");
-    btnEdit.innerHTML =
-      '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
-    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
-    const btnDel = document.createElement("button");
-    btnDel.className = "btn-danger btn-del-expense";
-    btnDel.textContent = "Del";
-    btnDel.setAttribute("aria-label", "Delete expense");
-    btnDel.addEventListener(
-      "click",
-      () => _deleteExpenseCb && _deleteExpenseCb(exp.id),
-    );
+    var tdAction = document.createElement('td');
+    tdAction.className = 'action-col action-col--wide';
+    var btnEdit = document.createElement('button');
+    btnEdit.className = 'btn-edit-expense';
+    btnEdit.title = 'Edit expense';
+    btnEdit.setAttribute('aria-label', 'Edit expense');
+    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.addEventListener('click', function() { openEditExpenseModal(exp.id, btnEdit); });
+    var btnDel = document.createElement('button');
+    btnDel.className = 'btn-danger btn-del-expense';
+    btnDel.textContent = 'Del';
+    btnDel.setAttribute('aria-label', 'Delete expense');
+    btnDel.addEventListener('click', function() { if (_deleteExpenseCb) _deleteExpenseCb(exp.id); });
     tdAction.appendChild(btnEdit);
     tdAction.appendChild(btnDel);
-    tr.appendChild(tdDate);
-    tr.appendChild(tdDesc);
-    tr.appendChild(catTd);
-    tr.appendChild(tdVal);
-    tr.appendChild(tdAction);
+    tr.appendChild(tdDate); tr.appendChild(tdDesc); tr.appendChild(catTd);
+    tr.appendChild(tdVal); tr.appendChild(tdAction);
     tableBody.appendChild(tr);
   });
 }
 
 function _renderExpenseCards(m) {
-  const table = tableBody.closest("table");
-  if (table) table.style.display = "none";
-  tableBody.innerHTML = "";
-  let cardList = document.getElementById("expense-card-list");
+  var table = tableBody.closest('table');
+  if (table) table.style.display = 'none';
+  tableBody.innerHTML = '';
+  var cardList = document.getElementById('expense-card-list');
   if (!cardList) {
-    cardList = document.createElement("div");
-    cardList.id = "expense-card-list";
-    cardList.className = "expense-card-list";
-    if (table && table.parentNode)
-      table.parentNode.insertBefore(cardList, table);
+    cardList = document.createElement('div');
+    cardList.id = 'expense-card-list';
+    cardList.className = 'expense-card-list';
+    if (table && table.parentNode) table.parentNode.insertBefore(cardList, table);
   }
-  cardList.innerHTML = "";
+  cardList.innerHTML = '';
   if (m.expenses.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "expense-card-empty";
-    empty.textContent = "No expenses recorded yet.";
+    var empty = document.createElement('div');
+    empty.className = 'expense-card-empty';
+    empty.textContent = 'No expenses recorded yet.';
     cardList.appendChild(empty);
     return;
   }
-  m.expenses.forEach((exp) => {
-    const card = document.createElement("div");
-    card.className = "expense-card";
-    const descEl = document.createElement("div");
-    descEl.className = "expense-card-desc";
+  m.expenses.forEach(function(exp) {
+    var card = document.createElement('div');
+    card.className = 'expense-card';
+    var descEl = document.createElement('div');
+    descEl.className = 'expense-card-desc';
     descEl.textContent = exp.desc;
-    const cat = state.categories.find((c) => c.id === exp.categoryId);
+    var cat = state.categories.find(function(c) { return c.id === exp.categoryId; });
     if (cat) {
-      const catLabel = document.createElement("span");
-      catLabel.className = "expense-card-category";
+      var catLabel = document.createElement('span');
+      catLabel.className = 'expense-card-category';
       catLabel.textContent = cat.name;
       card.appendChild(descEl);
       card.appendChild(catLabel);
     } else {
       card.appendChild(descEl);
     }
-    const row = document.createElement("div");
-    row.className = "expense-card-row";
-    const dateEl = document.createElement("span");
-    dateEl.className = "expense-card-date";
+    var row = document.createElement('div');
+    row.className = 'expense-card-row';
+    var dateEl = document.createElement('span');
+    dateEl.className = 'expense-card-date';
     dateEl.textContent = formatExpenseDate(exp.date);
-    const valEl = document.createElement("span");
-    valEl.className = "expense-card-val";
+    var valEl = document.createElement('span');
+    valEl.className = 'expense-card-val';
     valEl.textContent = fmt(exp.val);
-    const actionsEl = document.createElement("div");
-    actionsEl.className = "expense-card-actions";
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "btn-edit-expense";
-    btnEdit.title = "Edit expense";
-    btnEdit.setAttribute("aria-label", "Edit expense");
-    btnEdit.innerHTML =
-      '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
-    btnEdit.addEventListener("click", () => openEditExpenseModal(exp.id, btnEdit));
-    const btnDel = document.createElement("button");
-    btnDel.className = "btn-danger btn-del-expense";
-    btnDel.textContent = "Del";
-    btnDel.setAttribute("aria-label", "Delete expense");
-    btnDel.addEventListener(
-      "click",
-      () => _deleteExpenseCb && _deleteExpenseCb(exp.id),
-    );
+    var actionsEl = document.createElement('div');
+    actionsEl.className = 'expense-card-actions';
+    var btnEdit = document.createElement('button');
+    btnEdit.className = 'btn-edit-expense';
+    btnEdit.title = 'Edit expense';
+    btnEdit.setAttribute('aria-label', 'Edit expense');
+    btnEdit.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">edit</span>';
+    btnEdit.addEventListener('click', function() { openEditExpenseModal(exp.id, btnEdit); });
+    var btnDel = document.createElement('button');
+    btnDel.className = 'btn-danger btn-del-expense';
+    btnDel.textContent = 'Del';
+    btnDel.setAttribute('aria-label', 'Delete expense');
+    btnDel.addEventListener('click', function() { if (_deleteExpenseCb) _deleteExpenseCb(exp.id); });
     actionsEl.appendChild(btnEdit);
     actionsEl.appendChild(btnDel);
-    row.appendChild(dateEl);
-    row.appendChild(valEl);
-    row.appendChild(actionsEl);
+    row.appendChild(dateEl); row.appendChild(valEl); row.appendChild(actionsEl);
     card.appendChild(row);
     cardList.appendChild(card);
   });
@@ -538,44 +600,42 @@ function _renderExpenseCards(m) {
 
 // -- UNDO TOAST
 export function showUndoToast(message) {
-  const toast = document.getElementById("undo-toast");
+  var toast = document.getElementById('undo-toast');
   if (!toast) return;
-  document.getElementById("undo-toast-msg").textContent = message;
-  toast.classList.remove("hidden");
+  document.getElementById('undo-toast-msg').textContent = message;
+  toast.classList.remove('hidden');
 }
 
 export function hideUndoToast() {
-  const toast = document.getElementById("undo-toast");
-  if (toast) toast.classList.add("hidden");
+  var toast = document.getElementById('undo-toast');
+  if (toast) toast.classList.add('hidden');
 }
 
-// -- FOCUS TRAP HELPERS (modal-internal, not exported)
-let _lastFocusedTrigger = null;
+// -- FOCUS TRAP HELPERS
+var _lastFocusedTrigger = null;
 
 function trapFocus(overlayEl) {
-  const focusable = overlayEl.querySelectorAll(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  var focusable = overlayEl.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
   );
   if (focusable.length === 0) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
+  var first = focusable[0];
+  var last = focusable[focusable.length - 1];
   function handleKeydown(e) {
-    if (e.key !== "Tab") return;
+    if (e.key !== 'Tab') return;
     if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
+      e.preventDefault(); last.focus();
     } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
+      e.preventDefault(); first.focus();
     }
   }
-  overlayEl.addEventListener("keydown", handleKeydown);
+  overlayEl.addEventListener('keydown', handleKeydown);
   overlayEl._focusTrapHandler = handleKeydown;
 }
 
 function releaseFocusTrap(overlayEl) {
   if (overlayEl._focusTrapHandler) {
-    overlayEl.removeEventListener("keydown", overlayEl._focusTrapHandler);
+    overlayEl.removeEventListener('keydown', overlayEl._focusTrapHandler);
     overlayEl._focusTrapHandler = null;
   }
 }
@@ -588,164 +648,142 @@ function returnFocusToTrigger() {
 }
 
 // -- EXPENSE EDIT MODAL
-let _editingExpenseId = null;
+var _editingExpenseId = null;
 
 export function openEditExpenseModal(expId, triggerEl) {
-  const m = getActiveMonth();
+  var m = getActiveMonth();
   if (!m) return;
-  const exp = m.expenses.find((e) => e.id === expId);
+  var exp = m.expenses.find(function(e) { return e.id === expId; });
   if (!exp) return;
   _editingExpenseId = expId;
   _lastFocusedTrigger = triggerEl || null;
-  const descEl = document.getElementById("edit-exp-desc");
-  const valEl = document.getElementById("edit-exp-val");
-  const dateEl = document.getElementById("edit-exp-date");
+  var descEl = document.getElementById('edit-exp-desc');
+  var valEl = document.getElementById('edit-exp-val');
+  var dateEl = document.getElementById('edit-exp-date');
   descEl.value = exp.desc;
   valEl.value = (exp.val / 100).toFixed(2);
-  dateEl.value = exp.date || "";
-  const lastDay = new Date(m.year, m.month + 1, 0).getDate();
-  const mm = String(m.month + 1).padStart(2, "0");
-  dateEl.min = m.year + "-" + mm + "-01";
-  dateEl.max = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
-  [descEl, valEl, dateEl].forEach((el) => el.classList.remove("is-invalid"));
-  ["err-edit-exp-desc", "err-edit-exp-val", "err-edit-exp-date"].forEach(
-    (id) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = "";
-    },
-  );
+  dateEl.value = exp.date || '';
+  var lastDay = new Date(m.year, m.month + 1, 0).getDate();
+  var mm = String(m.month + 1).padStart(2, '0');
+  dateEl.min = m.year + '-' + mm + '-01';
+  dateEl.max = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
+  [descEl, valEl, dateEl].forEach(function(el) { el.classList.remove('is-invalid'); });
+  ['err-edit-exp-desc', 'err-edit-exp-val', 'err-edit-exp-date'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
   if (_openEditExpenseCb) _openEditExpenseCb(expId);
-  const eeOverlay = document.getElementById("edit-expense-overlay");
-  eeOverlay.classList.remove("hidden");
+  var eeOverlay = document.getElementById('edit-expense-overlay');
+  eeOverlay.classList.remove('hidden');
   trapFocus(eeOverlay);
   descEl.focus();
 }
 
 export function closeEditExpenseModal() {
   _editingExpenseId = null;
-  const eeOverlay = document.getElementById("edit-expense-overlay");
+  var eeOverlay = document.getElementById('edit-expense-overlay');
   releaseFocusTrap(eeOverlay);
-  eeOverlay.classList.add("hidden");
+  eeOverlay.classList.add('hidden');
   returnFocusToTrigger();
 }
 
-export function getEditingExpenseId() {
-  return _editingExpenseId;
-}
+export function getEditingExpenseId() { return _editingExpenseId; }
 
 // -- DELETE MONTH MODAL
-let _pendingDeleteMonthId = null;
+var _pendingDeleteMonthId = null;
 
 export function openDeleteMonthModal(id, triggerEl) {
-  const m = state.months.find((x) => x.id === id);
+  var m = state.months.find(function(x) { return x.id === id; });
   if (!m) return;
   _pendingDeleteMonthId = id;
   _lastFocusedTrigger = triggerEl || null;
-  const totalSpent = m.expenses.reduce((s, e) => s + e.val, 0);
-  const expCount = m.expenses.length;
-  document.getElementById("delete-month-name").textContent =
-    "Delete " + m.name + "?";
-  document.getElementById("delete-month-stats").textContent =
-    expCount +
-    " expense" +
-    (expCount !== 1 ? "s" : "") +
-    " \u00B7 " +
-    fmt(totalSpent) +
-    " spent";
-  const dmOverlay = document.getElementById("delete-month-overlay");
-  dmOverlay.classList.remove("hidden");
+  var totalSpent = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
+  var expCount = m.expenses.length;
+  document.getElementById('delete-month-name').textContent = 'Delete ' + m.name + '?';
+  document.getElementById('delete-month-stats').textContent =
+    expCount + ' expense' + (expCount !== 1 ? 's' : '') + ' \u00B7 ' + fmt(totalSpent) + ' spent';
+  var dmOverlay = document.getElementById('delete-month-overlay');
+  dmOverlay.classList.remove('hidden');
   trapFocus(dmOverlay);
-  const cancelBtn = document.getElementById("btn-delete-month-cancel");
+  var cancelBtn = document.getElementById('btn-delete-month-cancel');
   if (cancelBtn) cancelBtn.focus();
 }
 
 export function closeDeleteMonthModal() {
   _pendingDeleteMonthId = null;
-  const dmOverlay = document.getElementById("delete-month-overlay");
+  var dmOverlay = document.getElementById('delete-month-overlay');
   releaseFocusTrap(dmOverlay);
-  dmOverlay.classList.add("hidden");
+  dmOverlay.classList.add('hidden');
   returnFocusToTrigger();
 }
 
-export function getPendingDeleteMonthId() {
-  return _pendingDeleteMonthId;
-}
+export function getPendingDeleteMonthId() { return _pendingDeleteMonthId; }
 
 // -- MONTH PICKER MODAL
 export function openMonthPicker(event) {
-  const now = new Date();
-  document.getElementById("pick-month").value = now.getMonth();
-  document.getElementById("pick-year").value = now.getFullYear();
+  var now = new Date();
+  document.getElementById('pick-month').value = now.getMonth();
+  document.getElementById('pick-year').value = now.getFullYear();
   _lastFocusedTrigger = (event && event.currentTarget) || null;
-  const mpOverlay = document.getElementById("month-picker-overlay");
-  mpOverlay.classList.remove("hidden");
+  var mpOverlay = document.getElementById('month-picker-overlay');
+  mpOverlay.classList.remove('hidden');
   trapFocus(mpOverlay);
-  const pickMonth = document.getElementById("pick-month");
+  var pickMonth = document.getElementById('pick-month');
   if (pickMonth) pickMonth.focus();
 }
 
 export function closeMonthPicker() {
-  const mpOverlay = document.getElementById("month-picker-overlay");
+  var mpOverlay = document.getElementById('month-picker-overlay');
   releaseFocusTrap(mpOverlay);
-  mpOverlay.classList.add("hidden");
+  mpOverlay.classList.add('hidden');
   returnFocusToTrigger();
 }
 
 // -- PROFILE MODAL
-export const profileOverlay = document.getElementById("profile-overlay");
+export var profileOverlay = document.getElementById('profile-overlay');
 
 export async function openProfileModal(event) {
   try {
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData && authData.user;
+    var authData = (await supabase.auth.getUser()).data;
+    var user = authData && authData.user;
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .single();
-      if (profile && profile.display_name)
-        cacheDisplayName(profile.display_name);
+      var profileResult = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
+      if (profileResult.data && profileResult.data.display_name)
+        cacheDisplayName(profileResult.data.display_name);
     }
   } catch (_) {}
-  document.getElementById("display-name-input").value = getDisplayName();
-  document.getElementById("current-pass-input").value = "";
-  document.getElementById("new-pass-input").value = "";
-  document.getElementById("confirm-pass-input").value = "";
-  document.getElementById("theme-select").value = getPreferredTheme();
-  const currencySelectEl = document.getElementById("currency-select");
-  if (currencySelectEl) currencySelectEl.value = state.currency || "USD";
+  document.getElementById('display-name-input').value = getDisplayName();
+  document.getElementById('current-pass-input').value = '';
+  document.getElementById('new-pass-input').value = '';
+  document.getElementById('confirm-pass-input').value = '';
+  document.getElementById('theme-select').value = getPreferredTheme();
+  var currencySelectEl = document.getElementById('currency-select');
+  if (currencySelectEl) currencySelectEl.value = state.currency || 'USD';
   _lastFocusedTrigger = (event && event.currentTarget) || null;
-  profileOverlay.classList.remove("hidden");
+  profileOverlay.classList.remove('hidden');
   trapFocus(profileOverlay);
-  const nameInput = document.getElementById("display-name-input");
+  var nameInput = document.getElementById('display-name-input');
   if (nameInput) nameInput.focus();
 }
 
 export function closeProfileModal() {
   releaseFocusTrap(profileOverlay);
-  profileOverlay.classList.add("hidden");
+  profileOverlay.classList.add('hidden');
   returnFocusToTrigger();
 }
 
 // -- SYNC STATUS INDICATOR
-// status: "syncing" | "stale" | null (null clears the indicator)
-// Uses existing .save-status class modifiers already in style.css:
-//   .saving  → muted/neutral tone
-//   .error   → warning/danger tone
-//   .visible → controls opacity transition
 export function setSyncStatus(status) {
-  document.querySelectorAll(".save-status").forEach((el) => {
-    el.classList.remove("visible", "saving", "error");
-    if (status === "syncing") {
-      el.textContent = "Syncing\u2026";
-      el.classList.add("visible", "saving");
-    } else if (status === "stale") {
-      el.textContent = "Showing saved data \u2014 could not refresh";
-      el.classList.add("visible", "error");
+  document.querySelectorAll('.save-status').forEach(function(el) {
+    el.classList.remove('visible', 'saving', 'error');
+    if (status === 'syncing') {
+      el.textContent = 'Syncing\u2026';
+      el.classList.add('visible', 'saving');
+    } else if (status === 'stale') {
+      el.textContent = 'Showing saved data \u2014 could not refresh';
+      el.classList.add('visible', 'error');
     } else {
-      el.textContent = "";
+      el.textContent = '';
     }
   });
 }
-

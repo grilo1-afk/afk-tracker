@@ -1280,6 +1280,35 @@ td.action-col {
   flex: 1;
 }
 
+/* ── CHARTS (D5) ── */
+.charts-section {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chart-block {
+  background: var(--bg-color);
+  border: 1px solid #2a2f38;
+  border-radius: 7px;
+  padding: 10px 12px;
+}
+.chart-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.chart-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+.chart-wrap svg {
+  display: block;
+  overflow: visible;
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */

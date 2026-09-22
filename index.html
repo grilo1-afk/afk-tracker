@@ -162,13 +162,28 @@
         </div>
       </div>
       <div class="scroll-content">
-        <div id="year-summary"></div>
         <!-- Lifetime total (D4) -->
         <div id="lifetime-total-wrap" class="lifetime-total-wrap hidden">
           <span class="lifetime-total-label">Lifetime Total</span>
           <span class="lifetime-total-value" id="display-lifetime-total">$0.00</span>
           <span class="lifetime-total-estimate" id="lifetime-estimate-note"></span>
         </div>
+        <!-- Charts (D5) -->
+        <div id="charts-section" class="charts-section hidden">
+          <div class="chart-block">
+            <div class="chart-title">Monthly Spending</div>
+            <div id="chart-spending" class="chart-wrap"></div>
+          </div>
+          <div class="chart-block">
+            <div class="chart-title">Spent vs Budget</div>
+            <div id="chart-vs-budget" class="chart-wrap"></div>
+          </div>
+          <div class="chart-block">
+            <div class="chart-title">By Category</div>
+            <div id="chart-by-category" class="chart-wrap"></div>
+          </div>
+        </div>
+        <div id="year-summary"></div>
         <div class="month-list" id="month-list">
           <div class="empty-history">
             No months recorded yet. Create your first month below.
