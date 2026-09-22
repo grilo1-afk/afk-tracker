@@ -29,6 +29,7 @@ import {
   dbDeleteCategory,
   dbUpdateExpenseCategory,
   dbUpdateCurrency,
+  dbExportData,
 } from "./api.js";
 import {
   registerAuthCallbacks,
@@ -989,6 +990,37 @@ document
     }
     closeProfileModal();
   });
+
+// -- DATA EXPORT
+document.getElementById("btn-export-data").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-export-data");
+  const errEl = document.getElementById("err-export");
+  if (errEl) errEl.textContent = "";
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+
+  try {
+    const result = await dbExportData();
+    if (!result.ok) {
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    const json = JSON.stringify(result.data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `afk-tracker-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
+  }
+});
 
 // -- AUTH
 document.getElementById("btn-logout").addEventListener("click", async () => {

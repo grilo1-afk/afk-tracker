@@ -993,6 +993,12 @@ td.action-col {
   letter-spacing: 1.5px;
   margin: 0 0 12px;
 }
+.settings-section-desc {
+  font-size: 12px;
+  color: #777;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
 /* Desktop: give screen-header its padding */
 .screen-header {
   padding: max(16px, env(safe-area-inset-top) + 8px) 24px 14px;

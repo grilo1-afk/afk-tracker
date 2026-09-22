@@ -214,3 +214,52 @@ export async function dbUpdatePassword(newPassword) {
   }
   return { ok: true, data: undefined };
 }
+
+export async function dbExportData() {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, message: "Your session has expired." };
+
+  const [monthsResult, catsResult] = await Promise.all([
+    supabase
+      .from("months")
+      .select("*, expenses(*)")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("year", { ascending: false })
+      .order("month", { ascending: false }),
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  if (monthsResult.error) return { ok: false, message: "Export failed — could not fetch months." };
+  if (catsResult.error)   return { ok: false, message: "Export failed — could not fetch categories." };
+
+  return {
+    ok: true,
+    data: {
+      exported_at: new Date().toISOString(),
+      user_id: user.id,
+      categories: catsResult.data || [],
+      months: (monthsResult.data || []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        year: m.year,
+        month: m.month,
+        budget: m.budget,
+        created_at: m.created_at,
+        expenses: (m.expenses || []).map((e) => ({
+          id: e.id,
+          description: e.description,
+          amount: e.amount,
+          expense_date: e.expense_date,
+          category_id: e.category_id,
+          created_at: e.created_at,
+        })),
+      })),
+    },
+  };
+}
