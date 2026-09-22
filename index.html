@@ -163,6 +163,12 @@
       </div>
       <div class="scroll-content">
         <div id="year-summary"></div>
+        <!-- Lifetime total (D4) -->
+        <div id="lifetime-total-wrap" class="lifetime-total-wrap hidden">
+          <span class="lifetime-total-label">Lifetime Total</span>
+          <span class="lifetime-total-value" id="display-lifetime-total">$0.00</span>
+          <span class="lifetime-total-estimate" id="lifetime-estimate-note"></span>
+        </div>
         <div class="month-list" id="month-list">
           <div class="empty-history">
             No months recorded yet. Create your first month below.
@@ -637,6 +643,24 @@
               Export Backup
             </button>
             <span class="field-error" id="err-export"></span>
+            <div class="form-group" style="margin-top: 14px">
+              <label for="lifetime-offset-input">Pre-app spending (estimate)</label>
+              <p class="settings-section-desc" style="margin-bottom: 6px">
+                Amount spent before this app existed. Added to the lifetime total.
+              </p>
+              <div class="lifetime-offset-row">
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  id="lifetime-offset-input"
+                  placeholder="0.00"
+                />
+                <button type="button" id="btn-save-lifetime-offset" class="btn-secondary btn-sm">
+                  Save
+                </button>
+              </div>
+              <span class="field-error" id="err-lifetime-offset"></span>
+            </div>
           </div>
         </div>
       </div>

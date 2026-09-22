@@ -1,6 +1,6 @@
 // -- SHARED STATE
 // Schema: { displayName, months: [{ id(uuid), name, year, month(0-based), budget(null|number), expenses:[{id(uuid),desc,val,date,createdAt,categoryId}] }], categories: [{id,name}], currency: string }
-export let state = { displayName: null, months: [], categories: [], currency: "USD" };
+export let state = { displayName: null, months: [], categories: [], currency: "USD", lifetimeOffset: 0 };
 
 // Mutates state in-place so all module references stay live
 export function setState(newState) {

@@ -1241,6 +1241,45 @@ td.action-col {
   color: var(--text-light);
 }
 
+/* ── LIFETIME TOTAL (D4) ── */
+.lifetime-total-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--bg-color);
+  border: 1px solid rgba(232, 184, 75, 0.3);
+  border-radius: 7px;
+}
+.lifetime-total-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+}
+.lifetime-total-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.5px;
+}
+.lifetime-total-estimate {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+}
+.lifetime-offset-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.lifetime-offset-row input {
+  flex: 1;
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */

@@ -39,7 +39,7 @@ export async function loadState() {
       .order("expense_date", { foreignTable: "expenses", ascending: false })
       .order("created_at", { foreignTable: "expenses", ascending: false }),
     user
-      ? supabase.from("profiles").select("display_name, currency").eq("id", user.id).single()
+      ? supabase.from("profiles").select("display_name, currency, lifetime_offset").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     supabase.from("categories").select("id, name").order("created_at", { ascending: true }),
   ]);
@@ -59,6 +59,9 @@ export async function loadState() {
   newState.displayName = displayName || getDisplayName();
   newState.categories = (catResult.data || []).map((c) => ({ id: c.id, name: c.name }));
   newState.currency = (profileResult.data && profileResult.data.currency) || "USD";
+  newState.lifetimeOffset = Math.round(
+    parseFloat((profileResult.data && profileResult.data.lifetime_offset) || 0) * 100
+  );
   return newState;
 }
 
@@ -262,4 +265,19 @@ export async function dbExportData() {
       })),
     },
   };
+}
+
+export async function dbUpdateLifetimeOffset(dollars) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, message: "Your session has expired." };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ lifetime_offset: dollars })
+    .eq("id", user.id);
+  if (error) {
+    console.error("dbUpdateLifetimeOffset:", error);
+    return { ok: false, message: "Could not save starting figure." };
+  }
+  return { ok: true };
 }

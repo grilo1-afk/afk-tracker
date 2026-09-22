@@ -30,6 +30,7 @@ import {
   dbUpdateExpenseCategory,
   dbUpdateCurrency,
   dbExportData,
+  dbUpdateLifetimeOffset,
 } from "./api.js";
 import {
   registerAuthCallbacks,
@@ -51,6 +52,7 @@ import {
   renderWelcomeName,
   sortMonths,
   renderHistory,
+  renderLifetimeTotal,
   openMonth,
   renderStats,
   renderExpenses,
@@ -893,6 +895,10 @@ document
     renderCategorySettingsList();
     const currencySelect = document.getElementById("currency-select");
     if (currencySelect) currencySelect.value = state.currency || "USD";
+    const offsetInput = document.getElementById("lifetime-offset-input");
+    if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
+      ? (state.lifetimeOffset / 100).toFixed(2)
+      : "";
   });
 document
   .getElementById("btn-profile-2")
@@ -902,6 +908,10 @@ document
     renderCategorySettingsList();
     const currencySelect = document.getElementById("currency-select");
     if (currencySelect) currencySelect.value = state.currency || "USD";
+    const offsetInput = document.getElementById("lifetime-offset-input");
+    if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
+      ? (state.lifetimeOffset / 100).toFixed(2)
+      : "";
   });
 document
   .getElementById("btn-profile-close-x")
@@ -990,6 +1000,35 @@ document
     }
     closeProfileModal();
   });
+
+// -- LIFETIME OFFSET SAVE
+document.getElementById("btn-save-lifetime-offset").addEventListener("click", async () => {
+  const input = document.getElementById("lifetime-offset-input");
+  const errEl = document.getElementById("err-lifetime-offset");
+  const btn = document.getElementById("btn-save-lifetime-offset");
+  if (errEl) errEl.textContent = "";
+
+  const val = parseMoneyInput(input.value);
+  if (isNaN(val) || val < 0) {
+    if (errEl) errEl.textContent = "Enter a valid amount (0 or greater).";
+    return;
+  }
+
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+  try {
+    const result = await dbUpdateLifetimeOffset(val);
+    if (!result.ok) {
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    state.lifetimeOffset = Math.round(val * 100);
+    renderLifetimeTotal();
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
+  }
+});
 
 // -- DATA EXPORT
 document.getElementById("btn-export-data").addEventListener("click", async () => {

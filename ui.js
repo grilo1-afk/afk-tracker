@@ -168,10 +168,37 @@ export function renderYearSummary() {
   });
 }
 
+export function renderLifetimeTotal() {
+  const wrap = document.getElementById("lifetime-total-wrap");
+  const valueEl = document.getElementById("display-lifetime-total");
+  const noteEl = document.getElementById("lifetime-estimate-note");
+  if (!wrap || !valueEl) return;
+
+  if (state.months.length === 0 && state.lifetimeOffset === 0) {
+    wrap.classList.add("hidden");
+    return;
+  }
+
+  const measuredTotal = state.months.reduce(
+    (s, m) => s + m.expenses.reduce((ss, e) => ss + e.val, 0),
+    0
+  );
+  const lifetimeTotal = measuredTotal + state.lifetimeOffset;
+
+  valueEl.textContent = fmt(lifetimeTotal);
+  if (noteEl) {
+    noteEl.textContent = state.lifetimeOffset > 0
+      ? "includes an estimated " + fmt(state.lifetimeOffset) + " from before this app"
+      : "";
+  }
+  wrap.classList.remove("hidden");
+}
+
 export function renderHistory() {
   const monthList = document.getElementById("month-list");
   const currentObj = getCurrentMonthObj();
   renderYearSummary();
+  renderLifetimeTotal();
   monthList.innerHTML = "";
   if (state.months.length === 0) {
     monthList.innerHTML =
