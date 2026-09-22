@@ -1201,6 +1201,46 @@ td.action-col {
   color: var(--text-light);
 }
 
+/* ── YEAR SUMMARY (D3) ── */
+#year-summary {
+  margin-bottom: 16px;
+}
+.year-summary-block {
+  background: var(--bg-color);
+  border: 1px solid #2a2f38;
+  border-radius: 7px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.year-summary-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.year-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.year-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.year-summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+}
+.year-summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */

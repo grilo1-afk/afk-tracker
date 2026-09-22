@@ -104,9 +104,74 @@ export function sortMonths() {
   );
 }
 
+export function renderYearSummary() {
+  const container = document.getElementById("year-summary");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (state.months.length === 0) return;
+
+  // Group months by year, preserving sort order (newest first already applied by sortMonths)
+  const byYear = new Map();
+  state.months.forEach((m) => {
+    if (!byYear.has(m.year)) byYear.set(m.year, []);
+    byYear.get(m.year).push(m);
+  });
+
+  byYear.forEach((months, year) => {
+    // Only months with a budget set contribute to the summary
+    const budgeted = months.filter((m) => m.budget !== null);
+    if (budgeted.length === 0) return; // skip years with no budgeted months
+
+    const totalSpent  = budgeted.reduce((s, m) => s + m.expenses.reduce((ss, e) => ss + e.val, 0), 0);
+    const totalBudget = budgeted.reduce((s, m) => s + m.budget, 0);
+    const avgPerMonth = Math.round(totalSpent / budgeted.length);
+    const underBudget = budgeted.filter((m) => {
+      const spent = m.expenses.reduce((s, e) => s + e.val, 0);
+      return m.budget > 0 && spent <= m.budget;
+    }).length;
+
+    const block = document.createElement("div");
+    block.className = "year-summary-block";
+
+    const heading = document.createElement("div");
+    heading.className = "year-summary-heading";
+    heading.textContent = year;
+    block.appendChild(heading);
+
+    const grid = document.createElement("div");
+    grid.className = "year-summary-grid";
+
+    const items = [
+      { label: "Spent",        value: fmt(totalSpent) },
+      { label: "Avg / Month",  value: fmt(avgPerMonth) },
+      { label: "Budgeted",     value: fmt(totalBudget) },
+      { label: "Under Budget", value: underBudget + " / " + budgeted.length },
+    ];
+
+    items.forEach(({ label, value }) => {
+      const item = document.createElement("div");
+      item.className = "year-summary-item";
+      const lEl = document.createElement("span");
+      lEl.className = "year-summary-label";
+      lEl.textContent = label;
+      const vEl = document.createElement("span");
+      vEl.className = "year-summary-value";
+      vEl.textContent = value;
+      item.appendChild(lEl);
+      item.appendChild(vEl);
+      grid.appendChild(item);
+    });
+
+    block.appendChild(grid);
+    container.appendChild(block);
+  });
+}
+
 export function renderHistory() {
   const monthList = document.getElementById("month-list");
   const currentObj = getCurrentMonthObj();
+  renderYearSummary();
   monthList.innerHTML = "";
   if (state.months.length === 0) {
     monthList.innerHTML =
