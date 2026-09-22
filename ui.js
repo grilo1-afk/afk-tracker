@@ -15,11 +15,13 @@ import { supabase } from "./supabase-client.js";
 const loginScreen = document.getElementById("login-screen");
 const historyScreen = document.getElementById("history-screen");
 const monthScreen = document.getElementById("month-screen");
+const achievementScreen = document.getElementById("achievement-screen");
 
 const SCREENS = {
   login: loginScreen,
   history: historyScreen,
   month: monthScreen,
+  achievement: achievementScreen,
 };
 
 export function showScreen(name) {
@@ -786,4 +788,169 @@ export function setSyncStatus(status) {
       el.textContent = '';
     }
   });
+}
+
+// -- ACHIEVEMENTS (E4)
+
+const ACHIEVEMENTS = [
+  {
+    id: "first_blood",
+    title: "First Purchase",
+    desc: "Record your first expense.",
+    tier: "Bronze",
+    sticker: "5.png",
+    earned: (s) => s.months.some((m) => m.expenses.length > 0),
+  },
+  {
+    id: "ten_purchases",
+    title: "Habitual Spender",
+    desc: "Record 10 expenses total.",
+    tier: "Bronze",
+    sticker: "10.png",
+    earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 10,
+  },
+  {
+    id: "fifty_purchases",
+    title: "Dedicated Fan",
+    desc: "Record 50 expenses total.",
+    tier: "Silver",
+    sticker: "15.png",
+    earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 50,
+  },
+  {
+    id: "hundred_purchases",
+    title: "True Believer",
+    desc: "Record 100 expenses total.",
+    tier: "Silver",
+    sticker: "20.png",
+    earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 100,
+  },
+  {
+    id: "under_budget",
+    title: "Disciplined",
+    desc: "Finish a month under budget.",
+    tier: "Bronze",
+    sticker: "25.png",
+    earned: (s) => s.months.some((m) => {
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }),
+  },
+  {
+    id: "three_under_budget",
+    title: "Budget Master",
+    desc: "Finish 3 months under budget.",
+    tier: "Silver",
+    sticker: "30.png",
+    earned: (s) => s.months.filter((m) => {
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length >= 3,
+  },
+  {
+    id: "six_under_budget",
+    title: "Iron Will",
+    desc: "Finish 6 months under budget.",
+    tier: "Gold",
+    sticker: "35.png",
+    earned: (s) => s.months.filter((m) => {
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length >= 6,
+  },
+  {
+    id: "zero_spend_month",
+    title: "Zero Spend",
+    desc: "A month with a budget set but no expenses.",
+    tier: "Gold",
+    sticker: "40.png",
+    earned: (s) => s.months.some((m) => m.budget !== null && m.budget > 0 && m.expenses.length === 0),
+  },
+  {
+    id: "big_spender",
+    title: "Big Spender",
+    desc: "A single expense of $50.00 or more.",
+    tier: "Silver",
+    sticker: "45.png",
+    earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 5000)),
+  },
+  {
+    id: "whale",
+    title: "Whale",
+    desc: "A single expense of $100.00 or more.",
+    tier: "Legendary",
+    sticker: "1.gif",
+    earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 10000)),
+  },
+];
+
+function _buildAchievementCard(a, isEarned) {
+  const card = document.createElement("div");
+  card.className = "achievement-card" + (isEarned ? " earned" : " locked");
+
+  const img = document.createElement("img");
+  img.src = "images/stickers-optimized/" + a.sticker;
+  img.alt = a.title;
+  img.className = "achievement-sticker";
+  img.loading = "lazy";
+  card.appendChild(img);
+
+  const info = document.createElement("div");
+  info.className = "achievement-info";
+
+  const titleEl = document.createElement("div");
+  titleEl.className = "achievement-title";
+  titleEl.textContent = a.title;
+
+  const tierEl = document.createElement("span");
+  tierEl.className = "achievement-tier achievement-tier--" + a.tier.toLowerCase();
+  tierEl.textContent = a.tier;
+
+  const descEl = document.createElement("div");
+  descEl.className = "achievement-desc";
+  descEl.textContent = a.desc;
+
+  info.appendChild(titleEl);
+  info.appendChild(tierEl);
+  info.appendChild(descEl);
+  card.appendChild(info);
+
+  return card;
+}
+
+export function renderAchievements() {
+  const list = document.getElementById("achievement-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const earned = ACHIEVEMENTS.filter((a) => a.earned(state));
+  const unearned = ACHIEVEMENTS.filter((a) => !a.earned(state));
+
+  if (earned.length > 0) {
+    const label = document.createElement("div");
+    label.className = "achievement-section-label";
+    label.textContent = "Earned";
+    list.appendChild(label);
+    earned.forEach((a) => list.appendChild(_buildAchievementCard(a, true)));
+  }
+
+  if (unearned.length > 0) {
+    const label = document.createElement("div");
+    label.className = "achievement-section-label";
+    label.textContent = "Locked";
+    list.appendChild(label);
+    unearned.forEach((a) => list.appendChild(_buildAchievementCard(a, false)));
+  }
+}
+
+export function openAchievementScreen() {
+  renderAchievements();
+  showScreen("achievement");
+}
+
+export function closeAchievementScreen() {
+  showScreen("history");
 }

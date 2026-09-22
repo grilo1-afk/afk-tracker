@@ -75,6 +75,8 @@ import {
   registerOpenEditExpenseCb,
   parseMoneyInput,
   setSyncStatus,
+  openAchievementScreen,
+  closeAchievementScreen,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -390,9 +392,18 @@ document
     }
   });
 
+// -- ACHIEVEMENT BUTTONS
+document.getElementById("btn-achievements").addEventListener("click", openAchievementScreen);
+document.getElementById("btn-achievements-back").addEventListener("click", closeAchievementScreen);
+
 // -- ESCAPE KEY
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const achScreen = document.getElementById("achievement-screen");
+  if (achScreen && !achScreen.classList.contains("hidden")) {
+    closeAchievementScreen();
+    return;
+  }
   const pickerEl = document.getElementById("month-picker-overlay");
   if (pickerEl && !pickerEl.classList.contains("hidden")) {
     closeMonthPicker();

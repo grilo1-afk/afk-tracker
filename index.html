@@ -152,6 +152,14 @@
             <span class="material-symbols-outlined">refresh</span>
           </button>
           <button
+            id="btn-achievements"
+            class="btn-icon"
+            title="Achievements"
+            aria-label="Achievements"
+          >
+            &#127942;
+          </button>
+          <button
             id="btn-profile"
             class="btn-icon"
             title="Settings"
@@ -388,6 +396,21 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- ACHIEVEMENT SCREEN -->
+    <div id="achievement-screen" class="container hidden">
+      <div class="screen-header">
+        <h2>&#127942; Achievements</h2>
+        <div class="header-actions">
+          <button id="btn-achievements-back" class="btn-icon" title="Back" aria-label="Back">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+        </div>
+      </div>
+      <div class="scroll-content" id="achievement-list">
+        <!-- rendered by renderAchievements() -->
       </div>
     </div>
 
