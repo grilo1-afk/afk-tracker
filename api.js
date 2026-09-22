@@ -29,7 +29,7 @@ export async function loadState() {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
 
-  const [monthsResult, profileResult, catResult] = await Promise.all([
+  const [monthsResult, profileResult, catResult, presetsResult, recurringResult] = await Promise.all([
     supabase
       .from("months")
       .select("*, expenses(*)")
@@ -42,6 +42,8 @@ export async function loadState() {
       ? supabase.from("profiles").select("display_name, currency, lifetime_offset").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     supabase.from("categories").select("id, name").order("created_at", { ascending: true }),
+    supabase.from("presets").select("id, description, amount").order("created_at", { ascending: true }),
+    supabase.from("recurring_expenses").select("id, description, amount").order("created_at", { ascending: true }),
   ]);
 
   if (monthsResult.error) {
@@ -52,12 +54,22 @@ export async function loadState() {
     const classified = classifyError(catResult.error);
     throw Object.assign(new Error(classified.message), { kind: classified.kind });
   }
+  if (presetsResult.error) {
+    const classified = classifyError(presetsResult.error);
+    throw Object.assign(new Error(classified.message), { kind: classified.kind });
+  }
+  if (recurringResult.error) {
+    const classified = classifyError(recurringResult.error);
+    throw Object.assign(new Error(classified.message), { kind: classified.kind });
+  }
 
   const newState = dbRowsToState(monthsResult.data || []);
   const displayName = (profileResult.data && profileResult.data.display_name) || null;
   if (displayName) cacheDisplayName(displayName);
   newState.displayName = displayName || getDisplayName();
   newState.categories = (catResult.data || []).map((c) => ({ id: c.id, name: c.name }));
+  newState.presets = (presetsResult.data || []).map((p) => ({ id: p.id, desc: p.description, amount: parseFloat(p.amount) }));
+  newState.recurring = (recurringResult.data || []).map((r) => ({ id: r.id, desc: r.description, amount: parseFloat(r.amount) }));
   newState.currency = (profileResult.data && profileResult.data.currency) || "USD";
   newState.lifetimeOffset = Math.round(
     parseFloat((profileResult.data && profileResult.data.lifetime_offset) || 0) * 100
@@ -149,6 +161,56 @@ export async function dbDeleteCategory(id) {
   return { ok: true, data: undefined };
 }
 
+export async function dbAddPreset(desc, amount) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
+  const { data, error } = await supabase
+    .from("presets")
+    .insert({ user_id: user.id, description: desc.trim(), amount })
+    .select("id, description, amount")
+    .single();
+  if (error) {
+    console.error("dbAddPreset:", error);
+    return { ok: false, ...classifyError(error) };
+  }
+  return { ok: true, data: { id: data.id, desc: data.description, amount: parseFloat(data.amount) } };
+}
+
+export async function dbDeletePreset(id) {
+  const { error } = await supabase.from("presets").delete().eq("id", id);
+  if (error) {
+    console.error("dbDeletePreset:", error);
+    return { ok: false, ...classifyError(error) };
+  }
+  return { ok: true, data: undefined };
+}
+
+export async function dbAddRecurring(desc, amount) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
+  const { data, error } = await supabase
+    .from("recurring_expenses")
+    .insert({ user_id: user.id, description: desc.trim(), amount })
+    .select("id, description, amount")
+    .single();
+  if (error) {
+    console.error("dbAddRecurring:", error);
+    return { ok: false, ...classifyError(error) };
+  }
+  return { ok: true, data: { id: data.id, desc: data.description, amount: parseFloat(data.amount) } };
+}
+
+export async function dbDeleteRecurring(id) {
+  const { error } = await supabase.from("recurring_expenses").delete().eq("id", id);
+  if (error) {
+    console.error("dbDeleteRecurring:", error);
+    return { ok: false, ...classifyError(error) };
+  }
+  return { ok: true, data: undefined };
+}
+
 export async function dbUpdateExpenseCategory(expenseId, categoryId) {
   const { error } = await supabase
     .from("expenses")
@@ -226,7 +288,7 @@ export async function dbExportData() {
   const user = authData && authData.user;
   if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
 
-  const [monthsResult, catsResult] = await Promise.all([
+  const [monthsResult, catsResult, presetsResult, recurringResult] = await Promise.all([
     supabase
       .from("months")
       .select("*, expenses(*)")
@@ -239,10 +301,22 @@ export async function dbExportData() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("presets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("recurring_expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
   ]);
 
   if (monthsResult.error) return { ok: false, ...classifyError(monthsResult.error) };
   if (catsResult.error)   return { ok: false, ...classifyError(catsResult.error) };
+  if (presetsResult.error) return { ok: false, ...classifyError(presetsResult.error) };
+  if (recurringResult.error) return { ok: false, ...classifyError(recurringResult.error) };
 
   return {
     ok: true,
@@ -250,6 +324,8 @@ export async function dbExportData() {
       exported_at: new Date().toISOString(),
       user_id: user.id,
       categories: catsResult.data || [],
+      presets: presetsResult.data || [],
+      recurring_expenses: recurringResult.data || [],
       months: (monthsResult.data || []).map((m) => ({
         id: m.id,
         name: m.name,

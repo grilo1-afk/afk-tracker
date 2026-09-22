@@ -17,11 +17,3 @@ export function readPresets() {
     return [];
   }
 }
-
-export function writePresets(presets) {
-  const key = presetsKey();
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(presets));
-  } catch (_) { /* non-fatal */ }
-}

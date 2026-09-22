@@ -17,11 +17,3 @@ export function readRecurring() {
     return [];
   }
 }
-
-export function writeRecurring(items) {
-  const key = recurringKey();
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(items));
-  } catch (_) { /* non-fatal */ }
-}

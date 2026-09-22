@@ -1,6 +1,6 @@
 import { supabase } from "./supabase-client.js";
-import { readPresets, writePresets } from "./presets.js";
-import { readRecurring, writeRecurring } from "./recurring.js";
+import { readPresets } from "./presets.js";
+import { readRecurring } from "./recurring.js";
 import {
   state,
   setState,
@@ -33,6 +33,10 @@ import {
   dbUpdateCurrency,
   dbExportData,
   dbUpdateLifetimeOffset,
+  dbAddPreset,
+  dbDeletePreset,
+  dbAddRecurring,
+  dbDeleteRecurring,
 } from "./api.js";
 import {
   registerAuthCallbacks,
@@ -103,6 +107,16 @@ function setupRealtimeSync() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "categories", filter: `user_id=eq.${userId}` },
+      _handleRealtimeChange
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "presets", filter: `user_id=eq.${userId}` },
+      _handleRealtimeChange
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "recurring_expenses", filter: `user_id=eq.${userId}` },
       _handleRealtimeChange
     )
     .subscribe();
@@ -390,9 +404,8 @@ document
     openMonth(result.data);
     renderPresetStrip();
     renderCategoryPicker();
-    const recurringItems = readRecurring();
-    if (recurringItems.length > 0) {
-      _openRecurringModal(result.data, { year: y, month: m }, recurringItems);
+    if (state.recurring.length > 0) {
+      _openRecurringModal(result.data, { year: y, month: m }, state.recurring);
     }
   });
 
@@ -627,7 +640,7 @@ document.getElementById("btn-add-category-settings").addEventListener("click", a
 function renderRecurringList() {
   const list = document.getElementById("recurring-list");
   if (!list) return;
-  const items = readRecurring();
+  const items = state.recurring;
   list.innerHTML = "";
   if (items.length === 0) {
     const empty = document.createElement("div");
@@ -649,10 +662,21 @@ function renderRecurringList() {
     del.type = "button";
     del.className = "btn-danger btn-sm";
     del.textContent = "Remove";
-    del.addEventListener("click", () => {
-      const updated = readRecurring().filter((x) => x.id !== item.id);
-      writeRecurring(updated);
+    del.addEventListener("click", async () => {
+      const itemId = item.id;
+      const idx = state.recurring.findIndex((x) => x.id === itemId);
+      if (idx === -1) return;
+      const saved = state.recurring[idx];
+      state.recurring.splice(idx, 1);
       renderRecurringList();
+      const result = await dbDeleteRecurring(itemId);
+      if (!result.ok) {
+        // Rollback — re-resolve by id since realtime may have refreshed state
+        const liveIdx = state.recurring.findIndex((x) => x.id === itemId);
+        if (liveIdx === -1) state.recurring.splice(idx, 0, saved);
+        renderRecurringList();
+        showBanner("login-error", result.message);
+      }
     });
     row.appendChild(label);
     row.appendChild(amount);
@@ -661,7 +685,7 @@ function renderRecurringList() {
   });
 }
 
-document.getElementById("btn-add-recurring").addEventListener("click", () => {
+document.getElementById("btn-add-recurring").addEventListener("click", async () => {
   const descEl   = document.getElementById("recurring-desc-input");
   const amountEl = document.getElementById("recurring-amount-input");
   const errEl    = document.getElementById("err-recurring");
@@ -672,11 +696,27 @@ document.getElementById("btn-add-recurring").addEventListener("click", () => {
     return;
   }
   if (errEl) errEl.textContent = "";
-  const items = readRecurring();
-  items.push({ id: crypto.randomUUID(), desc, amount, categoryId: null });
-  writeRecurring(items);
+  const tmpId = `tmp-${crypto.randomUUID()}`;
+  state.recurring.push({ id: tmpId, desc, amount });
   descEl.value = "";
   amountEl.value = "";
+  renderRecurringList();
+  const result = await dbAddRecurring(desc, amount);
+  if (!result.ok) {
+    // Re-resolve by id — state may have been refreshed by realtime
+    const liveIdx = state.recurring.findIndex((x) => x.id === tmpId);
+    if (liveIdx !== -1) state.recurring.splice(liveIdx, 1);
+    renderRecurringList();
+    if (errEl) errEl.textContent = result.message;
+    return;
+  }
+  // Replace tmp id with real db id
+  const liveItem = state.recurring.find((x) => x.id === tmpId);
+  if (liveItem) {
+    liveItem.id = result.data.id;
+    liveItem.desc = result.data.desc;
+    liveItem.amount = result.data.amount;
+  }
   renderRecurringList();
 });
 
@@ -800,14 +840,13 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
 function renderPresetStrip() {
   const strip = document.getElementById("preset-strip");
   if (!strip) return;
-  const presets = readPresets();
   strip.innerHTML = "";
-  if (presets.length === 0) {
+  if (state.presets.length === 0) {
     strip.classList.add("hidden");
     return;
   }
   strip.classList.remove("hidden");
-  presets.forEach((p) => {
+  state.presets.forEach((p) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "preset-pill";
@@ -828,16 +867,15 @@ function renderPresetStrip() {
 function renderPresetList() {
   const list = document.getElementById("preset-list");
   if (!list) return;
-  const presets = readPresets();
   list.innerHTML = "";
-  if (presets.length === 0) {
+  if (state.presets.length === 0) {
     const empty = document.createElement("div");
     empty.className = "preset-empty";
     empty.textContent = "No presets yet.";
     list.appendChild(empty);
     return;
   }
-  presets.forEach((p) => {
+  state.presets.forEach((p) => {
     const row = document.createElement("div");
     row.className = "preset-row";
     const label = document.createElement("span");
@@ -850,11 +888,22 @@ function renderPresetList() {
     del.type = "button";
     del.className = "btn-danger btn-sm";
     del.textContent = "Remove";
-    del.addEventListener("click", () => {
-      const updated = readPresets().filter((x) => x.id !== p.id);
-      writePresets(updated);
+    del.addEventListener("click", async () => {
+      const presetId = p.id;
+      const idx = state.presets.findIndex((x) => x.id === presetId);
+      if (idx === -1) return;
+      const saved = state.presets[idx];
+      state.presets.splice(idx, 1);
       renderPresetList();
       renderPresetStrip();
+      const result = await dbDeletePreset(presetId);
+      if (!result.ok) {
+        const liveIdx = state.presets.findIndex((x) => x.id === presetId);
+        if (liveIdx === -1) state.presets.splice(idx, 0, saved);
+        renderPresetList();
+        renderPresetStrip();
+        showBanner("login-error", result.message);
+      }
     });
     row.appendChild(label);
     row.appendChild(amount);
@@ -863,7 +912,7 @@ function renderPresetList() {
   });
 }
 
-document.getElementById("btn-add-preset").addEventListener("click", () => {
+document.getElementById("btn-add-preset").addEventListener("click", async () => {
   const descEl = document.getElementById("preset-desc-input");
   const amountEl = document.getElementById("preset-amount-input");
   const errEl = document.getElementById("err-preset");
@@ -874,11 +923,27 @@ document.getElementById("btn-add-preset").addEventListener("click", () => {
     return;
   }
   if (errEl) errEl.textContent = "";
-  const presets = readPresets();
-  presets.push({ id: crypto.randomUUID(), desc, amount });
-  writePresets(presets);
+  const tmpId = `tmp-${crypto.randomUUID()}`;
+  state.presets.push({ id: tmpId, desc, amount });
   descEl.value = "";
   amountEl.value = "";
+  renderPresetList();
+  renderPresetStrip();
+  const result = await dbAddPreset(desc, amount);
+  if (!result.ok) {
+    const liveIdx = state.presets.findIndex((x) => x.id === tmpId);
+    if (liveIdx !== -1) state.presets.splice(liveIdx, 1);
+    renderPresetList();
+    renderPresetStrip();
+    if (errEl) errEl.textContent = result.message;
+    return;
+  }
+  const liveItem = state.presets.find((x) => x.id === tmpId);
+  if (liveItem) {
+    liveItem.id = result.data.id;
+    liveItem.desc = result.data.desc;
+    liveItem.amount = result.data.amount;
+  }
   renderPresetList();
   renderPresetStrip();
 });
@@ -1439,6 +1504,28 @@ document.getElementById("password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
+// -- ONE-TIME localStorage → Supabase MIGRATION
+async function _migrateLocalStorageData() {
+  if (state.presets.length === 0) {
+    const localPresets = readPresets();
+    for (const p of localPresets) {
+      const result = await dbAddPreset(p.desc, p.amount);
+      if (result.ok) state.presets.push(result.data);
+    }
+    if (localPresets.length > 0) {
+      renderPresetList();
+      renderPresetStrip();
+    }
+  }
+  if (state.recurring.length === 0) {
+    const localRecurring = readRecurring();
+    for (const r of localRecurring) {
+      const result = await dbAddRecurring(r.desc, r.amount);
+      if (result.ok) state.recurring.push(result.data);
+    }
+  }
+}
+
 // -- INIT
 (async function init() {
   applyTheme(getPreferredTheme());
@@ -1481,6 +1568,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
         sortMonths();
         renderHistory();
         setSyncStatus(null);
+        await _migrateLocalStorageData();
       } catch (e) {
         console.error("Background sync failed:", e);
         setSyncStatus("stale");
@@ -1489,6 +1577,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
       // Cold load: no cache — block on full loadState
       try {
         await doLogin();
+        await _migrateLocalStorageData();
       } catch (e) {
         console.error("init doLogin failed:", e);
         // doLogin() throws "SESSION_INVALID" after calling handleSessionInvalid()
