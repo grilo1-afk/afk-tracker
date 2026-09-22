@@ -81,6 +81,9 @@ import {
   setSyncStatus,
   openAchievementScreen,
   closeAchievementScreen,
+  openStatsScreen,
+  closeStatsScreen,
+  renderStatsScreen,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -143,11 +146,16 @@ async function _handleRealtimeChange() {
     // any in-progress form entry on other screens.
     const historyEl = document.getElementById("history-screen");
     const monthEl   = document.getElementById("month-screen");
+    const statsEl   = document.getElementById("stats-screen");
     const historyVisible = historyEl && !historyEl.classList.contains("hidden");
     const monthVisible   = monthEl   && !monthEl.classList.contains("hidden");
+    const statsVisible   = statsEl   && !statsEl.classList.contains("hidden");
 
     if (historyVisible) {
       renderHistory();
+    }
+    if (statsVisible) {
+      renderStatsScreen();
     }
     if (monthVisible) {
       const m = getActiveMonth();
@@ -408,6 +416,10 @@ document
       _openRecurringModal(result.data, { year: y, month: m }, state.recurring);
     }
   });
+
+// -- STATISTICS BUTTONS
+document.getElementById("btn-stats").addEventListener("click", openStatsScreen);
+document.getElementById("btn-stats-back").addEventListener("click", closeStatsScreen);
 
 // -- ACHIEVEMENT BUTTONS
 document.getElementById("btn-achievements").addEventListener("click", openAchievementScreen);

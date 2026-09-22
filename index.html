@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-title" content="AFK Tracker" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,close,dark_mode,edit,light_mode,refresh,visibility,visibility_off"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,bar_chart,close,dark_mode,edit,light_mode,refresh,visibility,visibility_off"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -152,6 +152,14 @@
             <span class="material-symbols-outlined">refresh</span>
           </button>
           <button
+            id="btn-stats"
+            class="btn-icon"
+            title="Statistics"
+            aria-label="Statistics"
+          >
+            <span class="material-symbols-outlined">bar_chart</span>
+          </button>
+          <button
             id="btn-achievements"
             class="btn-icon"
             title="Achievements"
@@ -170,28 +178,6 @@
         </div>
       </div>
       <div class="scroll-content">
-        <!-- Lifetime total (D4) -->
-        <div id="lifetime-total-wrap" class="lifetime-total-wrap hidden">
-          <span class="lifetime-total-label">Lifetime Total</span>
-          <span class="lifetime-total-value" id="display-lifetime-total">$0.00</span>
-          <span class="lifetime-total-estimate" id="lifetime-estimate-note"></span>
-        </div>
-        <!-- Charts (D5) -->
-        <div id="charts-section" class="charts-section hidden">
-          <div class="chart-block">
-            <div class="chart-title">Monthly Spending</div>
-            <div id="chart-spending" class="chart-wrap"></div>
-          </div>
-          <div class="chart-block">
-            <div class="chart-title">Spent vs Budget</div>
-            <div id="chart-vs-budget" class="chart-wrap"></div>
-          </div>
-          <div class="chart-block">
-            <div class="chart-title">By Category</div>
-            <div id="chart-by-category" class="chart-wrap"></div>
-          </div>
-        </div>
-        <div id="year-summary"></div>
         <div class="month-list" id="month-list">
           <div class="empty-history">
             No months recorded yet. Create your first month below.
@@ -396,6 +382,42 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- STATISTICS SCREEN -->
+    <div id="stats-screen" class="container hidden">
+      <div class="screen-header">
+        <h2>Statistics</h2>
+        <div class="header-actions">
+          <button id="btn-stats-back" class="btn-icon" title="Back" aria-label="Back">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+        </div>
+      </div>
+      <div class="scroll-content">
+        <!-- Lifetime total (D4) -->
+        <div id="lifetime-total-wrap" class="lifetime-total-wrap hidden">
+          <span class="lifetime-total-label">Lifetime Total</span>
+          <span class="lifetime-total-value" id="display-lifetime-total">$0.00</span>
+          <span class="lifetime-total-estimate" id="lifetime-estimate-note"></span>
+        </div>
+        <!-- Charts (D5) -->
+        <div id="charts-section" class="charts-section hidden">
+          <div class="chart-block">
+            <div class="chart-title">Monthly Spending</div>
+            <div id="chart-spending" class="chart-wrap"></div>
+          </div>
+          <div class="chart-block">
+            <div class="chart-title">Spent vs Budget</div>
+            <div id="chart-vs-budget" class="chart-wrap"></div>
+          </div>
+          <div class="chart-block">
+            <div class="chart-title">By Category</div>
+            <div id="chart-by-category" class="chart-wrap"></div>
+          </div>
+        </div>
+        <div id="year-summary"></div>
       </div>
     </div>
 

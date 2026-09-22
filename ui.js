@@ -16,12 +16,14 @@ const loginScreen = document.getElementById("login-screen");
 const historyScreen = document.getElementById("history-screen");
 const monthScreen = document.getElementById("month-screen");
 const achievementScreen = document.getElementById("achievement-screen");
+const statsScreen = document.getElementById("stats-screen");
 
 const SCREENS = {
   login: loginScreen,
   history: historyScreen,
   month: monthScreen,
   achievement: achievementScreen,
+  stats: statsScreen,
 };
 
 export function showScreen(name) {
@@ -309,9 +311,6 @@ export function renderCharts() {
 export function renderHistory() {
   var monthList = document.getElementById('month-list');
   var currentObj = getCurrentMonthObj();
-  renderYearSummary();
-  renderLifetimeTotal();
-  renderCharts();
   monthList.innerHTML = '';
   if (state.months.length === 0) {
     monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
@@ -952,5 +951,22 @@ export function openAchievementScreen() {
 }
 
 export function closeAchievementScreen() {
+  showScreen("history");
+}
+
+// -- STATISTICS SCREEN
+
+export function renderStatsScreen() {
+  renderYearSummary();
+  renderLifetimeTotal();
+  renderCharts();
+}
+
+export function openStatsScreen() {
+  renderStatsScreen();
+  showScreen("stats");
+}
+
+export function closeStatsScreen() {
   showScreen("history");
 }
