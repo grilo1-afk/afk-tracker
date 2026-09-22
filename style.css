@@ -1309,6 +1309,47 @@ td.action-col {
   overflow: visible;
 }
 
+/* ── RECURRING CHECKLIST MODAL ── */
+.recurring-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 8px 0;
+}
+.recurring-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-light);
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2f38;
+}
+.recurring-check-row:last-child {
+  border-bottom: none;
+}
+.recurring-check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.recurring-check-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recurring-check-amount {
+  flex-shrink: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
 /* MOBILE OVERRIDES — iPhone 15 Pro (393px) and similar */
 @media (max-width: 480px) {
   /* Pin container to viewport — prevents scroll of the shell itself */

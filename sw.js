@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `afk-shell-${CACHE_VERSION}`;
 
 const SHELL_FILES = [
@@ -11,6 +11,8 @@ const SHELL_FILES = [
   "./state.js",
   "./ui.js",
   "./supabase-client.js",
+  "./presets.js",
+  "./recurring.js",
   "./manifest.json",
   "./images/icons/icon-192.png",
   "./images/icons/icon-512.png",

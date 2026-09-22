@@ -1,5 +1,6 @@
 import { supabase } from "./supabase-client.js";
 import { readPresets, writePresets } from "./presets.js";
+import { readRecurring, writeRecurring } from "./recurring.js";
 import {
   state,
   setState,
@@ -383,6 +384,10 @@ document
     openMonth(result.data);
     renderPresetStrip();
     renderCategoryPicker();
+    const recurringItems = readRecurring();
+    if (recurringItems.length > 0) {
+      _openRecurringModal(result.data, { year: y, month: m }, recurringItems);
+    }
   });
 
 // -- ESCAPE KEY
@@ -401,6 +406,11 @@ document.addEventListener("keydown", (e) => {
   const eeOverlay = document.getElementById("edit-expense-overlay");
   if (eeOverlay && !eeOverlay.classList.contains("hidden")) {
     closeEditExpenseModal();
+    return;
+  }
+  const rcOverlay = document.getElementById("recurring-modal-overlay");
+  if (rcOverlay && !rcOverlay.classList.contains("hidden")) {
+    rcOverlay.classList.add("hidden");
     return;
   }
   if (!profileOverlay.classList.contains("hidden")) {
@@ -595,6 +605,179 @@ document.getElementById("btn-add-category-settings").addEventListener("click", a
   input.value = "";
   renderCategorySettingsList();
   renderCategoryPicker();
+});
+
+// -- RECURRING
+
+function renderRecurringList() {
+  const list = document.getElementById("recurring-list");
+  if (!list) return;
+  const items = readRecurring();
+  list.innerHTML = "";
+  if (items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "preset-empty";
+    empty.textContent = "No recurring expenses yet.";
+    list.appendChild(empty);
+    return;
+  }
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "preset-row";
+    const label = document.createElement("span");
+    label.className = "preset-row-label";
+    label.textContent = item.desc;
+    const amount = document.createElement("span");
+    amount.className = "preset-row-amount";
+    amount.textContent = `$${parseFloat(item.amount).toFixed(2)}`;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-danger btn-sm";
+    del.textContent = "Remove";
+    del.addEventListener("click", () => {
+      const updated = readRecurring().filter((x) => x.id !== item.id);
+      writeRecurring(updated);
+      renderRecurringList();
+    });
+    row.appendChild(label);
+    row.appendChild(amount);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("btn-add-recurring").addEventListener("click", () => {
+  const descEl   = document.getElementById("recurring-desc-input");
+  const amountEl = document.getElementById("recurring-amount-input");
+  const errEl    = document.getElementById("err-recurring");
+  const desc   = descEl.value.trim();
+  const amount = parseMoneyInput(amountEl.value);
+  if (!desc || !amount || amount <= 0) {
+    if (errEl) errEl.textContent = "Enter a description and a valid amount.";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+  const items = readRecurring();
+  items.push({ id: crypto.randomUUID(), desc, amount, categoryId: null });
+  writeRecurring(items);
+  descEl.value = "";
+  amountEl.value = "";
+  renderRecurringList();
+});
+
+function _openRecurringModal(monthId, monthObj, items) {
+  const overlay   = document.getElementById("recurring-modal-overlay");
+  const nameEl    = document.getElementById("recurring-modal-month-name");
+  const checklist = document.getElementById("recurring-checklist");
+  const errEl     = document.getElementById("err-recurring-modal");
+  if (!overlay || !checklist) return;
+
+  const mm = String(monthObj.month + 1).padStart(2, "0");
+  const expenseDate = `${monthObj.year}-${mm}-01`;
+
+  nameEl.textContent = MONTH_NAMES[monthObj.month] + " " + monthObj.year;
+  if (errEl) errEl.textContent = "";
+  checklist.innerHTML = "";
+
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "recurring-check-row";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.id = `rc-${item.id}`;
+    const labelEl = document.createElement("label");
+    labelEl.htmlFor = `rc-${item.id}`;
+    labelEl.className = "recurring-check-label";
+    labelEl.textContent = item.desc;
+    const amountEl = document.createElement("span");
+    amountEl.className = "recurring-check-amount";
+    amountEl.textContent = `$${parseFloat(item.amount).toFixed(2)}`;
+    row.appendChild(checkbox);
+    row.appendChild(labelEl);
+    row.appendChild(amountEl);
+    checklist.appendChild(row);
+  });
+
+  overlay._monthId     = monthId;
+  overlay._expenseDate = expenseDate;
+  overlay._items       = items;
+
+  overlay.classList.remove("hidden");
+}
+
+document.getElementById("btn-recurring-close-x").addEventListener("click", () => {
+  document.getElementById("recurring-modal-overlay").classList.add("hidden");
+});
+document.getElementById("btn-recurring-skip").addEventListener("click", () => {
+  document.getElementById("recurring-modal-overlay").classList.add("hidden");
+});
+document.getElementById("recurring-modal-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("recurring-modal-overlay"))
+    document.getElementById("recurring-modal-overlay").classList.add("hidden");
+});
+
+document.getElementById("btn-recurring-add-selected").addEventListener("click", async () => {
+  const overlay   = document.getElementById("recurring-modal-overlay");
+  const checklist = document.getElementById("recurring-checklist");
+  const errEl     = document.getElementById("err-recurring-modal");
+  const btn       = document.getElementById("btn-recurring-add-selected");
+  if (!overlay || !checklist) return;
+
+  const monthId     = overlay._monthId;
+  const expenseDate = overlay._expenseDate;
+  const items       = overlay._items;
+
+  const checked = [];
+  const rows = checklist.querySelectorAll(".recurring-check-row");
+  rows.forEach((row, i) => {
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (cb && cb.checked && items[i]) checked.push(items[i]);
+  });
+
+  if (checked.length === 0) {
+    overlay.classList.add("hidden");
+    return;
+  }
+
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+  if (errEl) errEl.textContent = "";
+
+  try {
+    for (const item of checked) {
+      const result = await dbAddExpense(
+        monthId,
+        item.desc,
+        item.amount,
+        expenseDate,
+        item.categoryId || null
+      );
+      if (!result.ok) {
+        if (errEl) errEl.textContent = `Failed to add "${item.desc}": ${result.message}`;
+        const m = getActiveMonth();
+        if (m) { renderStats(m); renderExpenses(m); }
+        return;
+      }
+      const m = getActiveMonth();
+      if (m) {
+        m.expenses.push({
+          id: result.data.id,
+          desc: item.desc,
+          val: Math.round(item.amount * 100),
+          date: expenseDate,
+          createdAt: result.data.created_at,
+          categoryId: item.categoryId || null,
+        });
+      }
+    }
+    const m = getActiveMonth();
+    if (m) { renderStats(m); renderExpenses(m); }
+    overlay.classList.add("hidden");
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
+  }
 });
 
 // -- PRESETS
@@ -969,6 +1152,7 @@ document
     openProfileModal();
     renderPresetList();
     renderCategorySettingsList();
+    renderRecurringList();
     const currencySelect = document.getElementById("currency-select");
     if (currencySelect) currencySelect.value = state.currency || "USD";
     const offsetInput = document.getElementById("lifetime-offset-input");
@@ -982,6 +1166,7 @@ document
     openProfileModal();
     renderPresetList();
     renderCategorySettingsList();
+    renderRecurringList();
     const currencySelect = document.getElementById("currency-select");
     if (currencySelect) currencySelect.value = state.currency || "USD";
     const offsetInput = document.getElementById("lifetime-offset-input");
