@@ -39,7 +39,7 @@ export async function loadState() {
       .order("expense_date", { foreignTable: "expenses", ascending: false })
       .order("created_at", { foreignTable: "expenses", ascending: false }),
     user
-      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      ? supabase.from("profiles").select("display_name, currency").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     supabase.from("categories").select("id, name").order("created_at", { ascending: true }),
   ]);
@@ -58,6 +58,7 @@ export async function loadState() {
   if (displayName) cacheDisplayName(displayName);
   newState.displayName = displayName || getDisplayName();
   newState.categories = (catResult.data || []).map((c) => ({ id: c.id, name: c.name }));
+  newState.currency = (profileResult.data && profileResult.data.currency) || "USD";
   return newState;
 }
 
@@ -188,6 +189,21 @@ export async function dbUpdateDisplayName(name) {
     return { ok: false, ...classifyError(error) };
   }
   return { ok: true, data: undefined };
+}
+
+export async function dbUpdateCurrency(code) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, message: "Your session has expired." };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ currency: code.toUpperCase() })
+    .eq("id", user.id);
+  if (error) {
+    console.error("dbUpdateCurrency:", error);
+    return { ok: false, message: "Could not save currency preference." };
+  }
+  return { ok: true };
 }
 
 export async function dbUpdatePassword(newPassword) {

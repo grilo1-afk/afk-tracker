@@ -582,6 +582,8 @@ export async function openProfileModal(event) {
   document.getElementById("new-pass-input").value = "";
   document.getElementById("confirm-pass-input").value = "";
   document.getElementById("theme-select").value = getPreferredTheme();
+  const currencySelectEl = document.getElementById("currency-select");
+  if (currencySelectEl) currencySelectEl.value = state.currency || "USD";
   _lastFocusedTrigger = (event && event.currentTarget) || null;
   profileOverlay.classList.remove("hidden");
   trapFocus(profileOverlay);

@@ -13,6 +13,7 @@ import {
   getDisplayName,
   cacheDisplayName,
   setCurrentUserId,
+  setCurrency,
 } from "./state.js";
 import {
   loadState,
@@ -27,6 +28,7 @@ import {
   dbAddCategory,
   dbDeleteCategory,
   dbUpdateExpenseCategory,
+  dbUpdateCurrency,
 } from "./api.js";
 import {
   registerAuthCallbacks,
@@ -217,6 +219,20 @@ document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteE
 
 // -- THEME
 document.getElementById("theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
+
+// -- CURRENCY
+document.getElementById("currency-select").addEventListener("change", async (e) => {
+  const code = e.target.value;
+  setCurrency(code);
+  // Re-render current month stats if a month is open
+  const m = getActiveMonth();
+  if (m && m.budget !== null) {
+    renderStats(m);
+    renderExpenses(m);
+  }
+  // Persist — fire and forget; the value is already applied locally
+  await dbUpdateCurrency(code);
+});
 
 // -- PASSWORD TOGGLE
 document.getElementById("btn-toggle-password").addEventListener("click", () => {
@@ -870,10 +886,22 @@ document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
 });
 document
   .getElementById("btn-profile")
-  .addEventListener("click", () => { openProfileModal(); renderPresetList(); renderCategorySettingsList(); });
+  .addEventListener("click", () => {
+    openProfileModal();
+    renderPresetList();
+    renderCategorySettingsList();
+    const currencySelect = document.getElementById("currency-select");
+    if (currencySelect) currencySelect.value = state.currency || "USD";
+  });
 document
   .getElementById("btn-profile-2")
-  .addEventListener("click", () => { openProfileModal(); renderPresetList(); renderCategorySettingsList(); });
+  .addEventListener("click", () => {
+    openProfileModal();
+    renderPresetList();
+    renderCategorySettingsList();
+    const currencySelect = document.getElementById("currency-select");
+    if (currencySelect) currencySelect.value = state.currency || "USD";
+  });
 document
   .getElementById("btn-profile-close-x")
   .addEventListener("click", closeProfileModal);
@@ -1066,6 +1094,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
     if (cached) {
       // Warm load: render from cache immediately, sync in background
       setState(cached);
+      setCurrency(state.currency);
       sortMonths();
       renderHistory();
       await renderWelcomeName();
@@ -1076,6 +1105,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
         setSyncStatus("syncing");
         const fresh = await loadState();
         setState(fresh);
+        setCurrency(state.currency);
         writeLocalCache(state);
         sortMonths();
         renderHistory();

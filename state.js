@@ -1,6 +1,6 @@
 // -- SHARED STATE
-// Schema: { displayName, months: [{ id(uuid), name, year, month(0-based), budget(null|number), expenses:[{id(uuid),desc,val,date,createdAt,categoryId}] }], categories: [{id,name}] }
-export let state = { displayName: null, months: [], categories: [] };
+// Schema: { displayName, months: [{ id(uuid), name, year, month(0-based), budget(null|number), expenses:[{id(uuid),desc,val,date,createdAt,categoryId}] }], categories: [{id,name}], currency: string }
+export let state = { displayName: null, months: [], categories: [], currency: "USD" };
 
 // Mutates state in-place so all module references stay live
 export function setState(newState) {
@@ -110,7 +110,16 @@ export function cacheDisplayName(name) {
 
 // -- HELPERS
 export function fmt(cents) {
-  return "$ " + (cents / 100).toFixed(2);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: state.currency || "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+export function setCurrency(code) {
+  state.currency = (code || "USD").toUpperCase();
 }
 
 export function getActiveMonth() {
