@@ -231,8 +231,6 @@ async function undoDeleteExpense() {
   const { expense, index, monthId } = _lastDeleted;
   _lastDeleted = null;
   hideUndoToast();
-  const m = state.months.find((x) => x.id === monthId);
-  if (!m) return;
 
   // Expense is already gone from DB — undo means re-creating it
   const result = await dbAddExpense(monthId, expense.desc, expense.val / 100, expense.date, expense.categoryId || null);
@@ -240,6 +238,12 @@ async function undoDeleteExpense() {
     showBanner("login-error", "Could not restore expense. Try again.");
     return;
   }
+
+  // Re-resolve after the await — state.months may have been replaced by a
+  // realtime refresh while dbAddExpense was in flight.
+  const m = state.months.find((x) => x.id === monthId);
+  if (!m) return; // month no longer exists locally; nothing to reconcile
+
   // Build restored expense from the new row
   const restored = {
     id: result.data.id,
@@ -917,14 +921,20 @@ btnSetBudget.addEventListener("click", async () => {
   renderStats(m);
   renderExpenses(m);
 
-  const result = await dbUpdateBudget(m.id, val);
+  const monthId = m.id;
+  const result = await dbUpdateBudget(monthId, val);
   if (!result.ok) {
-    m.budget = prevBudget;
+    // Re-resolve after the await — state.months may have been replaced by a
+    // realtime refresh while dbUpdateBudget was in flight.
+    const liveM = state.months.find((x) => x.id === monthId);
+    if (liveM) liveM.budget = prevBudget;
     budgetSetupBox.classList.remove("hidden");
     statsSection.classList.add("hidden");
     addExpenseSection.classList.add("hidden");
-    renderStats(m);
-    renderExpenses(m);
+    if (liveM) {
+      renderStats(liveM);
+      renderExpenses(liveM);
+    }
     showBanner("login-error", result.message);
   }
 });
@@ -1009,21 +1019,30 @@ async function addExpense() {
   clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
 
-  const result = await dbAddExpense(m.id, desc, val, dateVal, _selectedCategoryId);
+  const monthId = m.id;
+  const result = await dbAddExpense(monthId, desc, val, dateVal, _selectedCategoryId);
+  // Re-resolve after the await — state.months may have been replaced by a
+  // realtime refresh while dbAddExpense was in flight.
+  const liveM = state.months.find((x) => x.id === monthId);
+
   if (!result.ok) {
     // Rollback: remove the optimistic expense
-    const tmpIdx = m.expenses.findIndex((e) => e.id === tmpId);
-    if (tmpIdx !== -1) m.expenses.splice(tmpIdx, 1);
-    renderStats(m);
-    renderExpenses(m);
+    if (liveM) {
+      const tmpIdx = liveM.expenses.findIndex((e) => e.id === tmpId);
+      if (tmpIdx !== -1) liveM.expenses.splice(tmpIdx, 1);
+      renderStats(liveM);
+      renderExpenses(liveM);
+    }
     showBanner("login-error", result.message);
     return;
   }
   // Success: replace tmp id with real row data
-  const saved = m.expenses.find((e) => e.id === tmpId);
-  if (saved) {
-    saved.id = result.data.id;
-    saved.createdAt = result.data.created_at;
+  if (liveM) {
+    const saved = liveM.expenses.find((e) => e.id === tmpId);
+    if (saved) {
+      saved.id = result.data.id;
+      saved.createdAt = result.data.created_at;
+    }
   }
   _selectedCategoryId = null;
   renderCategoryPicker();
@@ -1091,19 +1110,26 @@ document
     renderExpenses(m);
     closeEditExpenseModal();
 
+    const monthId = m.id;
     const [descResult, catResult] = await Promise.all([
       dbUpdateExpense(exp.id, newDesc, newVal, newDate),
       dbUpdateExpenseCategory(exp.id, _editSelectedCategoryId),
     ]);
     const result = descResult.ok ? catResult : descResult;
     if (!result.ok) {
-      // Rollback
-      exp.desc = prevDesc;
-      exp.val = prevVal;
-      exp.date = prevDate;
-      exp.categoryId = prevCatId;
-      renderStats(m);
-      renderExpenses(m);
+      // Rollback — re-resolve both month and expense after the await
+      const liveM = state.months.find((x) => x.id === monthId);
+      const liveExp = liveM && liveM.expenses.find((e) => e.id === expId);
+      if (liveExp) {
+        liveExp.desc = prevDesc;
+        liveExp.val = prevVal;
+        liveExp.date = prevDate;
+        liveExp.categoryId = prevCatId;
+      }
+      if (liveM) {
+        renderStats(liveM);
+        renderExpenses(liveM);
+      }
       showBanner("login-error", result.message);
     }
   });
