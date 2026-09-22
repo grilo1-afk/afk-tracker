@@ -125,14 +125,17 @@ export async function dbAddExpense(monthUuid, desc, amount, expenseDate, categor
 }
 
 export async function dbAddCategory(name) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
   const { data, error } = await supabase
     .from("categories")
-    .insert({ name: name.trim() })
+    .insert({ user_id: user.id, name: name.trim() })
     .select("id, name")
     .single();
   if (error) {
     console.error("dbAddCategory:", error);
-    return { ok: false, message: "Could not save category." };
+    return { ok: false, ...classifyError(error) };
   }
   return { ok: true, data: { id: data.id, name: data.name } };
 }
@@ -141,9 +144,9 @@ export async function dbDeleteCategory(id) {
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) {
     console.error("dbDeleteCategory:", error);
-    return { ok: false, message: "Could not delete category." };
+    return { ok: false, ...classifyError(error) };
   }
-  return { ok: true };
+  return { ok: true, data: undefined };
 }
 
 export async function dbUpdateExpenseCategory(expenseId, categoryId) {
@@ -153,9 +156,9 @@ export async function dbUpdateExpenseCategory(expenseId, categoryId) {
     .eq("id", expenseId);
   if (error) {
     console.error("dbUpdateExpenseCategory:", error);
-    return { ok: false, message: "Could not update category." };
+    return { ok: false, ...classifyError(error) };
   }
-  return { ok: true };
+  return { ok: true, data: undefined };
 }
 
 export async function dbUpdateExpense(expenseUuid, desc, amount, expenseDate) {
@@ -197,16 +200,16 @@ export async function dbUpdateDisplayName(name) {
 export async function dbUpdateCurrency(code) {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
-  if (!user) return { ok: false, message: "Your session has expired." };
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
   const { error } = await supabase
     .from("profiles")
     .update({ currency: code.toUpperCase() })
     .eq("id", user.id);
   if (error) {
     console.error("dbUpdateCurrency:", error);
-    return { ok: false, message: "Could not save currency preference." };
+    return { ok: false, ...classifyError(error) };
   }
-  return { ok: true };
+  return { ok: true, data: undefined };
 }
 
 export async function dbUpdatePassword(newPassword) {
@@ -221,7 +224,7 @@ export async function dbUpdatePassword(newPassword) {
 export async function dbExportData() {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
-  if (!user) return { ok: false, message: "Your session has expired." };
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
 
   const [monthsResult, catsResult] = await Promise.all([
     supabase
@@ -238,8 +241,8 @@ export async function dbExportData() {
       .order("created_at", { ascending: true }),
   ]);
 
-  if (monthsResult.error) return { ok: false, message: "Export failed — could not fetch months." };
-  if (catsResult.error)   return { ok: false, message: "Export failed — could not fetch categories." };
+  if (monthsResult.error) return { ok: false, ...classifyError(monthsResult.error) };
+  if (catsResult.error)   return { ok: false, ...classifyError(catsResult.error) };
 
   return {
     ok: true,
@@ -270,14 +273,14 @@ export async function dbExportData() {
 export async function dbUpdateLifetimeOffset(dollars) {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData && authData.user;
-  if (!user) return { ok: false, message: "Your session has expired." };
+  if (!user) return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
   const { error } = await supabase
     .from("profiles")
     .update({ lifetime_offset: dollars })
     .eq("id", user.id);
   if (error) {
     console.error("dbUpdateLifetimeOffset:", error);
-    return { ok: false, message: "Could not save starting figure." };
+    return { ok: false, ...classifyError(error) };
   }
-  return { ok: true };
+  return { ok: true, data: undefined };
 }
