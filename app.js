@@ -13,6 +13,7 @@ import {
   getDisplayName,
   cacheDisplayName,
   setCurrentUserId,
+  getCurrentUserId,
   setCurrency,
 } from "./state.js";
 import {
@@ -74,6 +75,81 @@ import {
   parseMoneyInput,
   setSyncStatus,
 } from "./ui.js";
+
+// -- REALTIME SYNC
+
+function setupRealtimeSync() {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  // Safe to call even if no channel exists; prevents duplicate subscriptions
+  supabase.removeAllChannels();
+
+  supabase
+    .channel("realtime-sync")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "months", filter: `user_id=eq.${userId}` },
+      _handleRealtimeChange
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "expenses" }, // no filter — RLS handles access
+      _handleRealtimeChange
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "categories", filter: `user_id=eq.${userId}` },
+      _handleRealtimeChange
+    )
+    .subscribe();
+}
+
+let _realtimeFetchInFlight = false;
+let _realtimePendingFetch = false;
+
+async function _handleRealtimeChange() {
+  // Debounce: if a fetch is in-flight, queue one more but not multiple
+  if (_realtimeFetchInFlight) {
+    _realtimePendingFetch = true;
+    return;
+  }
+  _realtimeFetchInFlight = true;
+  try {
+    const fresh = await loadState();
+    setState(fresh);
+    setCurrency(state.currency);
+    writeLocalCache(state);
+    sortMonths();
+
+    // Only re-render the screen that is currently visible to avoid disrupting
+    // any in-progress form entry on other screens.
+    const historyEl = document.getElementById("history-screen");
+    const monthEl   = document.getElementById("month-screen");
+    const historyVisible = historyEl && !historyEl.classList.contains("hidden");
+    const monthVisible   = monthEl   && !monthEl.classList.contains("hidden");
+
+    if (historyVisible) {
+      renderHistory();
+    }
+    if (monthVisible) {
+      const m = getActiveMonth();
+      if (m) {
+        renderStats(m);
+        renderExpenses(m);
+      }
+    }
+  } catch (e) {
+    console.error("Realtime sync failed:", e);
+    // Non-fatal — the user can still use the app with the cached state
+  } finally {
+    _realtimeFetchInFlight = false;
+    if (_realtimePendingFetch) {
+      _realtimePendingFetch = false;
+      _handleRealtimeChange(); // process the queued change
+    }
+  }
+}
 
 // -- SERVICE WORKER
 if ("serviceWorker" in navigator) {
@@ -1070,6 +1146,7 @@ document.getElementById("btn-logout").addEventListener("click", async () => {
   }
   try {
     await signOut();
+    supabase.removeAllChannels(); // tear down subscription before clearing session
     closeProfileModal();
     clearSession();
     setState({ displayName: null, months: [] });
@@ -1171,6 +1248,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
       await renderWelcomeName();
       showScreen("history");
       overlay.remove(); // Reveal history screen, sync continues silently
+      setupRealtimeSync();
 
       try {
         setSyncStatus("syncing");
@@ -1203,6 +1281,7 @@ document.getElementById("password").addEventListener("keydown", (e) => {
           );
         }
       }
+      setupRealtimeSync();
       overlay.remove();
     }
   } catch (e) {
