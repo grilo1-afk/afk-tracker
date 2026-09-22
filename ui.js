@@ -140,6 +140,21 @@ export function renderHistory() {
     clickable.appendChild(nameDiv);
     clickable.appendChild(metaDiv);
 
+    if (hasBudget && m.budget > 0) {
+      const pct = Math.min((totalSpent / m.budget) * 100, 100);
+      const colorClass = pct >= 100 ? "over" : pct >= 80 ? "warn" : "";
+
+      const barWrap = document.createElement("div");
+      barWrap.className = "history-bar-wrap";
+
+      const bar = document.createElement("div");
+      bar.className = "history-bar-fill" + (colorClass ? " " + colorClass : "");
+      bar.style.width = pct.toFixed(1) + "%";
+
+      barWrap.appendChild(bar);
+      clickable.appendChild(barWrap);
+    }
+
     const rightDiv = document.createElement("div");
     rightDiv.className = "month-card-right";
 
