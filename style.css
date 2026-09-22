@@ -567,13 +567,13 @@ button.btn-danger.btn--loading::after {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 10px;
   text-align: center;
 }
 .stat-box {
   background-color: var(--bg-color);
-  padding: 12px 8px;
+  padding: 8px 6px;
   border: 1px solid var(--gold);
   border-radius: 5px;
 }
@@ -586,8 +586,8 @@ button.btn-danger.btn--loading::after {
 }
 .stat-box strong {
   display: block;
-  font-size: 18px;
-  margin-top: 5px;
+  font-size: 15px;
+  margin-top: 3px;
   color: var(--text-light);
 }
 .stat-box.remaining strong {
@@ -599,10 +599,10 @@ button.btn-danger.btn--loading::after {
 
 /* ── BUDGET PROGRESS BAR (#18) ── */
 .budget-progress-wrap {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 .budget-bar {
   width: 100%;
@@ -793,7 +793,7 @@ button.btn-danger.btn--loading::after {
   display: flex;
   gap: 12px;
   align-items: flex-end;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
 }
 
 .exp-field {
@@ -822,6 +822,15 @@ button.btn-danger.btn--loading::after {
 .exp-date {
   flex: 1;
   min-width: 130px;
+}
+
+.expense-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.expense-form-actions .btn-exp-action {
+  flex: 1;
 }
 
 .btn-exp-action {
@@ -1350,6 +1359,50 @@ td.action-col {
   font-size: 13px;
 }
 
+/* ── ACHIEVEMENT BADGE (H6) ── */
+.btn-icon--badged {
+  position: relative;
+}
+.icon-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background: var(--gold);
+  color: var(--bg-color);
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── ACHIEVEMENTS TEASER (stats screen, H6) ── */
+.achievements-teaser {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--bg-color);
+  border: 1px solid rgba(232, 184, 75, 0.25);
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--gold);
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 0.2px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.achievements-teaser:hover {
+  background: rgba(232, 184, 75, 0.08);
+  border-color: var(--gold);
+}
+
 /* ── ACHIEVEMENTS (E4) ── */
 #achievement-list {
   display: flex;
@@ -1495,8 +1548,7 @@ td.action-col {
   .exp-date {
     flex: 1 1 calc(50% - 3px);
   }
-  .btn-exp-action {
-    flex: 1 1 calc(50% - 3px);
+  .expense-form-actions .btn-exp-action {
     min-height: 48px;
   }
 

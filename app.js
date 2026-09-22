@@ -84,6 +84,8 @@ import {
   openStatsScreen,
   closeStatsScreen,
   renderStatsScreen,
+  getAchievementCounts,
+  registerOpenAchievementScreenCb,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -153,6 +155,7 @@ async function _handleRealtimeChange() {
 
     if (historyVisible) {
       renderHistory();
+      updateAchievementsBadge();
     }
     if (statsVisible) {
       renderStatsScreen();
@@ -191,6 +194,16 @@ registerAuthCallbacks({
   renderWelcomeName,
   sortMonths,
 });
+
+// Wire the achievements teaser click on the stats screen back to openAchievementScreen
+registerOpenAchievementScreenCb(openAchievementScreen);
+
+// -- ACHIEVEMENT BADGE
+function updateAchievementsBadge() {
+  const { earned, total } = getAchievementCounts();
+  const badge = document.getElementById("achievements-badge");
+  if (badge) badge.textContent = earned + "/" + total;
+}
 
 // -- UNDO STATE
 let _lastDeleted = null;
@@ -409,6 +422,7 @@ document
     sortMonths();
     closeMonthPicker();
     renderHistory();
+    updateAchievementsBadge();
     openMonth(result.data);
     renderPresetStrip();
     renderCategoryPicker();
@@ -492,6 +506,7 @@ document.getElementById("btn-refresh").addEventListener("click", async () => {
     writeLocalCache(state);
     sortMonths();
     renderHistory();
+    updateAchievementsBadge();
     setSyncStatus(null);
   } catch (e) {
     console.error("Manual refresh failed:", e);
@@ -964,6 +979,7 @@ document.getElementById("btn-add-preset").addEventListener("click", async () => 
 document.getElementById("btn-back").addEventListener("click", () => {
   setActiveMonthId(null);
   renderHistory();
+  updateAchievementsBadge();
   showScreen("history");
 });
 document
@@ -1231,6 +1247,7 @@ document
     });
     closeDeleteMonthModal();
     renderHistory();
+    updateAchievementsBadge();
 
     const result = await dbDeleteMonth(id);
     if (!result.ok) {
@@ -1239,6 +1256,7 @@ document
       restored.splice(idx, 0, savedMonth);
       setState({ months: restored, displayName: state.displayName });
       renderHistory();
+      updateAchievementsBadge();
       showBanner("login-error", result.message);
     }
   });
@@ -1579,6 +1597,7 @@ async function _migrateLocalStorageData() {
         writeLocalCache(state);
         sortMonths();
         renderHistory();
+        updateAchievementsBadge();
         setSyncStatus(null);
         await _migrateLocalStorageData();
       } catch (e) {
@@ -1589,6 +1608,7 @@ async function _migrateLocalStorageData() {
       // Cold load: no cache — block on full loadState
       try {
         await doLogin();
+        updateAchievementsBadge();
         await _migrateLocalStorageData();
       } catch (e) {
         console.error("init doLogin failed:", e);

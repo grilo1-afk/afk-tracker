@@ -436,10 +436,12 @@ export function renderStats(m) {
     if (m.budget === 0) {
       if (spent === 0) {
         barFill.style.width = '0%'; barFill.className = 'budget-bar-fill';
-        pctText.textContent = '0.0% of budget used'; pctText.className = 'budget-pct-text';
+        pctText.textContent = fmt(0) + ' of ' + fmt(0) + ' spent';
+        pctText.className = 'budget-pct-text';
       } else {
         barFill.style.width = '100%'; barFill.className = 'budget-bar-fill over';
-        pctText.textContent = '100%+ of budget used'; pctText.className = 'budget-pct-text over';
+        pctText.textContent = fmt(spent) + ' spent — no budget set for this month';
+        pctText.className = 'budget-pct-text over';
       }
     } else {
       var rawPct = (spent / m.budget) * 100;
@@ -447,7 +449,7 @@ export function renderStats(m) {
       var colorClass = rawPct >= 100 ? 'over' : rawPct >= 80 ? 'warn' : '';
       barFill.style.width = clampPct + '%';
       barFill.className = 'budget-bar-fill' + (colorClass ? ' ' + colorClass : '');
-      pctText.textContent = rawPct.toFixed(1) + '% of budget used';
+      pctText.textContent = fmt(spent) + ' of ' + fmt(m.budget) + ' spent (' + rawPct.toFixed(0) + '%)';
       pctText.className = 'budget-pct-text' + (colorClass ? ' ' + colorClass : '');
     }
     progressWrap.classList.remove('hidden');
@@ -954,12 +956,33 @@ export function closeAchievementScreen() {
   showScreen("history");
 }
 
+export function getAchievementCounts() {
+  return {
+    earned: ACHIEVEMENTS.filter((a) => a.earned(state)).length,
+    total: ACHIEVEMENTS.length,
+  };
+}
+
 // -- STATISTICS SCREEN
+
+var _openAchievementScreenCb = null;
+export function registerOpenAchievementScreenCb(fn) { _openAchievementScreenCb = fn; }
+
+function renderAchievementsTeaser() {
+  var el = document.getElementById("achievements-teaser");
+  if (!el) return;
+  var counts = getAchievementCounts();
+  el.textContent = "🏆 " + counts.earned + " of " + counts.total + " achievements unlocked — view all →";
+  el.onclick = function() {
+    if (_openAchievementScreenCb) _openAchievementScreenCb();
+  };
+}
 
 export function renderStatsScreen() {
   renderYearSummary();
   renderLifetimeTotal();
   renderCharts();
+  renderAchievementsTeaser();
 }
 
 export function openStatsScreen() {

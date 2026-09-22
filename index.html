@@ -161,11 +161,12 @@
           </button>
           <button
             id="btn-achievements"
-            class="btn-icon"
+            class="btn-icon btn-icon--badged"
             title="Achievements"
             aria-label="Achievements"
           >
             &#127942;
+            <span id="achievements-badge" class="icon-badge"></span>
           </button>
           <button
             id="btn-profile"
@@ -336,10 +337,13 @@
               <label for="exp-date">Date</label>
               <input type="date" id="exp-date" aria-describedby="err-exp-date" />
             </div>
+          </div>
+          <div class="expense-form-actions">
             <button
               type="button"
               id="btn-today-expense"
               class="btn-exp-action btn-secondary"
+              title="Set the date above to today"
             >
               Today
             </button>
@@ -398,7 +402,7 @@
       <div class="scroll-content">
         <!-- Lifetime total (D4) -->
         <div id="lifetime-total-wrap" class="lifetime-total-wrap hidden">
-          <span class="lifetime-total-label">Lifetime Total</span>
+          <span class="lifetime-total-label">Lifetime Total Spent</span>
           <span class="lifetime-total-value" id="display-lifetime-total">$0.00</span>
           <span class="lifetime-total-estimate" id="lifetime-estimate-note"></span>
         </div>
@@ -418,6 +422,7 @@
           </div>
         </div>
         <div id="year-summary"></div>
+        <div id="achievements-teaser" class="achievements-teaser"></div>
       </div>
     </div>
 
