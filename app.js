@@ -378,7 +378,10 @@ MONTH_NAMES.forEach((name, i) => {
 });
 (function populateYears() {
   const cur = new Date().getFullYear();
-  for (let y = cur - 2; y <= cur + 2; y++) {
+  const existingYears = state.months.map((m) => m.year);
+  const minYear = Math.min(cur - 10, ...(existingYears.length ? existingYears : [cur]));
+  const maxYear = Math.max(cur + 1, ...(existingYears.length ? existingYears : [cur]));
+  for (let y = maxYear; y >= minYear; y--) {
     const opt = document.createElement("option");
     opt.value = y;
     opt.textContent = y;
