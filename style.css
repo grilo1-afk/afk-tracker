@@ -904,7 +904,9 @@ button.btn-danger.btn--loading::after {
   text-transform: uppercase;
 }
 .btn-today-inline:hover {
-  background: rgba(212, 175, 55, 0.1);
+  background: #2a2f38;
+  border-color: var(--text-light);
+  color: white;
   transform: none;
   box-shadow: none;
 }
@@ -1545,7 +1547,7 @@ td.action-col {
 .chart-period-btn.selected {
   border-color: var(--gold);
   color: var(--gold);
-  background: rgba(232, 184, 75, 0.1);
+  background: transparent;
 }
 
 /* ── CHARTS (D5) ── */

@@ -288,7 +288,7 @@ function _renderSpendingChart(container) {
     });
     var years = Array.from(byYear.keys()).sort(function(a, b) { return a - b; });
     if (years.length === 0) return;
-    var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 20, left: 4 };
+    var W = 280, H = 120, PAD = { top: 20, right: 4, bottom: 20, left: 4 };
     var chartW = W - PAD.left - PAD.right;
     var chartH = H - PAD.top - PAD.bottom;
     var values = years.map(function(y) { return byYear.get(y); });
@@ -314,25 +314,26 @@ function _renderSpendingChart(container) {
 
   var months = monthsWithData.slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
   if (months.length === 0) return;
-  var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
+  var W = 280, H = 120, PAD = { top: 20, right: 4, bottom: 32, left: 4 };
   var chartW = W - PAD.left - PAD.right;
   var chartH = H - PAD.top - PAD.bottom;
   var values = months.map(function(m) { return m.expenses.reduce(function(s, e) { return s + e.val; }, 0); });
   var maxVal = Math.max.apply(null, values.concat([1]));
   var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
-  var barWFull = Math.floor(chartW / months.length) - 2;
-  var barW = Math.max(Math.floor(barWFull * 0.7), 2);
+  var slotW = Math.floor(chartW / months.length);
+  var barW = Math.max(Math.floor(slotW * 0.45), 2);
+  var barWFull = slotW - 2; // keep for x-centering
   var spansMultipleYears = months.length > 0 && months[0].year !== months[months.length - 1].year;
   months.forEach(function(m, i) {
     var val = values[i];
     var barH = Math.max(Math.round((val / maxVal) * chartH), 2);
-    var x = PAD.left + i * (barW + 2);
+    var x = PAD.left + i * slotW + Math.floor((slotW - barW) / 2);
     var y = PAD.top + chartH - barH;
     svg.appendChild(svgEl('rect', { x: x, y: y, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
     var valLbl = svgEl('text', { x: x + barW / 2, y: Math.max(y - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.85 });
     valLbl.textContent = val >= 100000 ? '$' + (val / 100000).toFixed(0) + 'k' : '$' + (val / 100).toFixed(0);
     svg.appendChild(valLbl);
-    var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
+    var label = svgEl('text', { x: PAD.left + i * slotW + slotW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
     label.textContent = MONTH_NAMES[m.month].slice(0, 3);
     svg.appendChild(label);
     if (spansMultipleYears) {
@@ -348,7 +349,7 @@ function _renderVsBudgetChart(container) {
   container.innerHTML = '';
   var months = state.months.slice().filter(function(m) { return m.budget !== null && m.budget > 0; }).slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
   if (months.length === 0) return;
-  var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
+  var W = 280, H = 120, PAD = { top: 20, right: 4, bottom: 32, left: 4 };
   var chartW = W - PAD.left - PAD.right;
   var chartH = H - PAD.top - PAD.bottom;
   var spentVals  = months.map(function(m) { return m.expenses.reduce(function(s, e) { return s + e.val; }, 0); });
