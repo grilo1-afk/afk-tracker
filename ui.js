@@ -301,6 +301,9 @@ function _renderSpendingChart(container) {
       var x = PAD.left + i * (barW + 4);
       var yPos = PAD.top + chartH - barH;
       svg.appendChild(svgEl('rect', { x: x, y: yPos, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
+      var yValLbl = svgEl('text', { x: x + barW / 2, y: Math.max(yPos - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.85 });
+      yValLbl.textContent = val >= 100000 ? '$' + (val / 100000).toFixed(0) + 'k' : '$' + (val / 100).toFixed(0);
+      svg.appendChild(yValLbl);
       var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 14, 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--text-light)', opacity: 0.6 });
       label.textContent = String(y);
       svg.appendChild(label);
@@ -361,6 +364,9 @@ function _renderVsBudgetChart(container) {
     var gx = PAD.left + i * groupW;
     var budgetH = Math.max(Math.round((budget / maxVal) * chartH), 2);
     svg.appendChild(svgEl('rect', { x: gx + 1, y: PAD.top + chartH - budgetH, width: barW, height: budgetH, fill: 'var(--gold)', opacity: 0.25, rx: 2 }));
+    var bdgLbl = svgEl('text', { x: gx + 1 + barW / 2, y: Math.max(PAD.top + chartH - budgetH - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.6 });
+    bdgLbl.textContent = budget >= 100000 ? '$' + (budget / 100000).toFixed(0) + 'k' : '$' + (budget / 100).toFixed(0);
+    svg.appendChild(bdgLbl);
     var spentH = Math.max(Math.round((spent / maxVal) * chartH), 2);
     svg.appendChild(svgEl('rect', { x: gx + 1 + barW + 2, y: PAD.top + chartH - spentH, width: barW, height: spentH, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85, rx: 2 }));
     var spLbl = svgEl('text', { x: gx + 1 + barW + 2 + barW / 2, y: Math.max(PAD.top + chartH - spentH - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85 });

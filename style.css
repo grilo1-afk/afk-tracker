@@ -585,15 +585,7 @@ button.btn-danger.btn--loading::after {
   flex-shrink: 0;
 }
 .badge-current {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 3px 7px;
-  border-radius: 3px;
-  background-color: rgba(212, 175, 55, 0.12);
-  color: var(--gold);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  white-space: nowrap;
+  display: none; /* replaced by .month-card--current left-border accent */
 }
 .empty-history {
   text-align: center;
