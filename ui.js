@@ -216,7 +216,39 @@ function svgEl(tag, attrs) {
 
 function _renderSpendingChart(container) {
   container.innerHTML = '';
-  var months = state.months.slice().filter(function(m) { return m.expenses.length > 0; }).slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
+  var monthsWithData = state.months.slice().filter(function(m) { return m.expenses.length > 0; });
+  var useYearly = _chartPeriod === 'all' && monthsWithData.length > 24;
+
+  if (useYearly) {
+    var byYear = new Map();
+    monthsWithData.forEach(function(m) {
+      var total = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
+      byYear.set(m.year, (byYear.get(m.year) || 0) + total);
+    });
+    var years = Array.from(byYear.keys()).sort(function(a, b) { return a - b; });
+    if (years.length === 0) return;
+    var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 20, left: 4 };
+    var chartW = W - PAD.left - PAD.right;
+    var chartH = H - PAD.top - PAD.bottom;
+    var values = years.map(function(y) { return byYear.get(y); });
+    var maxVal = Math.max.apply(null, values.concat([1]));
+    var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
+    var barW = Math.floor(chartW / years.length) - 4;
+    years.forEach(function(y, i) {
+      var val = values[i];
+      var barH = Math.max(Math.round((val / maxVal) * chartH), 2);
+      var x = PAD.left + i * (barW + 4);
+      var yPos = PAD.top + chartH - barH;
+      svg.appendChild(svgEl('rect', { x: x, y: yPos, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
+      var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 14, 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--text-light)', opacity: 0.6 });
+      label.textContent = String(y);
+      svg.appendChild(label);
+    });
+    container.appendChild(svg);
+    return;
+  }
+
+  var months = monthsWithData.slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
   if (months.length === 0) return;
   var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
   var chartW = W - PAD.left - PAD.right;
