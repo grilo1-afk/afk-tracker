@@ -109,6 +109,18 @@ export function cacheDisplayName(name) {
 }
 
 // -- HELPERS
+
+// Local calendar date as YYYY-MM-DD. Deliberately NOT toISOString().slice(0,10) —
+// that returns the UTC date, which is a different calendar day from roughly
+// 9pm to midnight local time for anyone west of UTC (including Brazil).
+export function getLocalISODate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function fmt(cents) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

@@ -8,6 +8,7 @@ import {
   getCurrentMonthObj,
   getDisplayName,
   cacheDisplayName,
+  getLocalISODate,
 } from "./state.js";
 import { supabase } from "./supabase-client.js";
 
@@ -425,7 +426,7 @@ export function openMonth(id) {
     var maxDate = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
     expDateInput.min = minDate;
     expDateInput.max = maxDate;
-    var todayIso = new Date().toISOString().slice(0, 10);
+    var todayIso = getLocalISODate();
     // Default to today only if today actually falls within this month;
     // otherwise default to the 1st, so the field never opens pre-invalid.
     expDateInput.value = (todayIso >= minDate && todayIso <= maxDate) ? todayIso : minDate;

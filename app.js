@@ -16,6 +16,7 @@ import {
   setCurrentUserId,
   getCurrentUserId,
   setCurrency,
+  getLocalISODate,
 } from "./state.js";
 import {
   loadState,
@@ -482,14 +483,14 @@ document.addEventListener("keydown", (e) => {
 
 // -- TODAY BUTTONS
 document.getElementById("btn-today-expense").addEventListener("click", () => {
-  expDateInput.value = new Date().toISOString().slice(0, 10);
+  expDateInput.value = getLocalISODate();
   expDateInput.classList.remove("is-invalid");
   clearFieldError(expDateInput, "err-exp-date");
 });
 document.getElementById("btn-today-edit-exp").addEventListener("click", () => {
   const dateEl = document.getElementById("edit-exp-date");
   if (dateEl) {
-    dateEl.value = new Date().toISOString().slice(0, 10);
+    dateEl.value = getLocalISODate();
     dateEl.classList.remove("is-invalid");
     clearFieldError(dateEl, "err-edit-exp-date");
   }
@@ -881,7 +882,7 @@ function renderPresetStrip() {
     btn.addEventListener("click", () => {
       descInput.value = p.desc;
       valInput.value = parseFloat(p.amount).toFixed(2);
-      expDateInput.value = new Date().toISOString().slice(0, 10);
+      expDateInput.value = getLocalISODate();
       clearFieldError(descInput, "err-exp-desc");
       clearFieldError(valInput, "err-exp-val");
       clearFieldError(expDateInput, "err-exp-date");
@@ -1011,7 +1012,7 @@ btnSetBudget.addEventListener("click", async () => {
   const maxDate = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
   expDateInput.min = minDate;
   expDateInput.max = maxDate;
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getLocalISODate();
   expDateInput.value = (todayIso >= minDate && todayIso <= maxDate) ? todayIso : minDate;
   renderStats(m);
   renderExpenses(m);
