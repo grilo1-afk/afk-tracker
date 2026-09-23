@@ -338,67 +338,93 @@ export function renderHistory() {
     monthList.innerHTML = '<div class="empty-history">No months recorded yet. Create your first month below.</div>';
     return;
   }
+
+  var byYear = new Map();
   state.months.forEach(function(m) {
-    var isCurrent = currentObj && m.id === currentObj.id;
-    var totalSpent = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
-    var hasBudget = m.budget !== null;
-    var metaText = hasBudget
-      ? 'Budget: ' + fmt(m.budget) + ' • Spent: ' + fmt(totalSpent)
-      : 'Budget not set yet';
+    if (!byYear.has(m.year)) byYear.set(m.year, []);
+    byYear.get(m.year).push(m);
+  });
 
-    var card = document.createElement('div');
-    card.className = 'month-card';
+  var isFirst = true;
+  byYear.forEach(function(monthsInYear, year) {
+    var group = document.createElement('details');
+    group.className = 'history-year-group';
+    if (isFirst) group.open = true;
+    isFirst = false;
 
-    var clickable = document.createElement('div');
-    clickable.className = 'month-card-clickable month-card-info';
-    clickable.dataset.id = m.id;
-    clickable.addEventListener('click', function() { openMonth(m.id); });
+    var heading = document.createElement('summary');
+    heading.className = 'history-year-heading';
+    heading.textContent = year;
+    group.appendChild(heading);
 
-    var nameDiv = document.createElement('div');
-    nameDiv.className = 'month-card-name';
-    nameDiv.textContent = m.name;
+    var yearList = document.createElement('div');
+    yearList.className = 'history-year-list';
 
-    var metaDiv = document.createElement('div');
-    metaDiv.className = 'month-card-meta' + (hasBudget ? '' : ' needs-setup');
-    metaDiv.textContent = metaText;
+    monthsInYear.forEach(function(m) {
+      var isCurrent = currentObj && m.id === currentObj.id;
+      var totalSpent = m.expenses.reduce(function(s, e) { return s + e.val; }, 0);
+      var hasBudget = m.budget !== null;
+      var metaText = hasBudget
+        ? 'Budget: ' + fmt(m.budget) + ' • Spent: ' + fmt(totalSpent)
+        : 'Budget not set yet';
 
-    clickable.appendChild(nameDiv);
-    clickable.appendChild(metaDiv);
+      var card = document.createElement('div');
+      card.className = 'month-card';
 
-    if (hasBudget && m.budget > 0) {
-      var pct = Math.min((totalSpent / m.budget) * 100, 100);
-      var colorClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
-      var barWrap = document.createElement('div');
-      barWrap.className = 'history-bar-wrap';
-      var bar = document.createElement('div');
-      bar.className = 'history-bar-fill' + (colorClass ? ' ' + colorClass : '');
-      bar.style.width = pct.toFixed(1) + '%';
-      barWrap.appendChild(bar);
-      clickable.appendChild(barWrap);
-    }
+      var clickable = document.createElement('div');
+      clickable.className = 'month-card-clickable month-card-info';
+      clickable.dataset.id = m.id;
+      clickable.addEventListener('click', function() { openMonth(m.id); });
 
-    var rightDiv = document.createElement('div');
-    rightDiv.className = 'month-card-right';
+      var nameDiv = document.createElement('div');
+      nameDiv.className = 'month-card-name';
+      nameDiv.textContent = m.name;
 
-    if (isCurrent) {
-      var badge = document.createElement('span');
-      badge.className = 'badge-current';
-      badge.textContent = 'Current';
-      rightDiv.appendChild(badge);
-    }
+      var metaDiv = document.createElement('div');
+      metaDiv.className = 'month-card-meta' + (hasBudget ? '' : ' needs-setup');
+      metaDiv.textContent = metaText;
 
-    var btn = document.createElement('button');
-    btn.className = 'btn-danger btn-delete-month';
-    btn.textContent = 'Delete';
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openDeleteMonthModal(m.id, btn);
+      clickable.appendChild(nameDiv);
+      clickable.appendChild(metaDiv);
+
+      if (hasBudget && m.budget > 0) {
+        var pct = Math.min((totalSpent / m.budget) * 100, 100);
+        var colorClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+        var barWrap = document.createElement('div');
+        barWrap.className = 'history-bar-wrap';
+        var bar = document.createElement('div');
+        bar.className = 'history-bar-fill' + (colorClass ? ' ' + colorClass : '');
+        bar.style.width = pct.toFixed(1) + '%';
+        barWrap.appendChild(bar);
+        clickable.appendChild(barWrap);
+      }
+
+      var rightDiv = document.createElement('div');
+      rightDiv.className = 'month-card-right';
+
+      if (isCurrent) {
+        var badge = document.createElement('span');
+        badge.className = 'badge-current';
+        badge.textContent = 'Current';
+        rightDiv.appendChild(badge);
+      }
+
+      var btn = document.createElement('button');
+      btn.className = 'btn-danger btn-delete-month';
+      btn.textContent = 'Delete';
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openDeleteMonthModal(m.id, btn);
+      });
+      rightDiv.appendChild(btn);
+
+      card.appendChild(clickable);
+      card.appendChild(rightDiv);
+      yearList.appendChild(card);
     });
-    rightDiv.appendChild(btn);
 
-    card.appendChild(clickable);
-    card.appendChild(rightDiv);
-    monthList.appendChild(card);
+    group.appendChild(yearList);
+    monthList.appendChild(group);
   });
 }
 

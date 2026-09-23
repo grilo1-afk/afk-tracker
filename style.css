@@ -494,6 +494,33 @@ button.btn-danger.btn--loading::after {
   gap: 10px;
   margin-bottom: 20px;
 }
+.history-year-group {
+  margin-bottom: 12px;
+}
+.history-year-heading {
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 8px 0;
+}
+.history-year-heading::-webkit-details-marker {
+  display: none;
+}
+.history-year-heading::after {
+  content: " ▾";
+  font-size: 12px;
+  opacity: 0.6;
+}
+.history-year-group[open] > .history-year-heading::after {
+  content: " ▴";
+}
+.history-year-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 #btn-create-month {
   margin-top: 10px;
 }
