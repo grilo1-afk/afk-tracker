@@ -829,7 +829,8 @@ button.btn-danger.btn--loading::after {
 /* Flat expense form — each field wraps its own label + input */
 .expense-form-row {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: flex-end;
   margin-bottom: 10px;
 }
@@ -852,25 +853,24 @@ button.btn-danger.btn--loading::after {
 }
 
 .exp-desc {
-  flex: 2;
+  flex: 2 1 200px; /* grows, can shrink, base 200px */
 }
 .exp-amount {
-  flex: 1;
+  flex: 1 1 100px; /* grows, can shrink, base 100px */
 }
 .exp-date {
-  flex: 1;
-  min-width: 130px;
+  flex: 1 1 180px; /* gives the date+today row enough room */
 }
 
 /* ── INLINE DATE + TODAY (add-expense form & edit modal) ── */
 .exp-date-with-today {
   display: flex;
   gap: 6px;
-  align-items: stretch;
+  align-items: center;
 }
 .exp-date-with-today input {
   flex: 1;
-  min-width: 0;
+  min-width: 110px; /* enough to show "MM/DD/YYYY" */
 }
 .btn-today-inline {
   flex-shrink: 0;
@@ -1814,17 +1814,16 @@ td.action-col {
 
   /* Expense form: stack on mobile */
   .expense-form-row {
-    flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
   .exp-desc {
-    flex: 1 1 100%;
+    flex: 1 1 100%; /* description always full-width on mobile */
   }
   .exp-amount {
-    flex: 1 1 calc(50% - 3px);
+    flex: 1 1 calc(50% - 4px); /* amount takes half the row */
   }
   .exp-date {
-    flex: 1 1 calc(50% - 3px);
+    flex: 1 1 100%; /* date+today always full-width on mobile */
   }
   .expense-form-actions .btn-exp-action {
     min-height: 48px;
