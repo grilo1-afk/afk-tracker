@@ -1470,6 +1470,21 @@ td.action-col {
   color: var(--gold);
   margin-bottom: 8px;
 }
+.chart-block > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.chart-block > summary::-webkit-details-marker {
+  display: none;
+}
+.chart-block > summary::after {
+  content: " ▾";
+  font-size: 11px;
+  opacity: 0.6;
+}
+.chart-block[open] > summary::after {
+  content: " ▴";
+}
 .chart-wrap {
   width: 100%;
   overflow: hidden;
