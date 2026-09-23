@@ -1248,6 +1248,50 @@ td.action-col {
   color: var(--text-light);
 }
 
+/* ── COMPACT STATS BLOCK (H13) ── */
+.stats-compact {
+  margin-bottom: 12px;
+}
+.stats-compact-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stats-compact-spent {
+  font-size: 20px;
+}
+.stats-compact-spent strong {
+  color: var(--danger);
+  font-size: 22px;
+}
+.stats-compact-budget-line {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 6px;
+}
+.stats-compact-budget-line strong {
+  color: var(--text-light);
+}
+.stats-compact-remaining {
+  font-size: 14px;
+  margin: 4px 0 6px;
+}
+.stats-compact-remaining strong {
+  color: var(--gold);
+}
+.stats-compact-remaining strong.over-budget {
+  color: var(--danger);
+}
+.stats-secondary-inline {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 8px;
+}
+.stats-secondary-inline span {
+  color: var(--text-light);
+}
+
 /* ── YEAR SUMMARY (D3) ── */
 #year-summary {
   margin-bottom: 16px;
