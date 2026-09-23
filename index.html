@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-title" content="AFK Tracker" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,bar_chart,close,dark_mode,edit,light_mode,refresh,visibility,visibility_off"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,arrow_back,bar_chart,close,dark_mode,edit,home,light_mode,manage_accounts,refresh,settings,tune,visibility,visibility_off"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -151,31 +151,6 @@
           >
             <span class="material-symbols-outlined">refresh</span>
           </button>
-          <button
-            id="btn-stats"
-            class="btn-icon"
-            title="Statistics"
-            aria-label="Statistics"
-          >
-            <span class="material-symbols-outlined">bar_chart</span>
-          </button>
-          <button
-            id="btn-achievements"
-            class="btn-icon btn-icon--badged"
-            title="Achievements"
-            aria-label="Achievements"
-          >
-            &#127942;
-            <span id="achievements-badge" class="icon-badge"></span>
-          </button>
-          <button
-            id="btn-profile"
-            class="btn-icon"
-            title="Settings"
-            aria-label="Settings"
-          >
-            <span class="material-symbols-outlined">account_circle</span>
-          </button>
         </div>
       </div>
       <div class="scroll-content">
@@ -230,14 +205,6 @@
           <span class="save-status" aria-live="polite"></span>
           <button id="btn-back" class="btn-icon" title="Back" aria-label="Back">
             <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-          <button
-            id="btn-profile-2"
-            class="btn-icon"
-            title="Settings"
-            aria-label="Settings"
-          >
-            <span class="material-symbols-outlined">account_circle</span>
           </button>
         </div>
       </div>
@@ -369,11 +336,6 @@
     <div id="stats-screen" class="container hidden">
       <div class="screen-header">
         <h2>Statistics</h2>
-        <div class="header-actions">
-          <button id="btn-stats-back" class="btn-icon" title="Back" aria-label="Back">
-            <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-        </div>
       </div>
       <div class="scroll-content">
         <!-- Lifetime total (D4) -->
@@ -533,18 +495,12 @@
           </button>
         </div>
         <div class="settings-sections">
-          <!-- Profile section -->
-          <details class="settings-section" id="settings-section-profile" open>
-            <summary>Profile</summary>
+          <div class="settings-section" id="settings-section-account">
+            <div class="settings-section-label">Account</div>
             <div class="form-group">
               <label for="display-name-input">Display Name</label>
               <input type="text" id="display-name-input" placeholder="e.g. Arian" />
             </div>
-          </details>
-
-          <!-- Appearance section -->
-          <details class="settings-section" id="settings-section-appearance">
-            <summary>Appearance</summary>
             <div class="form-group">
               <label for="theme-select">Theme</label>
               <select id="theme-select">
@@ -566,173 +522,54 @@
                 <option value="MXN">MXN — Mexican Peso</option>
               </select>
             </div>
-          </details>
+          </div>
 
-          <!-- Tracker section -->
-          <details class="settings-section" id="settings-section-tracker">
-            <summary>Tracker</summary>
-            <div class="form-group">
-              <label>Quick-add Presets</label>
-              <div id="preset-list" class="preset-list"></div>
-              <div class="preset-add-row">
-                <input
-                  type="text"
-                  id="preset-desc-input"
-                  placeholder="Description"
-                  maxlength="80"
-                />
-                <input
-                  type="text"
-                  inputmode="decimal"
-                  id="preset-amount-input"
-                  placeholder="0.00"
-                />
-                <button type="button" id="btn-add-preset" class="btn-secondary btn-sm">
-                  Add
-                </button>
-              </div>
-              <span class="field-error" id="err-preset"></span>
-            </div>
-            <div class="form-group">
-              <label>Categories</label>
-              <div id="category-list" class="preset-list"></div>
-              <div class="preset-add-row">
-                <input
-                  type="text"
-                  id="category-settings-input"
-                  placeholder="New category name"
-                  maxlength="50"
-                />
-                <button type="button" id="btn-add-category-settings" class="btn-secondary btn-sm">
-                  Add
-                </button>
-              </div>
-              <span class="field-error" id="err-category-settings"></span>
-            </div>
-            <div class="form-group">
-              <label>Recurring Expenses</label>
-              <p class="settings-section-desc" style="margin-bottom: 6px">
-                Offered as a checklist when creating a new month.
-              </p>
-              <div id="recurring-list" class="preset-list"></div>
-              <div class="preset-add-row">
-                <input
-                  type="text"
-                  id="recurring-desc-input"
-                  placeholder="Description"
-                  maxlength="80"
-                />
-                <input
-                  type="text"
-                  inputmode="decimal"
-                  id="recurring-amount-input"
-                  placeholder="0.00"
-                />
-                <button type="button" id="btn-add-recurring" class="btn-secondary btn-sm">
-                  Add
-                </button>
-              </div>
-              <span class="field-error" id="err-recurring"></span>
-            </div>
-          </details>
-
-          <!-- Security section -->
-          <details class="settings-section" id="settings-section-security">
-            <summary>Security</summary>
+          <div class="settings-section" id="settings-section-security">
+            <div class="settings-section-label">Security</div>
             <div class="form-group">
               <label>Change Password</label>
               <div class="input-with-toggle" style="margin-bottom: 4px">
-                <input
-                  type="password"
-                  id="current-pass-input"
-                  placeholder="Current password"
-                  aria-describedby="err-current-pass"
-                />
-                <button
-                  type="button"
-                  class="btn-eye btn-eye-profile"
-                  data-target="current-pass-input"
-                  title="Show/hide"
-                >
+                <input type="password" id="current-pass-input" placeholder="Current password" aria-describedby="err-current-pass" />
+                <button type="button" class="btn-eye btn-eye-profile" data-target="current-pass-input" title="Show/hide">
                   <span class="material-symbols-outlined">visibility</span>
                 </button>
               </div>
               <span class="field-error" id="err-current-pass"></span>
-              <div
-                class="input-with-toggle"
-                style="margin-top: 6px; margin-bottom: 4px"
-              >
-                <input
-                  type="password"
-                  id="new-pass-input"
-                  placeholder="New password"
-                  aria-describedby="err-new-pass"
-                />
-                <button
-                  type="button"
-                  class="btn-eye btn-eye-profile"
-                  data-target="new-pass-input"
-                  title="Show/hide"
-                >
+              <div class="input-with-toggle" style="margin-top: 6px; margin-bottom: 4px">
+                <input type="password" id="new-pass-input" placeholder="New password" aria-describedby="err-new-pass" />
+                <button type="button" class="btn-eye btn-eye-profile" data-target="new-pass-input" title="Show/hide">
                   <span class="material-symbols-outlined">visibility</span>
                 </button>
               </div>
               <span class="field-error" id="err-new-pass"></span>
               <div class="input-with-toggle" style="margin-top: 6px">
-                <input
-                  type="password"
-                  id="confirm-pass-input"
-                  placeholder="Confirm new password"
-                  aria-describedby="err-confirm-pass"
-                />
-                <button
-                  type="button"
-                  class="btn-eye btn-eye-profile"
-                  data-target="confirm-pass-input"
-                  title="Show/hide"
-                >
+                <input type="password" id="confirm-pass-input" placeholder="Confirm new password" aria-describedby="err-confirm-pass" />
+                <button type="button" class="btn-eye btn-eye-profile" data-target="confirm-pass-input" title="Show/hide">
                   <span class="material-symbols-outlined">visibility</span>
                 </button>
               </div>
               <span class="field-error" id="err-confirm-pass"></span>
             </div>
-            <div class="modal-actions" style="margin-top: 16px">
-              <button id="btn-profile-save">Save Changes</button>
-            </div>
-          </details>
+          </div>
 
-          <!-- Data section -->
-          <details class="settings-section" id="settings-section-data">
-            <summary>Data</summary>
-            <p class="settings-section-desc">
-              Download a backup of all your months, expenses, and categories.
-            </p>
-            <button type="button" id="btn-export-data" class="btn-secondary">
-              Export Backup
-            </button>
+          <div class="settings-section" id="settings-section-data">
+            <div class="settings-section-label">Data</div>
+            <p class="settings-section-desc">Download a backup of all your months, expenses, and categories.</p>
+            <button type="button" id="btn-export-data" class="btn-secondary">Export Backup</button>
             <span class="field-error" id="err-export"></span>
             <div class="form-group" style="margin-top: 14px">
               <label for="lifetime-offset-input">Pre-app spending (estimate)</label>
-              <p class="settings-section-desc" style="margin-bottom: 6px">
-                Amount spent before this app existed. Added to the lifetime total.
-              </p>
+              <p class="settings-section-desc" style="margin-bottom: 6px">Amount spent before this app existed. Added to the lifetime total.</p>
               <div class="lifetime-offset-row">
-                <input
-                  type="text"
-                  inputmode="decimal"
-                  id="lifetime-offset-input"
-                  placeholder="0.00"
-                />
-                <button type="button" id="btn-save-lifetime-offset" class="btn-secondary btn-sm">
-                  Save
-                </button>
+                <input type="text" inputmode="decimal" id="lifetime-offset-input" placeholder="0.00" />
               </div>
               <span class="field-error" id="err-lifetime-offset"></span>
             </div>
-          </details>
+          </div>
         </div>
 
         <div class="settings-session-row">
+          <button id="btn-profile-save" disabled>Save Changes</button>
           <button id="btn-logout" class="btn-danger">Logout</button>
         </div>
       </div>
@@ -762,6 +599,67 @@
         <span class="field-error" id="err-recurring-modal"></span>
       </div>
     </div>
+
+    <!-- MANAGE SCREEN -->
+    <div id="manage-screen" class="container hidden">
+      <div class="screen-header">
+        <h2>Manage</h2>
+      </div>
+      <div class="scroll-content">
+        <div class="manage-section">
+          <div class="manage-section-title">Quick-add Presets</div>
+          <div id="preset-list" class="preset-list"></div>
+          <div class="preset-add-row">
+            <input type="text" id="preset-desc-input" placeholder="Description" maxlength="80" />
+            <input type="text" inputmode="decimal" id="preset-amount-input" placeholder="0.00" />
+            <button type="button" id="btn-add-preset" class="btn-secondary btn-sm">Add</button>
+          </div>
+          <span class="field-error" id="err-preset"></span>
+        </div>
+
+        <div class="manage-section">
+          <div class="manage-section-title">Categories</div>
+          <div id="category-list" class="preset-list"></div>
+          <div class="preset-add-row">
+            <input type="text" id="category-settings-input" placeholder="New category name" maxlength="50" />
+            <button type="button" id="btn-add-category-settings" class="btn-secondary btn-sm">Add</button>
+          </div>
+          <span class="field-error" id="err-category-settings"></span>
+        </div>
+
+        <div class="manage-section">
+          <div class="manage-section-title">Recurring Expenses</div>
+          <p class="settings-section-desc" style="margin-bottom: 6px">Offered as a checklist when creating a new month.</p>
+          <div id="recurring-list" class="preset-list"></div>
+          <div class="preset-add-row">
+            <input type="text" id="recurring-desc-input" placeholder="Description" maxlength="80" />
+            <input type="text" inputmode="decimal" id="recurring-amount-input" placeholder="0.00" />
+            <button type="button" id="btn-add-recurring" class="btn-secondary btn-sm">Add</button>
+          </div>
+          <span class="field-error" id="err-recurring"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav hidden" id="bottom-nav" aria-label="Main navigation">
+      <button type="button" class="bottom-nav-tab active" id="nav-tab-home" aria-label="Home">
+        <span class="material-symbols-outlined">home</span>
+        <span class="bottom-nav-label">Home</span>
+      </button>
+      <button type="button" class="bottom-nav-tab" id="nav-tab-stats" aria-label="Statistics">
+        <span class="material-symbols-outlined">bar_chart</span>
+        <span class="bottom-nav-label">Stats</span>
+      </button>
+      <button type="button" class="bottom-nav-tab" id="nav-tab-manage" aria-label="Manage">
+        <span class="material-symbols-outlined">tune</span>
+        <span class="bottom-nav-label">Manage</span>
+      </button>
+      <button type="button" class="bottom-nav-tab" id="nav-tab-settings" aria-label="Settings">
+        <span class="material-symbols-outlined">settings</span>
+        <span class="bottom-nav-label">Settings</span>
+      </button>
+    </nav>
 
     <script type="module" src="app.js"></script>
   </body>

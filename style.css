@@ -1817,10 +1817,112 @@ td.action-col {
   color: #fff;
 }
 
+/* ── BOTTOM NAVIGATION BAR ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 660px;
+  height: calc(56px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--panel-bg);
+  border-top: 1px solid rgba(232, 184, 75, 0.25);
+  display: flex;
+  z-index: 50;
+}
+.bottom-nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--text-light);
+  opacity: 0.5;
+  padding: 6px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  min-height: unset;
+  width: auto;
+  cursor: pointer;
+  transition: opacity 0.15s, color 0.15s;
+  touch-action: manipulation;
+}
+.bottom-nav-tab .material-symbols-outlined {
+  font-size: 22px;
+}
+.bottom-nav-tab:hover {
+  opacity: 0.8;
+  transform: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-light);
+}
+.bottom-nav-tab.active {
+  opacity: 1;
+  color: var(--gold);
+}
+.bottom-nav-tab.active .material-symbols-outlined {
+  font-variation-settings: "wght" 400, "FILL" 1, "GRAD" 0, "opsz" 24;
+}
+.bottom-nav-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* Screens need bottom padding to clear the nav bar */
+.container:not(#login-screen) .scroll-content {
+  padding-bottom: calc(20px + 56px + env(safe-area-inset-bottom));
+}
+.container:not(#login-screen) .screen-footer {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom) + 8px);
+}
+
+/* ── SETTINGS SECTIONS (flat, no accordion) ── */
+.settings-section {
+  border-top: 1px solid #2a2f38;
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.settings-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.settings-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* ── MANAGE SCREEN SECTIONS ── */
+.manage-section {
+  margin-bottom: 28px;
+}
+.manage-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 10px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(232, 184, 75, 0.15);
+}
+
 /* ── UNDO TOAST ── */
 .undo-toast {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + 56px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   background: #1e2330;
@@ -1875,10 +1977,17 @@ td.action-col {
 }
 @media (max-width: 480px) {
   .undo-toast {
-    bottom: max(16px, env(safe-area-inset-bottom) + 8px);
+    bottom: calc(max(16px, env(safe-area-inset-bottom) + 8px) + 56px);
     left: 16px;
     right: 16px;
     transform: none;
     justify-content: space-between;
+  }
+  /* On mobile the container is fixed inset:0, so override scroll-content padding */
+  .container:not(#login-screen) .scroll-content {
+    padding-bottom: calc(14px + 56px + env(safe-area-inset-bottom));
+  }
+  .container:not(#login-screen) .screen-footer {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 6px);
   }
 }

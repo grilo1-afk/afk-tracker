@@ -92,7 +92,7 @@ import {
   getAchievementCounts,
   registerOpenAchievementScreenCb,
   setChartPeriod,
-  initSettingsAccordion,
+  openManageScreen,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -205,8 +205,9 @@ registerAuthCallbacks({
 // Wire the achievements teaser click on the stats screen back to openAchievementScreen
 registerOpenAchievementScreenCb(openAchievementScreen);
 
-// -- ACHIEVEMENT BADGE
+// -- ACHIEVEMENT BADGE (badge element removed with old header; function kept for compatibility)
 function updateAchievementsBadge() {
+  // badge moved; no-op unless element exists
   const { earned, total } = getAchievementCounts();
   const badge = document.getElementById("achievements-badge");
   if (badge) badge.textContent = earned + "/" + total;
@@ -357,21 +358,19 @@ const btnAddExpense = document.getElementById("btn-add-expense");
 // -- UNDO TOAST
 document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteExpense);
 
-// -- THEME
-document.getElementById("theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
+// -- THEME (applies immediately; persist happens on Settings Save)
+document.getElementById("theme-select").addEventListener("change", (e) => {
+  applyTheme(e.target.value);
+  _updateSettingsSaveBtn();
+});
 
-// -- CURRENCY
-document.getElementById("currency-select").addEventListener("change", async (e) => {
+// -- CURRENCY (applies immediately; persist happens on Settings Save)
+document.getElementById("currency-select").addEventListener("change", (e) => {
   const code = e.target.value;
   setCurrency(code);
-  // Re-render current month stats if a month is open
   const m = getActiveMonth();
-  if (m && m.budget !== null) {
-    renderStats(m);
-    renderExpenses(m);
-  }
-  // Persist — fire and forget; the value is already applied locally
-  await dbUpdateCurrency(code);
+  if (m && m.budget !== null) { renderStats(m); renderExpenses(m); }
+  _updateSettingsSaveBtn();
 });
 
 // -- PASSWORD TOGGLE
@@ -453,10 +452,6 @@ document
     }
   });
 
-// -- STATISTICS BUTTONS
-document.getElementById("btn-stats").addEventListener("click", openStatsScreen);
-document.getElementById("btn-stats-back").addEventListener("click", closeStatsScreen);
-
 // -- CHART PERIOD TOGGLE
 document.getElementById("chart-period-toggle").addEventListener("click", (e) => {
   const btn = e.target.closest(".chart-period-btn");
@@ -467,10 +462,6 @@ document.getElementById("chart-period-toggle").addEventListener("click", (e) => 
   setChartPeriod(period);
   renderCharts();
 });
-
-// -- ACHIEVEMENT BUTTONS
-document.getElementById("btn-achievements").addEventListener("click", openAchievementScreen);
-document.getElementById("btn-achievements-back").addEventListener("click", closeAchievementScreen);
 
 // -- ESCAPE KEY
 document.addEventListener("keydown", (e) => {
@@ -1026,6 +1017,7 @@ document.getElementById("btn-back").addEventListener("click", () => {
   renderHistory();
   updateAchievementsBadge();
   showScreen("history");
+  setNavActive("home");
 });
 document
   .getElementById("btn-create-month")
@@ -1316,7 +1308,7 @@ document
       closeDeleteMonthModal();
   });
 
-// -- PROFILE
+// -- PROFILE (password eye toggles)
 document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
   btn.addEventListener("click", () => {
     const input = document.getElementById(btn.dataset.target);
@@ -1327,150 +1319,186 @@ document.querySelectorAll(".btn-eye-profile").forEach((btn) => {
     if (icon) icon.textContent = hidden ? "visibility_off" : "visibility";
   });
 });
-document
-  .getElementById("btn-profile")
-  .addEventListener("click", () => {
-    openProfileModal();
-    renderPresetList();
-    renderCategorySettingsList();
-    renderRecurringList();
-    const currencySelect = document.getElementById("currency-select");
-    if (currencySelect) currencySelect.value = state.currency || "USD";
-    const offsetInput = document.getElementById("lifetime-offset-input");
-    if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
-      ? (state.lifetimeOffset / 100).toFixed(2)
-      : "";
+
+// Snapshot of settings values when modal opens — used for dirty detection
+let _settingsSnapshot = null;
+
+function _snapshotSettings() {
+  return {
+    name: (document.getElementById("display-name-input")?.value || "").trim(),
+    theme: document.getElementById("theme-select")?.value || "",
+    currency: document.getElementById("currency-select")?.value || "",
+    offset: (document.getElementById("lifetime-offset-input")?.value || "").trim(),
+    cp: "", np: "", cf: "",
+  };
+}
+
+function _updateSettingsSaveBtn() {
+  const btn = document.getElementById("btn-profile-save");
+  if (!btn || !_settingsSnapshot) return;
+  const cp = document.getElementById("current-pass-input")?.value || "";
+  const np = document.getElementById("new-pass-input")?.value || "";
+  const cf = document.getElementById("confirm-pass-input")?.value || "";
+  const name = (document.getElementById("display-name-input")?.value || "").trim();
+  const theme = document.getElementById("theme-select")?.value || "";
+  const currency = document.getElementById("currency-select")?.value || "";
+  const offset = (document.getElementById("lifetime-offset-input")?.value || "").trim();
+  const dirty = name !== _settingsSnapshot.name
+    || theme !== _settingsSnapshot.theme
+    || currency !== _settingsSnapshot.currency
+    || offset !== _settingsSnapshot.offset
+    || cp !== "" || np !== "" || cf !== "";
+  btn.disabled = !dirty;
+}
+
+function _openSettings() {
+  const offsetInput = document.getElementById("lifetime-offset-input");
+  if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
+    ? (state.lifetimeOffset / 100).toFixed(2)
+    : "";
+  openProfileModal();
+  _settingsSnapshot = _snapshotSettings();
+  _updateSettingsSaveBtn();
+  // Wire dirty detection to all settings fields (once)
+  ["display-name-input", "theme-select", "currency-select",
+   "lifetime-offset-input", "current-pass-input", "new-pass-input", "confirm-pass-input"
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && !el._dirtyListenerAdded) {
+      el.addEventListener("input", _updateSettingsSaveBtn);
+      el.addEventListener("change", _updateSettingsSaveBtn);
+      el._dirtyListenerAdded = true;
+    }
   });
-document
-  .getElementById("btn-profile-2")
-  .addEventListener("click", () => {
-    openProfileModal();
-    renderPresetList();
-    renderCategorySettingsList();
-    renderRecurringList();
-    const currencySelect = document.getElementById("currency-select");
-    if (currencySelect) currencySelect.value = state.currency || "USD";
-    const offsetInput = document.getElementById("lifetime-offset-input");
-    if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
-      ? (state.lifetimeOffset / 100).toFixed(2)
-      : "";
-  });
+}
+
 document
   .getElementById("btn-profile-close-x")
-  .addEventListener("click", closeProfileModal);
+  .addEventListener("click", () => {
+    closeProfileModal();
+    setNavActive("home");
+  });
 profileOverlay.addEventListener("click", (e) => {
-  if (e.target === profileOverlay) closeProfileModal();
+  if (e.target === profileOverlay) {
+    closeProfileModal();
+    setNavActive("home");
+  }
 });
 
+
+// -- UNIFIED SETTINGS SAVE
 document
   .getElementById("btn-profile-save")
   .addEventListener("click", async () => {
-    const newName = document.getElementById("display-name-input").value.trim();
-    const currentPass = document.getElementById("current-pass-input").value;
-    const newPass = document.getElementById("new-pass-input").value;
-    const confirmPass = document.getElementById("confirm-pass-input").value;
     const btn = document.getElementById("btn-profile-save");
-    if (newName) {
-      const nameResult = await dbUpdateDisplayName(newName);
-      if (!nameResult.ok) {
-        const nameErrEl = document.getElementById("err-current-pass");
-        if (nameErrEl) {
-          nameErrEl.textContent = nameResult.message;
-          nameErrEl.style.color = "";
-        }
-        return;
-      }
-      cacheDisplayName(newName);
-      state.displayName = newName;
-      await renderWelcomeName();
-    }
-    if (currentPass || newPass || confirmPass) {
-      const cpEl = document.getElementById("current-pass-input");
-      const npEl = document.getElementById("new-pass-input");
-      const cfEl = document.getElementById("confirm-pass-input");
-      if (!currentPass) {
-        showFieldError(
-          cpEl,
-          "err-current-pass",
-          "Current password is required.",
-        );
-        return;
-      }
-      if (newPass !== confirmPass) {
-        showFieldError(cfEl, "err-confirm-pass", "Passwords do not match.");
-        return;
-      }
-      if (newPass.length < 8) {
-        showFieldError(npEl, "err-new-pass", "Minimum 8 characters.");
-        return;
-      }
-      btn.classList.add("btn--loading");
-      btn.disabled = true;
-      try {
-        const result = await dbUpdatePassword(newPass);
-        if (!result.ok) {
-          showFieldError(cpEl, "err-current-pass", result.message);
+    const newName = (document.getElementById("display-name-input")?.value || "").trim();
+    const cp = document.getElementById("current-pass-input")?.value || "";
+    const np = document.getElementById("new-pass-input")?.value || "";
+    const cf = document.getElementById("confirm-pass-input")?.value || "";
+    const offsetRaw = (document.getElementById("lifetime-offset-input")?.value || "").trim();
+    btn.classList.add("btn--loading");
+    btn.disabled = true;
+    try {
+      const origName = _settingsSnapshot ? _settingsSnapshot.name : "";
+      if (newName && newName !== origName) {
+        const r = await dbUpdateDisplayName(newName);
+        if (!r.ok) {
+          const el = document.getElementById("err-current-pass");
+          if (el) { el.textContent = r.message; el.style.color = ""; }
           return;
         }
-        [cpEl, npEl, cfEl].forEach((el) => {
-          el.value = "";
-          el.classList.remove("is-invalid");
+        cacheDisplayName(newName);
+        state.displayName = newName;
+        await renderWelcomeName();
+      }
+      const newCurrency = document.getElementById("currency-select")?.value;
+      const origCurrency = _settingsSnapshot ? _settingsSnapshot.currency : (state.currency || "USD");
+      if (newCurrency && newCurrency !== origCurrency) {
+        setCurrency(newCurrency);
+        const m = getActiveMonth();
+        if (m && m.budget !== null) { renderStats(m); renderExpenses(m); }
+        await dbUpdateCurrency(newCurrency);
+      }
+      if (offsetRaw !== (_settingsSnapshot ? _settingsSnapshot.offset : "")) {
+        const offsetVal = parseMoneyInput(offsetRaw);
+        if (!isNaN(offsetVal) && offsetVal >= 0) {
+          const r = await dbUpdateLifetimeOffset(offsetVal);
+          if (!r.ok) {
+            const el = document.getElementById("err-lifetime-offset");
+            if (el) el.textContent = r.message;
+            return;
+          }
+          state.lifetimeOffset = Math.round(offsetVal * 100);
+          renderLifetimeTotal();
+        }
+      }
+      if (cp || np || cf) {
+        const cpEl = document.getElementById("current-pass-input");
+        const npEl = document.getElementById("new-pass-input");
+        const cfEl = document.getElementById("confirm-pass-input");
+        if (!cp) { showFieldError(cpEl, "err-current-pass", "Current password is required."); return; }
+        if (np !== cf) { showFieldError(cfEl, "err-confirm-pass", "Passwords do not match."); return; }
+        if (np.length < 8) { showFieldError(npEl, "err-new-pass", "Minimum 8 characters."); return; }
+        const r = await dbUpdatePassword(np);
+        if (!r.ok) { showFieldError(cpEl, "err-current-pass", r.message); return; }
+        [cpEl, npEl, cfEl].forEach((el) => { el.value = ""; el.classList.remove("is-invalid"); });
+        ["err-current-pass", "err-new-pass", "err-confirm-pass"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = ""; el.style.color = ""; }
         });
-        ["err-current-pass", "err-new-pass", "err-confirm-pass"].forEach(
-          (id) => {
-            const el = document.getElementById(id);
-            if (el) {
-              el.textContent = "";
-              el.style.color = "";
-            }
-          },
-        );
         const sEl = document.getElementById("err-confirm-pass");
         if (sEl) {
           sEl.style.color = "var(--success)";
           sEl.textContent = "Password updated.";
-          setTimeout(() => {
-            sEl.textContent = "";
-            sEl.style.color = "";
-          }, 3000);
+          setTimeout(() => { sEl.textContent = ""; sEl.style.color = ""; }, 3000);
         }
-      } finally {
-        btn.classList.remove("btn--loading");
-        btn.disabled = false;
+        _settingsSnapshot = _snapshotSettings();
+        _updateSettingsSaveBtn();
+        return;
       }
-      return;
+      _settingsSnapshot = _snapshotSettings();
+      _updateSettingsSaveBtn();
+      closeProfileModal();
+      setNavActive("home");
+    } finally {
+      btn.classList.remove("btn--loading");
+      btn.disabled = false;
     }
-    closeProfileModal();
   });
 
-// -- LIFETIME OFFSET SAVE
-document.getElementById("btn-save-lifetime-offset").addEventListener("click", async () => {
-  const input = document.getElementById("lifetime-offset-input");
-  const errEl = document.getElementById("err-lifetime-offset");
-  const btn = document.getElementById("btn-save-lifetime-offset");
-  if (errEl) errEl.textContent = "";
+// -- BOTTOM NAV
+function setNavActive(tab) {
+  document.querySelectorAll(".bottom-nav-tab").forEach((b) => b.classList.remove("active"));
+  const tabEl = document.getElementById("nav-tab-" + tab);
+  if (tabEl) tabEl.classList.add("active");
+}
 
-  const val = parseMoneyInput(input.value);
-  if (isNaN(val) || val < 0) {
-    if (errEl) errEl.textContent = "Enter a valid amount (0 or greater).";
-    return;
-  }
-
-  btn.classList.add("btn--loading");
-  btn.disabled = true;
-  try {
-    const result = await dbUpdateLifetimeOffset(val);
-    if (!result.ok) {
-      if (errEl) errEl.textContent = result.message;
-      return;
-    }
-    state.lifetimeOffset = Math.round(val * 100);
-    renderLifetimeTotal();
-  } finally {
-    btn.classList.remove("btn--loading");
-    btn.disabled = false;
-  }
+document.getElementById("nav-tab-home").addEventListener("click", () => {
+  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  setActiveMonthId(null);
+  renderHistory();
+  updateAchievementsBadge();
+  showScreen("history");
+  setNavActive("home");
 });
+document.getElementById("nav-tab-stats").addEventListener("click", () => {
+  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  openStatsScreen();
+  setNavActive("stats");
+});
+document.getElementById("nav-tab-manage").addEventListener("click", () => {
+  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  renderPresetList();
+  renderCategorySettingsList();
+  renderRecurringList();
+  openManageScreen();
+  setNavActive("manage");
+});
+document.getElementById("nav-tab-settings").addEventListener("click", () => {
+  _openSettings();
+  setNavActive("settings");
+});
+
 
 // -- DATA EXPORT
 document.getElementById("btn-export-data").addEventListener("click", async () => {
@@ -1512,8 +1540,9 @@ document.getElementById("btn-logout").addEventListener("click", async () => {
   }
   try {
     await signOut();
-    supabase.removeAllChannels(); // tear down subscription before clearing session
+    supabase.removeAllChannels();
     closeProfileModal();
+    _hideBottomNav();
     clearSession();
     setState({ displayName: null, months: [] });
     setActiveMonthId(null);
@@ -1606,10 +1635,18 @@ async function _migrateLocalStorageData() {
 }
 
 // -- INIT
+function _showBottomNav() {
+  const nav = document.getElementById("bottom-nav");
+  if (nav) nav.classList.remove("hidden");
+}
+function _hideBottomNav() {
+  const nav = document.getElementById("bottom-nav");
+  if (nav) nav.classList.add("hidden");
+}
+
 (async function init() {
   applyTheme(getPreferredTheme());
   watchSystemTheme();
-  initSettingsAccordion();
 
   // The #init-loading overlay is baked into the HTML and visible from first paint.
   // We just grab the reference here; no need to create it.
@@ -1636,6 +1673,8 @@ async function _migrateLocalStorageData() {
       renderHistory();
       await renderWelcomeName();
       showScreen("history");
+      _showBottomNav();
+      setNavActive("home");
       overlay.remove(); // Reveal history screen, sync continues silently
       setupRealtimeSync();
 
@@ -1658,6 +1697,8 @@ async function _migrateLocalStorageData() {
       // Cold load: no cache — block on full loadState
       try {
         await doLogin();
+        _showBottomNav();
+        setNavActive("home");
         updateAchievementsBadge();
         await _migrateLocalStorageData();
       } catch (e) {
