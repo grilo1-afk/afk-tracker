@@ -121,10 +121,22 @@ export function getLocalISODate() {
   return `${year}-${month}-${day}`;
 }
 
+const CURRENCY_LOCALES = {
+  BRL: "pt-BR",
+  EUR: "de-DE",
+  GBP: "en-GB",
+  JPY: "ja-JP",
+  CAD: "en-CA",
+  AUD: "en-AU",
+  MXN: "es-MX",
+};
+
 export function fmt(cents) {
-  return new Intl.NumberFormat("en-US", {
+  const currency = state.currency || "USD";
+  const locale = CURRENCY_LOCALES[currency] || "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: state.currency || "USD",
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100);

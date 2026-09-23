@@ -504,7 +504,7 @@ export function renderStats(m) {
         pctText.className = 'budget-pct-text';
       } else {
         barFill.style.width = '100%'; barFill.className = 'budget-bar-fill over';
-        pctText.textContent = fmt(spent) + ' spent — budget is $0.00, every purchase is over';
+        pctText.textContent = fmt(spent) + ' spent — budget is ' + fmt(0) + ', every purchase is over';
         pctText.className = 'budget-pct-text over';
       }
     } else {
@@ -939,7 +939,7 @@ const ACHIEVEMENTS = [
   {
     id: "big_spender",
     title: "Big Spender",
-    desc: "A single expense of $50.00 or more.",
+    desc: () => "A single expense of " + fmt(5000) + " or more.",
     tier: "Silver",
     sticker: "45.png",
     earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 5000)),
@@ -947,7 +947,7 @@ const ACHIEVEMENTS = [
   {
     id: "whale",
     title: "Whale",
-    desc: "A single expense of $100.00 or more.",
+    desc: () => "A single expense of " + fmt(10000) + " or more.",
     tier: "Legendary",
     sticker: "1.gif",
     earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 10000)),
@@ -978,7 +978,7 @@ function _buildAchievementCard(a, isEarned) {
 
   const descEl = document.createElement("div");
   descEl.className = "achievement-desc";
-  descEl.textContent = a.desc;
+  descEl.textContent = typeof a.desc === "function" ? a.desc() : a.desc;
 
   info.appendChild(titleEl);
   info.appendChild(tierEl);
