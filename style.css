@@ -880,6 +880,11 @@ button.btn-danger.btn--loading::after {
   transform: none;
   box-shadow: none;
 }
+.btn-today-inline:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .expense-form-actions {
   display: flex;

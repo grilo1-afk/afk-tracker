@@ -18,6 +18,7 @@ import {
   setCurrency,
   getLocalISODate,
   fmt,
+  isDateInMonth,
 } from "./state.js";
 import {
   loadState,
@@ -79,6 +80,7 @@ import {
   closeProfileModal,
   registerDeleteExpenseCb,
   registerOpenEditExpenseCb,
+  registerPostOpenMonthCb,
   parseMoneyInput,
   setSyncStatus,
   openAchievementScreen,
@@ -303,8 +305,13 @@ async function undoDeleteExpense() {
 // Register delete callback so ui.js can call it without importing app.js
 registerDeleteExpenseCb(deleteExpense);
 
-// When the edit modal opens, sync _editSelectedCategoryId and render the edit picker
+// Update Today button disabled state whenever a month is opened
+registerPostOpenMonthCb(updateTodayButtonsState);
+
+// When the edit modal opens, sync _editSelectedCategoryId, render the edit picker,
+// and update Today button disabled state (the edit modal can open from any month).
 registerOpenEditExpenseCb((expId) => {
+  updateTodayButtonsState();
   const m = getActiveMonth();
   const exp = m && m.expenses.find((e) => e.id === expId);
   _editSelectedCategoryId = (exp && exp.categoryId) || null;
@@ -506,6 +513,16 @@ document.addEventListener("keydown", (e) => {
 });
 
 // -- TODAY BUTTONS
+function updateTodayButtonsState() {
+  const m = getActiveMonth();
+  const now = new Date();
+  const isCurrentMonth = !!m && m.year === now.getFullYear() && m.month === now.getMonth();
+  const btnToday = document.getElementById("btn-today-expense");
+  const btnTodayEdit = document.getElementById("btn-today-edit-exp");
+  if (btnToday) btnToday.disabled = !isCurrentMonth;
+  if (btnTodayEdit) btnTodayEdit.disabled = !isCurrentMonth;
+}
+
 document.getElementById("btn-today-expense").addEventListener("click", () => {
   expDateInput.value = getLocalISODate();
   expDateInput.classList.remove("is-invalid");
@@ -1123,6 +1140,7 @@ async function addExpense() {
         "err-exp-date",
         "Date is outside this month.",
       );
+      valid = false;
     } else {
       clearFieldError(expDateInput, "err-exp-date");
     }
@@ -1211,6 +1229,9 @@ document
     }
     if (!newDate) {
       showFieldError(dateEl, "err-edit-exp-date", "Date is required.");
+      valid = false;
+    } else if (!isDateInMonth(newDate, m)) {
+      showFieldError(dateEl, "err-edit-exp-date", "Date is outside this month.");
       valid = false;
     } else {
       clearFieldError(dateEl, "err-edit-exp-date");

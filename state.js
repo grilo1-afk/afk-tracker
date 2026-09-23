@@ -166,3 +166,14 @@ export function dbRowsToState(monthRows) {
   }));
   return { months };
 }
+
+// Whether an ISO date string (YYYY-MM-DD) falls within the given month object
+// (which uses 0-based `month`, matching the rest of the app's state shape).
+export function isDateInMonth(dateStr, month) {
+  if (!dateStr || !month) return false;
+  const lastDay = new Date(month.year, month.month + 1, 0).getDate();
+  const mm = String(month.month + 1).padStart(2, "0");
+  const min = `${month.year}-${mm}-01`;
+  const max = `${month.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+  return dateStr >= min && dateStr <= max;
+}

@@ -483,6 +483,7 @@ export function openMonth(id) {
     renderExpenses(m);
   }
   showScreen('month');
+  if (_postOpenMonthCb) _postOpenMonthCb();
 }
 
 export function renderStats(m) {
@@ -547,6 +548,8 @@ var _deleteExpenseCb = null;
 export function registerDeleteExpenseCb(fn) { _deleteExpenseCb = fn; }
 var _openEditExpenseCb = null;
 export function registerOpenEditExpenseCb(fn) { _openEditExpenseCb = fn; }
+var _postOpenMonthCb = null;
+export function registerPostOpenMonthCb(fn) { _postOpenMonthCb = fn; }
 
 export function renderExpenses(m) {
   m.expenses.sort(function(a, b) {
