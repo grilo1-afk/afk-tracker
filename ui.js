@@ -392,6 +392,8 @@ export function renderHistory() {
         var colorClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
         var barWrap = document.createElement('div');
         barWrap.className = 'history-bar-wrap';
+        barWrap.setAttribute('role', 'img');
+        barWrap.setAttribute('aria-label', Math.round(pct) + '% of budget used' + (pct >= 100 ? ', over budget' : ''));
         var bar = document.createElement('div');
         bar.className = 'history-bar-fill' + (colorClass ? ' ' + colorClass : '');
         bar.style.width = pct.toFixed(1) + '%';

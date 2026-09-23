@@ -315,13 +315,20 @@ registerOpenEditExpenseCb((expId) => {
   state.categories.forEach((cat) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "category-pill" + (cat.id === _editSelectedCategoryId ? " selected" : "");
+    const isSelected = cat.id === _editSelectedCategoryId;
+    btn.className = "category-pill" + (isSelected ? " selected" : "");
+    btn.setAttribute("aria-pressed", isSelected ? "true" : "false");
     btn.textContent = cat.name;
     btn.addEventListener("click", () => {
       _editSelectedCategoryId = (cat.id === _editSelectedCategoryId) ? null : cat.id;
-      // Re-render to update selected state
-      editPicker.querySelectorAll(".category-pill").forEach((p) => p.classList.remove("selected"));
-      btn.classList.toggle("selected", cat.id === _editSelectedCategoryId);
+      // Re-render to update selected state and aria-pressed
+      editPicker.querySelectorAll(".category-pill").forEach((p) => {
+        p.classList.remove("selected");
+        p.setAttribute("aria-pressed", "false");
+      });
+      const nowSelected = cat.id === _editSelectedCategoryId;
+      btn.classList.toggle("selected", nowSelected);
+      btn.setAttribute("aria-pressed", nowSelected ? "true" : "false");
     });
     editPicker.appendChild(btn);
   });
@@ -548,7 +555,9 @@ function renderCategoryPicker() {
   state.categories.forEach((cat) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "category-pill" + (cat.id === _selectedCategoryId ? " selected" : "");
+    const isSelected = cat.id === _selectedCategoryId;
+    btn.className = "category-pill" + (isSelected ? " selected" : "");
+    btn.setAttribute("aria-pressed", isSelected ? "true" : "false");
     btn.textContent = cat.name;
     btn.addEventListener("click", () => {
       _selectedCategoryId = (cat.id === _selectedCategoryId) ? null : cat.id;
