@@ -1352,10 +1352,22 @@ function _updateSettingsSaveBtn() {
 }
 
 function _openSettings() {
+  // Pre-populate all fields
+  const nameInput = document.getElementById("display-name-input");
+  if (nameInput) nameInput.value = getDisplayName();
+  const themeSelect = document.getElementById("theme-select");
+  if (themeSelect) themeSelect.value = getPreferredTheme();
+  const currencySelect = document.getElementById("currency-select");
+  if (currencySelect) currencySelect.value = state.currency || "USD";
   const offsetInput = document.getElementById("lifetime-offset-input");
   if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
     ? (state.lifetimeOffset / 100).toFixed(2)
     : "";
+  // Clear password fields
+  ["current-pass-input", "new-pass-input", "confirm-pass-input"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   openSettingsScreen();
   _settingsSnapshot = _snapshotSettings();
   _updateSettingsSaveBtn();

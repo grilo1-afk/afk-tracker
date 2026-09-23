@@ -1117,12 +1117,12 @@ td.action-col {
 }
 
 .settings-session-row {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
   border-top: 1px solid #2a2f38;
-}
-.settings-session-row .btn-danger {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .settings-section-desc {
   font-size: 12px;
