@@ -935,7 +935,7 @@ const ACHIEVEMENTS = [
     id: "ten_purchases",
     title: "Habitual Spender",
     desc: "Record 10 expenses total.",
-    tier: "Bronze",
+    tier: "Silver",
     sticker: "10.png",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 10,
   },
@@ -943,7 +943,7 @@ const ACHIEVEMENTS = [
     id: "fifty_purchases",
     title: "Dedicated Fan",
     desc: "Record 50 expenses total.",
-    tier: "Silver",
+    tier: "Gold",
     sticker: "15.png",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 50,
   },
@@ -951,8 +951,8 @@ const ACHIEVEMENTS = [
     id: "hundred_purchases",
     title: "True Believer",
     desc: "Record 100 expenses total.",
-    tier: "Silver",
-    sticker: "20.png",
+    tier: "Legendary",
+    sticker: "1.gif",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 100,
   },
   {
@@ -995,6 +995,19 @@ const ACHIEVEMENTS = [
     }).length >= 6,
   },
   {
+    id: "twelve_under_budget",
+    title: "Unbreakable",
+    desc: "Finish 12 months under budget.",
+    tier: "Legendary",
+    sticker: "2.gif",
+    earned: (s) => s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length >= 12,
+  },
+  {
     id: "zero_spend_month",
     title: "Zero Spend",
     desc: "A month with a budget set but no expenses.",
@@ -1003,11 +1016,35 @@ const ACHIEVEMENTS = [
     earned: (s) => s.months.some((m) => _isPastMonth(m) && m.budget !== null && m.budget > 0 && m.expenses.length === 0),
   },
   {
+    id: "six_zero_spend",
+    title: "Ghost Mode",
+    desc: "Have 6 months with a budget set but no expenses.",
+    tier: "Legendary",
+    sticker: "3.gif",
+    earned: (s) => s.months.filter((m) => _isPastMonth(m) && m.budget !== null && m.budget > 0 && m.expenses.length === 0).length >= 6,
+  },
+  {
+    id: "small_spender",
+    title: "Small Spender",
+    desc: () => "A single expense of " + fmt(1000) + " or more.",
+    tier: "Bronze",
+    sticker: "50.png",
+    earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 1000)),
+  },
+  {
+    id: "mid_spender",
+    title: "Mid Spender",
+    desc: () => "A single expense of " + fmt(2500) + " or more.",
+    tier: "Silver",
+    sticker: "55.png",
+    earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 2500)),
+  },
+  {
     id: "big_spender",
     title: "Big Spender",
     desc: () => "A single expense of " + fmt(5000) + " or more.",
-    tier: "Silver",
-    sticker: "45.png",
+    tier: "Gold",
+    sticker: "60.png",
     earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 5000)),
   },
   {
@@ -1015,7 +1052,7 @@ const ACHIEVEMENTS = [
     title: "Whale",
     desc: () => "A single expense of " + fmt(10000) + " or more.",
     tier: "Legendary",
-    sticker: "1.gif",
+    sticker: "4.gif",
     earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 10000)),
   },
 ];
@@ -1025,7 +1062,7 @@ function _buildAchievementCard(a, isEarned) {
   card.className = "achievement-card" + (isEarned ? " earned" : " locked");
 
   const img = document.createElement("img");
-  img.src = "images/stickers-optimized/" + a.sticker;
+  img.src = "images/achievement-icons/" + a.sticker;
   img.alt = a.title;
   img.className = "achievement-sticker";
   img.loading = "lazy";
