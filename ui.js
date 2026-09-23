@@ -454,7 +454,7 @@ export function renderStats(m) {
         pctText.className = 'budget-pct-text';
       } else {
         barFill.style.width = '100%'; barFill.className = 'budget-bar-fill over';
-        pctText.textContent = fmt(spent) + ' spent — no budget set for this month';
+        pctText.textContent = fmt(spent) + ' spent — budget is $0.00, every purchase is over';
         pctText.className = 'budget-pct-text over';
       }
     } else {
