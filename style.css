@@ -866,11 +866,16 @@ button.btn-danger.btn--loading::after {
 .exp-date-with-today {
   display: flex;
   gap: 6px;
-  align-items: center;
+  align-items: stretch; /* button stretches to match input height */
 }
 .exp-date-with-today input {
   flex: 1;
   min-width: 110px; /* enough to show "MM/DD/YYYY" */
+}
+/* On desktop, .exp-desc and .exp-amount have a .field-error span (min-height 14px)
+   below their input. .exp-date doesn't — so we pad the bottom to match. */
+.exp-date {
+  padding-bottom: 18px;
 }
 .btn-today-inline {
   flex-shrink: 0;
