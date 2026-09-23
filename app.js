@@ -1005,12 +1005,14 @@ btnSetBudget.addEventListener("click", async () => {
   addExpenseSection.classList.remove("hidden");
   renderPresetStrip();
   renderCategoryPicker();
-  const today = new Date().toISOString().slice(0, 10);
-  expDateInput.value = today;
   const lastDay = new Date(m.year, m.month + 1, 0).getDate();
   const mm = String(m.month + 1).padStart(2, "0");
-  expDateInput.min = m.year + "-" + mm + "-01";
-  expDateInput.max = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
+  const minDate = m.year + "-" + mm + "-01";
+  const maxDate = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
+  expDateInput.min = minDate;
+  expDateInput.max = maxDate;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  expDateInput.value = (todayIso >= minDate && todayIso <= maxDate) ? todayIso : minDate;
   renderStats(m);
   renderExpenses(m);
 
@@ -1108,8 +1110,6 @@ async function addExpense() {
   renderExpenses(m);
   descInput.value = "";
   valInput.value = "";
-  expDateInput.value = new Date().toISOString().slice(0, 10);
-  clearFieldError(expDateInput, "err-exp-date");
   descInput.focus();
 
   const monthId = m.id;

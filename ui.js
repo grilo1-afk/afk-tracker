@@ -400,6 +400,15 @@ export function openMonth(id) {
   var m = getActiveMonth();
   if (!m) return;
   monthViewTitle.textContent = m.name;
+
+  // Always start from a clean form — clear anything left over from a
+  // previous invalid submit, whether on this month or a different one.
+  var descEl = document.getElementById('desc');
+  var valEl = document.getElementById('val');
+  if (descEl) { descEl.value = ''; clearFieldError(descEl, 'err-exp-desc'); }
+  if (valEl) { valEl.value = ''; clearFieldError(valEl, 'err-exp-val'); }
+  clearFieldError(expDateInput, 'err-exp-date');
+
   if (m.budget === null) {
     budgetSetupBox.classList.remove('hidden');
     statsSection.classList.add('hidden');
@@ -410,12 +419,16 @@ export function openMonth(id) {
     budgetSetupBox.classList.add('hidden');
     statsSection.classList.remove('hidden');
     addExpenseSection.classList.remove('hidden');
-    var today = new Date().toISOString().slice(0, 10);
-    expDateInput.value = today;
     var lastDay = new Date(m.year, m.month + 1, 0).getDate();
     var mm = String(m.month + 1).padStart(2, '0');
-    expDateInput.min = m.year + '-' + mm + '-01';
-    expDateInput.max = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
+    var minDate = m.year + '-' + mm + '-01';
+    var maxDate = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
+    expDateInput.min = minDate;
+    expDateInput.max = maxDate;
+    var todayIso = new Date().toISOString().slice(0, 10);
+    // Default to today only if today actually falls within this month;
+    // otherwise default to the 1st, so the field never opens pre-invalid.
+    expDateInput.value = (todayIso >= minDate && todayIso <= maxDate) ? todayIso : minDate;
     renderStats(m);
     renderExpenses(m);
   }
