@@ -294,7 +294,7 @@ function _renderSpendingChart(container) {
     var values = years.map(function(y) { return byYear.get(y); });
     var maxVal = Math.max.apply(null, values.concat([1]));
     var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
-    var barW = Math.floor(chartW / years.length) - 4;
+    var barW = Math.max(Math.floor((Math.floor(chartW / years.length) - 4) * 0.7), 2);
     years.forEach(function(y, i) {
       var val = values[i];
       var barH = Math.max(Math.round((val / maxVal) * chartH), 2);
@@ -317,7 +317,8 @@ function _renderSpendingChart(container) {
   var values = months.map(function(m) { return m.expenses.reduce(function(s, e) { return s + e.val; }, 0); });
   var maxVal = Math.max.apply(null, values.concat([1]));
   var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
-  var barW = Math.floor(chartW / months.length) - 2;
+  var barWFull = Math.floor(chartW / months.length) - 2;
+  var barW = Math.max(Math.floor(barWFull * 0.7), 2);
   var spansMultipleYears = months.length > 0 && months[0].year !== months[months.length - 1].year;
   months.forEach(function(m, i) {
     var val = values[i];
@@ -325,6 +326,9 @@ function _renderSpendingChart(container) {
     var x = PAD.left + i * (barW + 2);
     var y = PAD.top + chartH - barH;
     svg.appendChild(svgEl('rect', { x: x, y: y, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
+    var valLbl = svgEl('text', { x: x + barW / 2, y: Math.max(y - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.85 });
+    valLbl.textContent = val >= 100000 ? '$' + (val / 100000).toFixed(0) + 'k' : '$' + (val / 100).toFixed(0);
+    svg.appendChild(valLbl);
     var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
     label.textContent = MONTH_NAMES[m.month].slice(0, 3);
     svg.appendChild(label);
@@ -349,7 +353,7 @@ function _renderVsBudgetChart(container) {
   var maxVal = Math.max.apply(null, spentVals.concat(budgetVals).concat([1]));
   var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
   var groupW = Math.floor(chartW / months.length);
-  var barW   = Math.floor(groupW * 0.4);
+  var barW   = Math.floor(groupW * 0.3);
   var spansMultipleYears = months.length > 0 && months[0].year !== months[months.length - 1].year;
   months.forEach(function(m, i) {
     var spent  = spentVals[i];
@@ -359,6 +363,9 @@ function _renderVsBudgetChart(container) {
     svg.appendChild(svgEl('rect', { x: gx + 1, y: PAD.top + chartH - budgetH, width: barW, height: budgetH, fill: 'var(--gold)', opacity: 0.25, rx: 2 }));
     var spentH = Math.max(Math.round((spent / maxVal) * chartH), 2);
     svg.appendChild(svgEl('rect', { x: gx + 1 + barW + 2, y: PAD.top + chartH - spentH, width: barW, height: spentH, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85, rx: 2 }));
+    var spLbl = svgEl('text', { x: gx + 1 + barW + 2 + barW / 2, y: Math.max(PAD.top + chartH - spentH - 2, PAD.top + 8), 'text-anchor': 'middle', 'font-size': 7, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85 });
+    spLbl.textContent = spent >= 100000 ? '$' + (spent / 100000).toFixed(0) + 'k' : '$' + (spent / 100).toFixed(0);
+    svg.appendChild(spLbl);
     var label = svgEl('text', { x: gx + groupW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
     label.textContent = MONTH_NAMES[m.month].slice(0, 3);
     svg.appendChild(label);
@@ -483,7 +490,7 @@ export function renderHistory() {
         : 'Budget not set yet';
 
       var card = document.createElement('div');
-      card.className = 'month-card';
+      card.className = 'month-card' + (isCurrent ? ' month-card--current' : '');
 
       var clickable = document.createElement('div');
       clickable.className = 'month-card-clickable month-card-info';
@@ -605,30 +612,24 @@ export function renderStats(m) {
   var remaining = m.budget - spent;
   displayBudget.textContent = fmt(m.budget);
   displaySpent.textContent = fmt(spent);
-  displayRemaining.textContent = fmt(remaining);
-  displayRemaining.classList.toggle('over-budget', remaining < 0);
+  // Update hero remaining element
+  var remainingEl = document.getElementById('display-remaining');
+  if (remainingEl) {
+    remainingEl.textContent = remaining < 0 ? '-' + fmt(Math.abs(remaining)) : fmt(remaining);
+    remainingEl.classList.toggle('over-budget', remaining < 0);
+  }
   var progressWrap = document.getElementById('budget-progress-wrap');
   var barFill = document.getElementById('budget-bar-fill');
-  var pctText = document.getElementById('budget-pct-text');
-  if (progressWrap && barFill && pctText && m.budget !== null) {
+  if (progressWrap && barFill && m.budget !== null) {
     if (m.budget === 0) {
-      if (spent === 0) {
-        barFill.style.width = '0%'; barFill.className = 'budget-bar-fill';
-        pctText.textContent = fmt(0) + ' of ' + fmt(0) + ' spent';
-        pctText.className = 'budget-pct-text';
-      } else {
-        barFill.style.width = '100%'; barFill.className = 'budget-bar-fill over';
-        pctText.textContent = fmt(spent) + ' spent — budget is ' + fmt(0) + ', every purchase is over';
-        pctText.className = 'budget-pct-text over';
-      }
+      barFill.style.width = spent === 0 ? '0%' : '100%';
+      barFill.className = 'budget-bar-fill' + (spent > 0 ? ' over' : '');
     } else {
       var rawPct = (spent / m.budget) * 100;
       var clampPct = Math.min(rawPct, 100);
       var colorClass = rawPct >= 100 ? 'over' : rawPct >= 80 ? 'warn' : '';
       barFill.style.width = clampPct + '%';
       barFill.className = 'budget-bar-fill' + (colorClass ? ' ' + colorClass : '');
-      pctText.textContent = fmt(spent) + ' of ' + fmt(m.budget) + ' spent (' + rawPct.toFixed(0) + '%)';
-      pctText.className = 'budget-pct-text' + (colorClass ? ' ' + colorClass : '');
     }
     progressWrap.classList.remove('hidden');
   } else if (progressWrap) {

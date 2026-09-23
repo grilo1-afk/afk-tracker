@@ -798,6 +798,26 @@ button.btn-danger.btn--loading::after {
   opacity: 1;
   background: transparent;
 }
+.btn-edit-budget-inline {
+  width: auto;
+  min-height: unset;
+  padding: 0 4px;
+  font-size: 13px;
+  background: transparent;
+  color: var(--gold);
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
+}
+.btn-edit-budget-inline:hover {
+  opacity: 1;
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
 .budget-setup-box {
   background: var(--bg-color);
   padding: 20px;
@@ -1330,45 +1350,79 @@ td.action-col {
   color: var(--text-light);
 }
 
-/* ── COMPACT STATS BLOCK (H13) ── */
+/* ── COMPACT STATS BLOCK (H13) — Hero layout ── */
 .stats-compact {
   margin-bottom: 12px;
+  background: var(--bg-color);
+  border: 1px solid #2a2f38;
+  border-radius: 8px;
+  padding: 14px 16px 10px;
 }
+/* Hero row: Spent (left) + Remaining (right) */
 .stats-compact-row {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 10px;
 }
 .stats-compact-spent {
-  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .stats-compact-spent strong {
   color: var(--danger);
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
 }
+.stats-compact-spent-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+}
+.stats-compact-remaining-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.stats-compact-remaining-hero strong {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+}
+.stats-compact-remaining-hero strong.over-budget {
+  color: var(--danger);
+}
+.stats-compact-remaining-hero-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+}
+/* Budget caption below bar */
 .stats-compact-budget-line {
-  font-size: 13px;
-  color: #999;
-  margin-bottom: 6px;
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  text-align: center;
 }
 .stats-compact-budget-line strong {
   color: var(--text-light);
 }
-.stats-compact-remaining {
-  font-size: 14px;
-  margin: 4px 0 6px;
-}
-.stats-compact-remaining strong {
-  color: var(--gold);
-}
-.stats-compact-remaining strong.over-budget {
-  color: var(--danger);
-}
+/* Legacy remaining — hidden (replaced by remaining-hero) */
+.stats-compact-remaining { display: none; }
+/* Secondary stats — separated by a divider */
 .stats-secondary-inline {
   font-size: 12px;
   color: #888;
-  margin-bottom: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2f38;
 }
 .stats-secondary-inline span {
   color: var(--text-light);
@@ -1857,8 +1911,9 @@ td.action-col {
   .month-card-name {
     font-size: 13px;
   }
-  .badge-current {
-    display: none;
+  /* .badge-current is shown on mobile via a left-border accent instead */
+  .month-card--current {
+    border-left: 3px solid var(--gold);
   }
   .category-col {
     display: none;
