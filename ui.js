@@ -19,6 +19,7 @@ const monthScreen = document.getElementById("month-screen");
 const achievementScreen = document.getElementById("achievement-screen");
 const statsScreen = document.getElementById("stats-screen");
 const manageScreen = document.getElementById("manage-screen");
+const settingsScreen = document.getElementById("settings-screen");
 
 const SCREENS = {
   login: loginScreen,
@@ -27,6 +28,7 @@ const SCREENS = {
   achievement: achievementScreen,
   stats: statsScreen,
   manage: manageScreen,
+  settings: settingsScreen,
 };
 
 export function showScreen(name) {
@@ -1143,21 +1145,83 @@ export function getAchievementCounts() {
 var _openAchievementScreenCb = null;
 export function registerOpenAchievementScreenCb(fn) { _openAchievementScreenCb = fn; }
 
-function renderAchievementsTeaser() {
-  var el = document.getElementById("achievements-teaser");
-  if (!el) return;
+function _renderAchievementsSection() {
+  var wrap = document.getElementById("achievements-section");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
   var counts = getAchievementCounts();
-  el.textContent = "🏆 " + counts.earned + " of " + counts.total + " achievements unlocked — view all →";
-  el.onclick = function() {
+  var earned = ACHIEVEMENTS.filter(function(a) { return a.earned(state); });
+
+  var section = document.createElement("div");
+  section.className = "ach-section";
+
+  // Header row
+  var header = document.createElement("div");
+  header.className = "ach-section-header";
+
+  var titleEl = document.createElement("div");
+  titleEl.className = "ach-section-title";
+  titleEl.textContent = "🏆 Achievements";
+
+  var countEl = document.createElement("div");
+  countEl.className = "ach-section-count";
+  countEl.textContent = counts.earned + " / " + counts.total;
+
+  header.appendChild(titleEl);
+  header.appendChild(countEl);
+  section.appendChild(header);
+
+  // Progress bar
+  var progressWrap = document.createElement("div");
+  progressWrap.className = "ach-progress-wrap";
+  var progressBar = document.createElement("div");
+  progressBar.className = "ach-progress-bar";
+  var pct = counts.total > 0 ? (counts.earned / counts.total) * 100 : 0;
+  progressBar.style.width = pct.toFixed(1) + "%";
+  progressWrap.appendChild(progressBar);
+  section.appendChild(progressWrap);
+
+  // Recent earned badges (up to 6)
+  if (earned.length > 0) {
+    var recentLabel = document.createElement("div");
+    recentLabel.className = "ach-recent-label";
+    recentLabel.textContent = "Recently Earned";
+    section.appendChild(recentLabel);
+
+    var badges = document.createElement("div");
+    badges.className = "ach-badges-row";
+    var recent = earned.slice(-6).reverse();
+    recent.forEach(function(a) {
+      var img = document.createElement("img");
+      img.src = "images/achievement-icons/" + a.sticker;
+      img.alt = a.title;
+      img.title = a.title;
+      img.className = "ach-badge-thumb";
+      img.loading = "lazy";
+      badges.appendChild(img);
+    });
+    section.appendChild(badges);
+  }
+
+  // View All button
+  var viewBtn = document.createElement("button");
+  viewBtn.type = "button";
+  viewBtn.className = "btn-secondary ach-view-all-btn";
+  viewBtn.textContent = earned.length === 0 ? "View Achievements" : "View All Achievements";
+  viewBtn.addEventListener("click", function() {
     if (_openAchievementScreenCb) _openAchievementScreenCb();
-  };
+  });
+  section.appendChild(viewBtn);
+
+  wrap.appendChild(section);
 }
 
 export function renderStatsScreen() {
   renderYearSummary();
   renderLifetimeTotal();
   renderCharts();
-  renderAchievementsTeaser();
+  _renderAchievementsSection();
 }
 
 export function openStatsScreen() {
@@ -1167,4 +1231,8 @@ export function openStatsScreen() {
 
 export function closeStatsScreen() {
   showScreen("history");
+}
+
+export function openSettingsScreen() {
+  showScreen("settings");
 }

@@ -365,7 +365,8 @@
           </details>
         </div>
         <div id="year-summary"></div>
-        <div id="achievements-teaser" class="achievements-teaser"></div>
+        <!-- Achievements section (prominent, rendered by renderAchievementsSection) -->
+        <div id="achievements-section" class="achievements-section-wrap"></div>
       </div>
     </div>
 
@@ -479,21 +480,12 @@
       </button>
     </div>
 
-    <!-- SETTINGS MODAL -->
-    <div id="profile-overlay" class="modal-overlay hidden">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>Settings</h3>
-          <button
-            type="button"
-            id="btn-profile-close-x"
-            class="btn-icon modal-close-btn"
-            title="Close"
-            aria-label="Close"
-          >
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
+    <!-- SETTINGS SCREEN -->
+    <div id="settings-screen" class="container hidden">
+      <div class="screen-header">
+        <h2>Settings</h2>
+      </div>
+      <div class="scroll-content">
         <div class="settings-sections">
           <div class="settings-section" id="settings-section-account">
             <div class="settings-section-label">Account</div>

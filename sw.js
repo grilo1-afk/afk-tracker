@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const CACHE_NAME = `afk-shell-${CACHE_VERSION}`;
 
 const SHELL_FILES = [

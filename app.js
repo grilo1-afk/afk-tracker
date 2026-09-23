@@ -75,9 +75,6 @@ import {
   getPendingDeleteMonthId,
   openMonthPicker,
   closeMonthPicker,
-  profileOverlay,
-  openProfileModal,
-  closeProfileModal,
   registerDeleteExpenseCb,
   registerOpenEditExpenseCb,
   registerPostOpenMonthCb,
@@ -93,6 +90,7 @@ import {
   registerOpenAchievementScreenCb,
   setChartPeriod,
   openManageScreen,
+  openSettingsScreen,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -491,8 +489,10 @@ document.addEventListener("keydown", (e) => {
     rcOverlay.classList.add("hidden");
     return;
   }
-  if (!profileOverlay.classList.contains("hidden")) {
-    closeProfileModal();
+  // settings is a full screen now — Escape on settings goes home
+  if (!document.getElementById("settings-screen").classList.contains("hidden")) {
+    showScreen("history");
+    setNavActive("home");
     return;
   }
 });
@@ -1356,7 +1356,7 @@ function _openSettings() {
   if (offsetInput) offsetInput.value = state.lifetimeOffset > 0
     ? (state.lifetimeOffset / 100).toFixed(2)
     : "";
-  openProfileModal();
+  openSettingsScreen();
   _settingsSnapshot = _snapshotSettings();
   _updateSettingsSaveBtn();
   // Wire dirty detection to all settings fields (once)
@@ -1372,18 +1372,7 @@ function _openSettings() {
   });
 }
 
-document
-  .getElementById("btn-profile-close-x")
-  .addEventListener("click", () => {
-    closeProfileModal();
-    setNavActive("home");
-  });
-profileOverlay.addEventListener("click", (e) => {
-  if (e.target === profileOverlay) {
-    closeProfileModal();
-    setNavActive("home");
-  }
-});
+// Settings is now a screen — no close button or overlay click needed
 
 
 // -- UNIFIED SETTINGS SAVE
@@ -1458,7 +1447,7 @@ document
       }
       _settingsSnapshot = _snapshotSettings();
       _updateSettingsSaveBtn();
-      closeProfileModal();
+      showScreen("history");
       setNavActive("home");
     } finally {
       btn.classList.remove("btn--loading");
@@ -1474,7 +1463,7 @@ function setNavActive(tab) {
 }
 
 document.getElementById("nav-tab-home").addEventListener("click", () => {
-  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   setActiveMonthId(null);
   renderHistory();
   updateAchievementsBadge();
@@ -1482,12 +1471,12 @@ document.getElementById("nav-tab-home").addEventListener("click", () => {
   setNavActive("home");
 });
 document.getElementById("nav-tab-stats").addEventListener("click", () => {
-  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   openStatsScreen();
   setNavActive("stats");
 });
 document.getElementById("nav-tab-manage").addEventListener("click", () => {
-  if (!profileOverlay.classList.contains("hidden")) closeProfileModal();
+  if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   renderPresetList();
   renderCategorySettingsList();
   renderRecurringList();
@@ -1541,7 +1530,6 @@ document.getElementById("btn-logout").addEventListener("click", async () => {
   try {
     await signOut();
     supabase.removeAllChannels();
-    closeProfileModal();
     _hideBottomNav();
     clearSession();
     setState({ displayName: null, months: [] });
