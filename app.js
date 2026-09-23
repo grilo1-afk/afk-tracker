@@ -81,7 +81,6 @@ import {
   parseMoneyInput,
   setSyncStatus,
   openAchievementScreen,
-  closeAchievementScreen,
   openStatsScreen,
   closeStatsScreen,
   renderStatsScreen,
@@ -91,6 +90,7 @@ import {
   setChartPeriod,
   openManageScreen,
   openSettingsScreen,
+  renderAppHeader,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -465,12 +465,21 @@ document.getElementById("chart-period-toggle").addEventListener("click", (e) => 
   renderCharts();
 });
 
+// -- ACHIEVEMENTS BACK BUTTON
+document.getElementById("btn-achievements-back").addEventListener("click", () => {
+  pushHash('#stats');
+  openStatsScreen();
+  setNavActive('stats');
+});
+
 // -- ESCAPE KEY
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const achScreen = document.getElementById("achievement-screen");
   if (achScreen && !achScreen.classList.contains("hidden")) {
-    closeAchievementScreen();
+    pushHash('#stats');
+    openStatsScreen();
+    setNavActive('stats');
     return;
   }
   const pickerEl = document.getElementById("month-picker-overlay");
@@ -1490,23 +1499,15 @@ document.getElementById("nav-tab-home").addEventListener("click", () => {
 });
 document.getElementById("nav-tab-stats").addEventListener("click", () => {
   pushHash('#stats');
-  if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
-  openStatsScreen();
-  setNavActive("stats");
+  _navigateToHash('#stats', false);
 });
 document.getElementById("nav-tab-manage").addEventListener("click", () => {
   pushHash('#manage');
-  if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
-  renderPresetList();
-  renderCategorySettingsList();
-  renderRecurringList();
-  openManageScreen();
-  setNavActive("manage");
+  _navigateToHash('#manage', false);
 });
 document.getElementById("nav-tab-settings").addEventListener("click", () => {
   pushHash('#settings');
-  _openSettings();
-  setNavActive("settings");
+  _navigateToHash('#settings', false);
 });
 
 
@@ -1515,23 +1516,32 @@ function pushHash(hash) {
   if (window.location.hash !== hash) window.history.pushState(null, "", hash || "#home");
 }
 
+function _getDisplayName() {
+  return state.displayName || (typeof getDisplayName === "function" ? getDisplayName() : "");
+}
+
 function _navigateToHash(hash, isPopState) {
   const h = (hash || "#home").replace("#", "");
   const parts = h.split("/");
   const page = parts[0];
   const param = parts[1];
+  const name = _getDisplayName();
   switch (page) {
     case "home": case "":
       setActiveMonthId(null); renderHistory(); updateAchievementsBadge();
       showScreen("history"); setNavActive("home"); break;
     case "stats":
+      renderAppHeader("stats-screen", { title: "Statistics", icon: "📊", subtitle: name });
       openStatsScreen(); setNavActive("stats"); break;
     case "manage":
+      renderAppHeader("manage-screen", { title: "Manage", icon: "⚙️", subtitle: name });
       renderPresetList(); renderCategorySettingsList(); renderRecurringList();
       openManageScreen(); setNavActive("manage"); break;
     case "settings":
+      renderAppHeader("settings-screen", { title: "Settings", icon: "⚙️", subtitle: name });
       _openSettings(); setNavActive("settings"); break;
     case "achievements":
+      renderAppHeader("achievement-screen", { title: "Achievements", icon: "🏆", subtitle: name, showBack: true, backCb: () => { pushHash("#stats"); _navigateToHash("#stats", false); } });
       openAchievementScreen(); setNavActive("stats"); break;
     case "month":
       if (param) {

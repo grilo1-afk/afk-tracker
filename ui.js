@@ -106,6 +106,49 @@ export async function renderWelcomeName() {
   if (el) el.textContent = name;
 }
 
+// -- SHARED APP HEADER COMPONENT
+// Renders the standard header for tab screens.
+// config: { title, icon, subtitle, showBack, backCb }
+export function renderAppHeader(screenId, config) {
+  var screen = document.getElementById(screenId);
+  if (!screen) return;
+  var header = screen.querySelector('.screen-header');
+  if (!header) return;
+  header.innerHTML = '';
+
+  // Left: title block
+  var left = document.createElement('div');
+
+  var h2 = document.createElement('h2');
+  h2.textContent = (config.icon ? config.icon + ' ' : '') + config.title;
+  left.appendChild(h2);
+
+  if (config.subtitle) {
+    var sub = document.createElement('div');
+    sub.className = 'welcome-name-generic';
+    sub.textContent = config.subtitle;
+    left.appendChild(sub);
+  }
+  header.appendChild(left);
+
+  // Right: actions
+  var actions = document.createElement('div');
+  actions.className = 'header-actions';
+
+  if (config.showBack && config.backCb) {
+    var backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'btn-icon';
+    backBtn.title = 'Back';
+    backBtn.setAttribute('aria-label', 'Back');
+    backBtn.innerHTML = '<span class="material-symbols-outlined">arrow_back</span>';
+    backBtn.addEventListener('click', config.backCb);
+    actions.appendChild(backBtn);
+  }
+
+  header.appendChild(actions);
+}
+
 // -- SORT / HISTORY
 export function sortMonths() {
   state.months.sort((a, b) =>

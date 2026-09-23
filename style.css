@@ -456,7 +456,8 @@ button.btn-danger.btn--loading::after {
   text-align: left;
   flex: 1;
 }
-#welcome-name {
+#welcome-name,
+.welcome-name-generic {
   font-size: 12px;
   color: var(--gold);
   letter-spacing: 1px;
