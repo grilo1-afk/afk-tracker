@@ -465,13 +465,6 @@ document.getElementById("chart-period-toggle").addEventListener("click", (e) => 
   renderCharts();
 });
 
-// -- ACHIEVEMENTS BACK BUTTON
-document.getElementById("btn-achievements-back").addEventListener("click", () => {
-  pushHash('#stats');
-  openStatsScreen();
-  setNavActive('stats');
-});
-
 // -- ESCAPE KEY
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
