@@ -92,6 +92,7 @@ import {
   getAchievementCounts,
   registerOpenAchievementScreenCb,
   setChartPeriod,
+  initSettingsAccordion,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -1608,6 +1609,7 @@ async function _migrateLocalStorageData() {
 (async function init() {
   applyTheme(getPreferredTheme());
   watchSystemTheme();
+  initSettingsAccordion();
 
   // The #init-loading overlay is baked into the HTML and visible from first paint.
   // We just grab the reference here; no need to create it.

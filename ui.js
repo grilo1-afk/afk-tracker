@@ -894,6 +894,21 @@ export function closeProfileModal() {
   returnFocusToTrigger();
 }
 
+// -- SETTINGS ACCORDION
+// Ensures only one .settings-section <details> is open at a time.
+// Call once on app init — the listeners persist for the lifetime of the page.
+export function initSettingsAccordion() {
+  var sections = document.querySelectorAll('.settings-sections .settings-section');
+  sections.forEach(function(details) {
+    details.addEventListener('toggle', function() {
+      if (!details.open) return; // section was closed — nothing to collapse
+      sections.forEach(function(other) {
+        if (other !== details && other.open) other.removeAttribute('open');
+      });
+    });
+  });
+}
+
 // -- SYNC STATUS INDICATOR
 export function setSyncStatus(status) {
   document.querySelectorAll('.save-status').forEach(function(el) {
