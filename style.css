@@ -1401,6 +1401,40 @@ td.action-col {
   flex: 1;
 }
 
+/* ── CHART PERIOD TOGGLE (H15) ── */
+.chart-period-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.chart-period-btn {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #444;
+  color: var(--text-light);
+  border-radius: 5px;
+  cursor: pointer;
+  min-height: unset;
+  width: auto;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+.chart-period-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+.chart-period-btn.selected {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(232, 184, 75, 0.1);
+}
+
 /* ── CHARTS (D5) ── */
 .charts-section {
   margin-bottom: 16px;

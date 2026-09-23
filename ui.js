@@ -199,6 +199,12 @@ export function renderLifetimeTotal() {
 
 // -- CHARTS (D5)
 
+var _chartPeriod = 12; // 6 | 12 | 'all'
+
+export function setChartPeriod(period) {
+  _chartPeriod = period;
+}
+
 function svgEl(tag, attrs) {
   var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
   if (attrs) { Object.keys(attrs).forEach(function(k) { el.setAttribute(k, attrs[k]); }); }
@@ -207,7 +213,7 @@ function svgEl(tag, attrs) {
 
 function _renderSpendingChart(container) {
   container.innerHTML = '';
-  var months = state.months.slice().filter(function(m) { return m.expenses.length > 0; }).slice(0, 12).reverse();
+  var months = state.months.slice().filter(function(m) { return m.expenses.length > 0; }).slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
   if (months.length === 0) return;
   var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
   var chartW = W - PAD.left - PAD.right;
@@ -231,7 +237,7 @@ function _renderSpendingChart(container) {
 
 function _renderVsBudgetChart(container) {
   container.innerHTML = '';
-  var months = state.months.slice().filter(function(m) { return m.budget !== null && m.budget > 0; }).slice(0, 12).reverse();
+  var months = state.months.slice().filter(function(m) { return m.budget !== null && m.budget > 0; }).slice(0, _chartPeriod === 'all' ? undefined : _chartPeriod).reverse();
   if (months.length === 0) return;
   var W = 280, H = 120, PAD = { top: 8, right: 4, bottom: 32, left: 4 };
   var chartW = W - PAD.left - PAD.right;

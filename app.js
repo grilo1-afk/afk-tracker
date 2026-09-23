@@ -86,8 +86,10 @@ import {
   openStatsScreen,
   closeStatsScreen,
   renderStatsScreen,
+  renderCharts,
   getAchievementCounts,
   registerOpenAchievementScreenCb,
+  setChartPeriod,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -439,6 +441,17 @@ document
 // -- STATISTICS BUTTONS
 document.getElementById("btn-stats").addEventListener("click", openStatsScreen);
 document.getElementById("btn-stats-back").addEventListener("click", closeStatsScreen);
+
+// -- CHART PERIOD TOGGLE
+document.getElementById("chart-period-toggle").addEventListener("click", (e) => {
+  const btn = e.target.closest(".chart-period-btn");
+  if (!btn) return;
+  document.querySelectorAll(".chart-period-btn").forEach((b) => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  const period = btn.dataset.period === "all" ? "all" : parseInt(btn.dataset.period, 10);
+  setChartPeriod(period);
+  renderCharts();
+});
 
 // -- ACHIEVEMENT BUTTONS
 document.getElementById("btn-achievements").addEventListener("click", openAchievementScreen);
