@@ -201,7 +201,11 @@ registerAuthCallbacks({
 });
 
 // Wire the achievements teaser click on the stats screen back to openAchievementScreen
-registerOpenAchievementScreenCb(openAchievementScreen);
+registerOpenAchievementScreenCb(() => {
+  pushHash('#achievements');
+  openAchievementScreen();
+  setNavActive('stats');
+});
 
 // -- ACHIEVEMENT BADGE (badge element removed with old header; function kept for compatibility)
 function updateAchievementsBadge() {
@@ -1013,6 +1017,7 @@ document.getElementById("btn-add-preset").addEventListener("click", async () => 
 
 // -- NAVIGATION
 document.getElementById("btn-back").addEventListener("click", () => {
+  pushHash('#home');
   setActiveMonthId(null);
   renderHistory();
   updateAchievementsBadge();
@@ -1475,6 +1480,7 @@ function setNavActive(tab) {
 }
 
 document.getElementById("nav-tab-home").addEventListener("click", () => {
+  pushHash('#home');
   if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   setActiveMonthId(null);
   renderHistory();
@@ -1483,11 +1489,13 @@ document.getElementById("nav-tab-home").addEventListener("click", () => {
   setNavActive("home");
 });
 document.getElementById("nav-tab-stats").addEventListener("click", () => {
+  pushHash('#stats');
   if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   openStatsScreen();
   setNavActive("stats");
 });
 document.getElementById("nav-tab-manage").addEventListener("click", () => {
+  pushHash('#manage');
   if (!document.getElementById("settings-screen").classList.contains("hidden")) { showScreen("history"); setNavActive("home"); }
   renderPresetList();
   renderCategorySettingsList();
@@ -1496,10 +1504,47 @@ document.getElementById("nav-tab-manage").addEventListener("click", () => {
   setNavActive("manage");
 });
 document.getElementById("nav-tab-settings").addEventListener("click", () => {
+  pushHash('#settings');
   _openSettings();
   setNavActive("settings");
 });
 
+
+// -- HASH ROUTING
+function pushHash(hash) {
+  if (window.location.hash !== hash) window.history.pushState(null, "", hash || "#home");
+}
+
+function _navigateToHash(hash, isPopState) {
+  const h = (hash || "#home").replace("#", "");
+  const parts = h.split("/");
+  const page = parts[0];
+  const param = parts[1];
+  switch (page) {
+    case "home": case "":
+      setActiveMonthId(null); renderHistory(); updateAchievementsBadge();
+      showScreen("history"); setNavActive("home"); break;
+    case "stats":
+      openStatsScreen(); setNavActive("stats"); break;
+    case "manage":
+      renderPresetList(); renderCategorySettingsList(); renderRecurringList();
+      openManageScreen(); setNavActive("manage"); break;
+    case "settings":
+      _openSettings(); setNavActive("settings"); break;
+    case "achievements":
+      openAchievementScreen(); setNavActive("stats"); break;
+    case "month":
+      if (param) {
+        const m = state.months.find((x) => x.id === param);
+        if (m) { openMonth(param); setNavActive("home"); }
+        else { if (!isPopState) pushHash("#home"); setActiveMonthId(null); renderHistory(); showScreen("history"); setNavActive("home"); }
+      } break;
+    default:
+      setActiveMonthId(null); renderHistory(); showScreen("history"); setNavActive("home"); break;
+  }
+}
+
+window.addEventListener("popstate", () => { _navigateToHash(window.location.hash, true); });
 
 // -- DATA EXPORT
 document.getElementById("btn-export-data").addEventListener("click", async () => {
@@ -1672,9 +1717,15 @@ function _hideBottomNav() {
       sortMonths();
       renderHistory();
       await renderWelcomeName();
-      showScreen("history");
-      _showBottomNav();
-      setNavActive("home");
+      const initHash = window.location.hash;
+      if (initHash && initHash !== "#home" && initHash !== "#") {
+        _showBottomNav();
+        _navigateToHash(initHash, false);
+      } else {
+        showScreen("history");
+        _showBottomNav();
+        setNavActive("home");
+      }
       overlay.remove(); // Reveal history screen, sync continues silently
       setupRealtimeSync();
 
@@ -1697,8 +1748,14 @@ function _hideBottomNav() {
       // Cold load: no cache — block on full loadState
       try {
         await doLogin();
-        _showBottomNav();
-        setNavActive("home");
+        const initHashCold = window.location.hash;
+        if (initHashCold && initHashCold !== "#home" && initHashCold !== "#") {
+          _showBottomNav();
+          _navigateToHash(initHashCold, false);
+        } else {
+          _showBottomNav();
+          setNavActive("home");
+        }
         updateAchievementsBadge();
         await _migrateLocalStorageData();
       } catch (e) {
