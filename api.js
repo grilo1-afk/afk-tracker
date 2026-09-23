@@ -108,7 +108,7 @@ export async function dbUpdateBudget(monthUuid, budget) {
 export async function dbDeleteMonth(monthUuid) {
   const { error } = await supabase
     .from("months")
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq("id", monthUuid);
   if (error) {
     console.error("dbDeleteMonth:", error);
