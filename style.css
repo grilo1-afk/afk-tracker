@@ -1224,8 +1224,12 @@ td.action-col {
 }
 .category-picker {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 6px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 .category-pill {
   flex-shrink: 0;
