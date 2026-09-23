@@ -912,6 +912,16 @@ export function setSyncStatus(status) {
 
 // -- ACHIEVEMENTS (E4)
 
+// Returns true only for months that have already ended (strictly before the
+// current calendar month). Current and future months are excluded so that
+// budget-related achievements cannot be triggered prematurely.
+function _isPastMonth(m) {
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth(); // 0-based
+  return m.year < curYear || (m.year === curYear && m.month < curMonth);
+}
+
 const ACHIEVEMENTS = [
   {
     id: "first_blood",
@@ -952,6 +962,7 @@ const ACHIEVEMENTS = [
     tier: "Bronze",
     sticker: "25.png",
     earned: (s) => s.months.some((m) => {
+      if (!_isPastMonth(m)) return false;
       if (m.budget === null || m.budget <= 0) return false;
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
@@ -964,6 +975,7 @@ const ACHIEVEMENTS = [
     tier: "Silver",
     sticker: "30.png",
     earned: (s) => s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
       if (m.budget === null || m.budget <= 0) return false;
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
@@ -976,6 +988,7 @@ const ACHIEVEMENTS = [
     tier: "Gold",
     sticker: "35.png",
     earned: (s) => s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
       if (m.budget === null || m.budget <= 0) return false;
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
@@ -987,7 +1000,7 @@ const ACHIEVEMENTS = [
     desc: "A month with a budget set but no expenses.",
     tier: "Gold",
     sticker: "40.png",
-    earned: (s) => s.months.some((m) => m.budget !== null && m.budget > 0 && m.expenses.length === 0),
+    earned: (s) => s.months.some((m) => _isPastMonth(m) && m.budget !== null && m.budget > 0 && m.expenses.length === 0),
   },
   {
     id: "big_spender",
