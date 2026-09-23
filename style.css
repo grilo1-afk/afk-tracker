@@ -1055,12 +1055,42 @@ td.action-col {
   padding-top: 0;
   margin-top: 0;
 }
-.settings-section h4 {
+.settings-section > summary {
+  cursor: pointer;
   color: var(--gold);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin: 0 0 12px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+.settings-section > summary::-webkit-details-marker {
+  display: none;
+}
+.settings-section > summary::after {
+  content: "+";
+  font-size: 14px;
+  color: var(--gold);
+  transition: transform 0.15s ease;
+}
+.settings-section[open] > summary::after {
+  content: "\2212";
+}
+.settings-section[open] {
+  padding-bottom: 4px;
+}
+
+.settings-session-row {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #2a2f38;
+}
+.settings-session-row .btn-danger {
+  width: 100%;
 }
 .settings-section-desc {
   font-size: 12px;

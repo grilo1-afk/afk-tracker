@@ -529,17 +529,17 @@
         </div>
         <div class="settings-sections">
           <!-- Profile section -->
-          <div class="settings-section" id="settings-section-profile">
-            <h4>Profile</h4>
+          <details class="settings-section" id="settings-section-profile" open>
+            <summary>Profile</summary>
             <div class="form-group">
               <label for="display-name-input">Display Name</label>
               <input type="text" id="display-name-input" placeholder="e.g. Arian" />
             </div>
-          </div>
+          </details>
 
           <!-- Appearance section -->
-          <div class="settings-section" id="settings-section-appearance">
-            <h4>Appearance</h4>
+          <details class="settings-section" id="settings-section-appearance" open>
+            <summary>Appearance</summary>
             <div class="form-group">
               <label for="theme-select">Theme</label>
               <select id="theme-select">
@@ -561,11 +561,11 @@
                 <option value="MXN">MXN — Mexican Peso</option>
               </select>
             </div>
-          </div>
+          </details>
 
           <!-- Tracker section -->
-          <div class="settings-section" id="settings-section-tracker">
-            <h4>Tracker</h4>
+          <details class="settings-section" id="settings-section-tracker">
+            <summary>Tracker</summary>
             <div class="form-group">
               <label>Quick-add Presets</label>
               <div id="preset-list" class="preset-list"></div>
@@ -629,11 +629,11 @@
               </div>
               <span class="field-error" id="err-recurring"></span>
             </div>
-          </div>
+          </details>
 
           <!-- Security section -->
-          <div class="settings-section" id="settings-section-security">
-            <h4>Security</h4>
+          <details class="settings-section" id="settings-section-security">
+            <summary>Security</summary>
             <div class="form-group">
               <label>Change Password</label>
               <div class="input-with-toggle" style="margin-bottom: 4px">
@@ -693,15 +693,12 @@
             </div>
             <div class="modal-actions" style="margin-top: 16px">
               <button id="btn-profile-save">Save Changes</button>
-              <button id="btn-logout" class="btn-danger" style="margin-top: 8px">
-                Logout
-              </button>
             </div>
-          </div>
+          </details>
 
           <!-- Data section -->
-          <div class="settings-section" id="settings-section-data">
-            <h4>Data</h4>
+          <details class="settings-section" id="settings-section-data">
+            <summary>Data</summary>
             <p class="settings-section-desc">
               Download a backup of all your months, expenses, and categories.
             </p>
@@ -727,7 +724,11 @@
               </div>
               <span class="field-error" id="err-lifetime-offset"></span>
             </div>
-          </div>
+          </details>
+        </div>
+
+        <div class="settings-session-row">
+          <button id="btn-logout" class="btn-danger">Logout</button>
         </div>
       </div>
     </div>
