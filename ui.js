@@ -1192,6 +1192,9 @@ export function renderAchievements() {
 export function openAchievementScreen() {
   renderAchievements();
   showScreen("achievement");
+  // Explicitly reset scroll — achievement-list is the scroll container
+  var listEl = document.getElementById("achievement-list");
+  if (listEl) listEl.scrollTop = 0;
 }
 
 export function closeAchievementScreen() {
