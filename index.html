@@ -335,19 +335,16 @@
             </div>
             <div class="exp-field exp-date">
               <label for="exp-date">Date</label>
-              <input type="date" id="exp-date" aria-describedby="err-exp-date" />
+              <div class="exp-date-with-today">
+                <input type="date" id="exp-date" aria-describedby="err-exp-date" />
+                <button type="button" id="btn-today-expense" class="btn-today-inline" title="Set to today's date">
+                  Today
+                </button>
+              </div>
             </div>
           </div>
           <div class="expense-form-actions">
-            <button
-              type="button"
-              id="btn-today-expense"
-              class="btn-exp-action btn-secondary"
-              title="Set the date above to today"
-            >
-              Today
-            </button>
-            <button id="btn-add-expense" class="btn-exp-action">Add</button>
+            <button id="btn-add-expense" class="btn-exp-action btn-primary-action">Add Expense</button>
           </div>
           <div class="category-row">
             <div id="category-picker" class="category-picker">
@@ -479,13 +476,13 @@
         </div>
         <div class="form-group">
           <label for="edit-exp-date">Date</label>
-          <div class="date-with-today">
+          <div class="exp-date-with-today">
             <input type="date" id="edit-exp-date" aria-describedby="err-edit-exp-date" />
             <button
               type="button"
               id="btn-today-edit-exp"
-              class="btn-today"
-              title="Set to today"
+              class="btn-today-inline"
+              title="Set to today's date"
             >
               Today
             </button>
