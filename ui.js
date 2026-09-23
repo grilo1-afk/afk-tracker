@@ -108,7 +108,7 @@ export async function renderWelcomeName() {
 
 // -- SHARED APP HEADER COMPONENT
 // Renders the standard header for tab screens.
-// config: { title, icon, subtitle, showBack, backCb }
+// config: { title, icon (Material Symbol name), subtitle, showBack, backCb }
 export function renderAppHeader(screenId, config) {
   var screen = document.getElementById(screenId);
   if (!screen) return;
@@ -120,7 +120,15 @@ export function renderAppHeader(screenId, config) {
   var left = document.createElement('div');
 
   var h2 = document.createElement('h2');
-  h2.textContent = (config.icon ? config.icon + ' ' : '') + config.title;
+  if (config.icon) {
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'material-symbols-outlined header-icon';
+    iconSpan.textContent = config.icon;
+    h2.appendChild(iconSpan);
+    h2.appendChild(document.createTextNode(' ' + config.title));
+  } else {
+    h2.textContent = config.title;
+  }
   left.appendChild(h2);
 
   if (config.subtitle) {

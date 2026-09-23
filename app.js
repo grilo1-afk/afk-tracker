@@ -203,8 +203,7 @@ registerAuthCallbacks({
 // Wire the achievements teaser click on the stats screen back to openAchievementScreen
 registerOpenAchievementScreenCb(() => {
   pushHash('#achievements');
-  openAchievementScreen();
-  setNavActive('stats');
+  _navigateToHash('#achievements', false);
 });
 
 // -- ACHIEVEMENT BADGE (badge element removed with old header; function kept for compatibility)
@@ -1524,17 +1523,17 @@ function _navigateToHash(hash, isPopState) {
       setActiveMonthId(null); renderHistory(); updateAchievementsBadge();
       showScreen("history"); setNavActive("home"); break;
     case "stats":
-      renderAppHeader("stats-screen", { title: "Statistics", icon: "📊", subtitle: name });
+      renderAppHeader("stats-screen", { title: "Statistics", icon: "bar_chart", subtitle: name });
       openStatsScreen(); setNavActive("stats"); break;
     case "manage":
-      renderAppHeader("manage-screen", { title: "Manage", icon: "⚙️", subtitle: name });
+      renderAppHeader("manage-screen", { title: "Manage", icon: "tune", subtitle: name });
       renderPresetList(); renderCategorySettingsList(); renderRecurringList();
       openManageScreen(); setNavActive("manage"); break;
     case "settings":
-      renderAppHeader("settings-screen", { title: "Settings", icon: "⚙️", subtitle: name });
+      renderAppHeader("settings-screen", { title: "Settings", icon: "settings", subtitle: name });
       _openSettings(); setNavActive("settings"); break;
     case "achievements":
-      renderAppHeader("achievement-screen", { title: "Achievements", icon: "🏆", subtitle: name, showBack: true, backCb: () => { pushHash("#stats"); _navigateToHash("#stats", false); } });
+      renderAppHeader("achievement-screen", { title: "Achievements", icon: "emoji_events", subtitle: name, showBack: true, backCb: () => { pushHash("#stats"); _navigateToHash("#stats", false); } });
       openAchievementScreen(); setNavActive("stats"); break;
     case "month":
       if (param) {

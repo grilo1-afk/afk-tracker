@@ -450,11 +450,21 @@ button.btn-danger.btn--loading::after {
   margin-bottom: 20px;
   gap: 10px;
   flex-wrap: wrap;
+  min-height: 62px; /* keeps all headers the same height regardless of subtitle presence */
 }
 .screen-header h2 {
   margin: 0;
   text-align: left;
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-icon {
+  font-size: 20px;
+  opacity: 0.85;
+  flex-shrink: 0;
+  font-variation-settings: "wght" 300, "FILL" 0, "GRAD" 0, "opsz" 24;
 }
 #welcome-name,
 .welcome-name-generic {
