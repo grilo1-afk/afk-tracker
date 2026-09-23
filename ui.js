@@ -278,23 +278,39 @@ function _renderVsBudgetChart(container) {
   container.appendChild(svg);
 }
 
+function _hasUncategorizedSpending() {
+  return state.months.some(function(m) {
+    return m.expenses.some(function(e) { return !e.categoryId; });
+  });
+}
+
 function _renderCategoryChart(container) {
   container.innerHTML = '';
-  if (state.categories.length === 0) return;
+  if (state.categories.length === 0 && !_hasUncategorizedSpending()) return;
   var totals = new Map();
   state.categories.forEach(function(c) { totals.set(c.id, 0); });
+  var uncategorized = 0;
   state.months.forEach(function(m) {
     m.expenses.forEach(function(e) {
       if (e.categoryId && totals.has(e.categoryId)) {
         totals.set(e.categoryId, totals.get(e.categoryId) + e.val);
+      } else {
+        uncategorized += e.val;
       }
     });
   });
   var rows = state.categories
     .map(function(c) { return { name: c.name, total: totals.get(c.id) || 0 }; })
     .filter(function(r) { return r.total > 0; })
-    .sort(function(a, b) { return b.total - a.total; })
-    .slice(0, 8);
+    .sort(function(a, b) { return b.total - a.total; });
+  var totalCategoryCount = rows.length + (uncategorized > 0 ? 1 : 0);
+  if (uncategorized > 0) {
+    rows = rows.slice(0, 7);
+    rows.push({ name: 'Uncategorized', total: uncategorized, isUncategorized: true });
+    rows.sort(function(a, b) { return b.total - a.total; });
+  } else {
+    rows = rows.slice(0, 8);
+  }
   if (rows.length === 0) return;
   var ROW_H = 18;
   var LABEL_W = 70;
@@ -306,15 +322,16 @@ function _renderCategoryChart(container) {
   rows.forEach(function(row, i) {
     var y = i * ROW_H + 2;
     var barW = Math.max(Math.round((row.total / maxVal) * BAR_MAX_W), 2);
-    var labelEl = svgEl('text', { x: LABEL_W - 4, y: y + ROW_H * 0.65, 'text-anchor': 'end', 'font-size': 9, fill: 'var(--text-light)', opacity: 0.75 });
+    var labelEl = svgEl('text', { x: LABEL_W - 4, y: y + ROW_H * 0.65, 'text-anchor': 'end', 'font-size': 9, fill: 'var(--text-light)', opacity: row.isUncategorized ? 0.5 : 0.75 });
     labelEl.textContent = row.name.length > 11 ? row.name.slice(0, 10) + '…' : row.name;
     svg.appendChild(labelEl);
-    svg.appendChild(svgEl('rect', { x: LABEL_W, y: y + 3, width: barW, height: ROW_H - 6, fill: 'var(--gold)', opacity: 0.75, rx: 2 }));
+    svg.appendChild(svgEl('rect', { x: LABEL_W, y: y + 3, width: barW, height: ROW_H - 6, fill: row.isUncategorized ? '#666' : 'var(--gold)', opacity: row.isUncategorized ? 0.5 : 0.75, rx: 2 }));
     var valEl = svgEl('text', { x: LABEL_W + barW + 4, y: y + ROW_H * 0.65, 'font-size': 9, fill: 'var(--text-light)', opacity: 0.6 });
     valEl.textContent = fmt(row.total);
     svg.appendChild(valEl);
   });
   container.appendChild(svg);
+  return totalCategoryCount;
 }
 
 export function renderCharts() {
@@ -325,7 +342,11 @@ export function renderCharts() {
   var c3 = document.getElementById('chart-by-category');
   if (c1) _renderSpendingChart(c1);
   if (c2) _renderVsBudgetChart(c2);
-  if (c3) _renderCategoryChart(c3);
+  var categoryCount = c3 ? _renderCategoryChart(c3) : 0;
+  var categoryTitleEl = document.getElementById('chart-title-category');
+  if (categoryTitleEl) {
+    categoryTitleEl.textContent = categoryCount > 8 ? 'By Category (top 8)' : 'By Category';
+  }
   var hasContent = (c1 && c1.children.length > 0) || (c2 && c2.children.length > 0) || (c3 && c3.children.length > 0);
   section.classList.toggle('hidden', !hasContent);
 }
