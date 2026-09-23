@@ -1333,6 +1333,21 @@ td.action-col {
   padding: 12px 14px;
   margin-bottom: 10px;
 }
+.year-summary-block > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.year-summary-block > summary::-webkit-details-marker {
+  display: none;
+}
+.year-summary-block > summary::after {
+  content: " ▾";
+  font-size: 12px;
+  opacity: 0.6;
+}
+.year-summary-block[open] > summary::after {
+  content: " ▴";
+}
 .year-summary-heading {
   font-size: 11px;
   text-transform: uppercase;

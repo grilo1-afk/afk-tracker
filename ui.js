@@ -122,6 +122,7 @@ export function renderYearSummary() {
     byYear.get(m.year).push(m);
   });
 
+  let isFirst = true;
   byYear.forEach((months, year) => {
     const budgeted = months.filter((m) => m.budget !== null);
     if (budgeted.length === 0) return;
@@ -134,10 +135,12 @@ export function renderYearSummary() {
       return m.budget > 0 && spent <= m.budget;
     }).length;
 
-    const block = document.createElement("div");
+    const block = document.createElement("details");
     block.className = "year-summary-block";
+    if (isFirst) block.open = true;
+    isFirst = false;
 
-    const heading = document.createElement("div");
+    const heading = document.createElement("summary");
     heading.className = "year-summary-heading";
     heading.textContent = year;
     block.appendChild(heading);
