@@ -17,6 +17,7 @@ import {
   getCurrentUserId,
   setCurrency,
   getLocalISODate,
+  fmt,
 } from "./state.js";
 import {
   loadState,
@@ -685,7 +686,7 @@ function renderRecurringList() {
     label.textContent = item.desc;
     const amount = document.createElement("span");
     amount.className = "preset-row-amount";
-    amount.textContent = `$${parseFloat(item.amount).toFixed(2)}`;
+    amount.textContent = fmt(Math.round(parseFloat(item.amount) * 100));
     const del = document.createElement("button");
     del.type = "button";
     del.className = "btn-danger btn-sm";
@@ -775,7 +776,7 @@ function _openRecurringModal(monthId, monthObj, items) {
     labelEl.textContent = item.desc;
     const amountEl = document.createElement("span");
     amountEl.className = "recurring-check-amount";
-    amountEl.textContent = `$${parseFloat(item.amount).toFixed(2)}`;
+    amountEl.textContent = fmt(Math.round(parseFloat(item.amount) * 100));
     row.appendChild(checkbox);
     row.appendChild(labelEl);
     row.appendChild(amountEl);
@@ -878,7 +879,7 @@ function renderPresetStrip() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "preset-pill";
-    btn.textContent = `${p.desc}  $${parseFloat(p.amount).toFixed(2)}`;
+    btn.textContent = `${p.desc}  ${fmt(Math.round(parseFloat(p.amount) * 100))}`;
     btn.addEventListener("click", () => {
       descInput.value = p.desc;
       valInput.value = parseFloat(p.amount).toFixed(2);
@@ -911,7 +912,7 @@ function renderPresetList() {
     label.textContent = p.desc;
     const amount = document.createElement("span");
     amount.className = "preset-row-amount";
-    amount.textContent = `$${parseFloat(p.amount).toFixed(2)}`;
+    amount.textContent = fmt(Math.round(parseFloat(p.amount) * 100));
     const del = document.createElement("button");
     del.type = "button";
     del.className = "btn-danger btn-sm";
