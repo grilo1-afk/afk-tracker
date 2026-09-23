@@ -33,7 +33,13 @@ const SCREENS = {
 
 export function showScreen(name) {
   Object.values(SCREENS).forEach((s) => s && s.classList.add("hidden"));
-  SCREENS[name]?.classList.remove("hidden");
+  const target = SCREENS[name];
+  if (target) {
+    target.classList.remove("hidden");
+    // Scroll the .scroll-content inside this screen back to the top on every navigation
+    const scrollEl = target.querySelector('.scroll-content');
+    if (scrollEl) scrollEl.scrollTop = 0;
+  }
 }
 
 // -- THEME
