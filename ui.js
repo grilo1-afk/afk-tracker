@@ -1192,11 +1192,17 @@ export function renderAchievements() {
 export function openAchievementScreen() {
   renderAchievements();
   showScreen("achievement");
-  // Defer scroll reset to next frame so it fires after browser layout
-  var listEl = document.getElementById("achievement-list");
-  if (listEl) {
-    listEl.scrollTop = 0;
-    requestAnimationFrame(function() { listEl.scrollTop = 0; });
+  // Scroll the achievement screen's header into view — overrides any browser
+  // auto-scroll to the last rendered achievement element
+  var screen = document.getElementById("achievement-screen");
+  if (screen) {
+    var header = screen.querySelector(".screen-header");
+    var listEl = document.getElementById("achievement-list");
+    if (listEl) listEl.scrollTop = 0;
+    if (header) requestAnimationFrame(function() {
+      header.scrollIntoView({ block: "start", behavior: "instant" });
+      if (listEl) listEl.scrollTop = 0;
+    });
   }
 }
 
