@@ -19,6 +19,8 @@
 | Bug fix | Settings currency/theme now only apply on Save; theme previews then reverts on cancel | `fix/settings-deferred-apply` | ✅ Merged |
 | Feature | Success toast (top-right on desktop, below header on mobile) after Settings save | `fix/settings-deferred-apply` | ✅ Merged |
 | Fix | Frozen header on desktop via `position: fixed` container at `min-width: 481px` | `fix/settings-deferred-apply` | ✅ Merged |
+| Step 3 | Extract `_addCategory()` helper — eliminates duplicate category-add logic (×2 handlers → 1 shared function) | `refactor/step-3` | ✅ Merged |
+| Bug fix | `openMonth()` `ReferenceError: minDate is not defined` — Step 2 refactor left stale variable references in `ui.js` | `refactor/step-3` | ✅ Merged |
 
 ---
 
