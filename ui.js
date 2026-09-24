@@ -8,6 +8,8 @@ import {
   getCurrentMonthObj,
   getDisplayName,
   getLocalISODate,
+  getResolvedDisplayName,
+  getMonthDateRange,
 } from "./state.js";
 
 // -- SCREEN ROUTING
@@ -105,7 +107,7 @@ export function clearBanner(bannerId) {
 
 // -- DISPLAY NAME
 export async function renderWelcomeName() {
-  const name = state.displayName || getDisplayName();
+  const name = getResolvedDisplayName();
   const el = document.getElementById("welcome-name");
   if (el) el.textContent = name;
 }
@@ -263,6 +265,23 @@ export function renderLifetimeTotal() {
 
 var _chartPeriod = 12; // 6 | 12 | 'all'
 
+// Compact currency-aware label for chart bars.
+// Uses Intl.NumberFormat with the user's currency so the symbol is always correct.
+// Values >= $1000 are abbreviated with 'k' (e.g. $1.2k, $12k).
+function _shortFmt(cents) {
+  var currency = state.currency || 'USD';
+  var locale = { BRL: 'pt-BR', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP', CAD: 'en-CA', AUD: 'en-AU', MXN: 'es-MX' }[currency] || 'en-US';
+  var dollars = cents / 100;
+  if (cents >= 100000) {
+    var k = dollars / 1000;
+    var kStr = (k >= 10 ? Math.round(k) : parseFloat(k.toFixed(1))) + 'k';
+    // Format 0 to get the currency symbol placement, then swap the number
+    var zero = new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0);
+    return zero.replace(/0/, kStr);
+  }
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(dollars);
+}
+
 export function setChartPeriod(period) {
   _chartPeriod = period;
 }
@@ -300,7 +319,7 @@ function _renderSpendingChart(container) {
       var yPos = PAD.top + chartH - barH;
       svg.appendChild(svgEl('rect', { x: x, y: yPos, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
       var yValLbl = svgEl('text', { x: x + barW / 2, y: yPos - 4, 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.9 });
-      yValLbl.textContent = val >= 100000 ? '$' + (val / 100000).toFixed(0) + 'k' : '$' + (val / 100).toFixed(0);
+      yValLbl.textContent = _shortFmt(val);
       svg.appendChild(yValLbl);
       var label = svgEl('text', { x: x + barW / 2, y: PAD.top + chartH + 14, 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--text-light)', opacity: 0.6 });
       label.textContent = String(y);
@@ -328,7 +347,7 @@ function _renderSpendingChart(container) {
     var y = PAD.top + chartH - barH;
     svg.appendChild(svgEl('rect', { x: x, y: y, width: barW, height: barH, fill: 'var(--gold)', rx: 2, opacity: 0.85 }));
     var valLbl = svgEl('text', { x: x + barW / 2, y: y - 4, 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.9 });
-    valLbl.textContent = val >= 100000 ? '$' + (val / 100000).toFixed(0) + 'k' : '$' + (val / 100).toFixed(0);
+    valLbl.textContent = _shortFmt(val);
     svg.appendChild(valLbl);
     var label = svgEl('text', { x: PAD.left + i * slotW + slotW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
     label.textContent = MONTH_NAMES[m.month].slice(0, 3);
@@ -366,13 +385,13 @@ function _renderVsBudgetChart(container) {
     var budgetH = Math.max(Math.round((budget / maxVal) * chartH), 2);
     svg.appendChild(svgEl('rect', { x: bx, y: PAD.top + chartH - budgetH, width: barW, height: budgetH, fill: 'var(--gold)', opacity: 0.25, rx: 2 }));
     var bdgLbl = svgEl('text', { x: bx + barW / 2, y: PAD.top + chartH - budgetH - 4, 'text-anchor': 'middle', 'font-size': 7, fill: 'var(--gold)', opacity: 0.7 });
-    bdgLbl.textContent = budget >= 100000 ? '$' + (budget / 100000).toFixed(0) + 'k' : '$' + (budget / 100).toFixed(0);
+    bdgLbl.textContent = _shortFmt(budget);
     svg.appendChild(bdgLbl);
     var spentH = Math.max(Math.round((spent / maxVal) * chartH), 2);
     svg.appendChild(svgEl('rect', { x: sx, y: PAD.top + chartH - spentH, width: barW, height: spentH, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.85, rx: 2 }));
     var spentY = PAD.top + chartH - spentH;
     var spLbl = svgEl('text', { x: sx + barW / 2, y: spentY - 4, 'text-anchor': 'middle', 'font-size': 7, fill: spent > budget ? 'var(--danger)' : 'var(--success)', opacity: 0.9 });
-    spLbl.textContent = spent >= 100000 ? '$' + (spent / 100000).toFixed(0) + 'k' : '$' + (spent / 100).toFixed(0);
+    spLbl.textContent = _shortFmt(spent);
     svg.appendChild(spLbl);
     var label = svgEl('text', { x: gx + groupW / 2, y: PAD.top + chartH + 12, 'text-anchor': 'middle', 'font-size': 8, fill: 'var(--text-light)', opacity: 0.6 });
     label.textContent = MONTH_NAMES[m.month].slice(0, 3);
@@ -598,12 +617,9 @@ export function openMonth(id) {
     budgetSetupBox.classList.add('hidden');
     statsSection.classList.remove('hidden');
     addExpenseSection.classList.remove('hidden');
-    var lastDay = new Date(m.year, m.month + 1, 0).getDate();
-    var mm = String(m.month + 1).padStart(2, '0');
-    var minDate = m.year + '-' + mm + '-01';
-    var maxDate = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
-    expDateInput.min = minDate;
-    expDateInput.max = maxDate;
+    var range = getMonthDateRange(m);
+    expDateInput.min = range.minDate;
+    expDateInput.max = range.maxDate;
     var todayIso = getLocalISODate();
     // Default to today only if today actually falls within this month;
     // otherwise default to the 1st, so the field never opens pre-invalid.
@@ -855,10 +871,9 @@ export function openEditExpenseModal(expId, triggerEl) {
   descEl.value = exp.desc;
   valEl.value = (exp.val / 100).toFixed(2);
   dateEl.value = exp.date || '';
-  var lastDay = new Date(m.year, m.month + 1, 0).getDate();
-  var mm = String(m.month + 1).padStart(2, '0');
-  dateEl.min = m.year + '-' + mm + '-01';
-  dateEl.max = m.year + '-' + mm + '-' + String(lastDay).padStart(2, '0');
+  var range = getMonthDateRange(m);
+  dateEl.min = range.minDate;
+  dateEl.max = range.maxDate;
   [descEl, valEl, dateEl].forEach(function(el) { el.classList.remove('is-invalid'); });
   ['err-edit-exp-desc', 'err-edit-exp-val', 'err-edit-exp-date'].forEach(function(id) {
     var el = document.getElementById(id);
