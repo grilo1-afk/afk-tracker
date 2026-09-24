@@ -7,10 +7,8 @@ import {
   getActiveMonth,
   getCurrentMonthObj,
   getDisplayName,
-  cacheDisplayName,
   getLocalISODate,
 } from "./state.js";
-import { supabase } from "./supabase-client.js";
 
 // -- SCREEN ROUTING
 const loginScreen = document.getElementById("login-screen");
@@ -322,7 +320,6 @@ function _renderSpendingChart(container) {
   var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: '100%' });
   var slotW = Math.floor(chartW / months.length);
   var barW = Math.max(Math.floor(slotW * 0.45), 2);
-  var barWFull = slotW - 2; // keep for x-centering
   var spansMultipleYears = months.length > 0 && months[0].year !== months[months.length - 1].year;
   months.forEach(function(m, i) {
     var val = values[i];
@@ -934,39 +931,6 @@ export function closeMonthPicker() {
   returnFocusToTrigger();
 }
 
-// -- PROFILE MODAL
-export var profileOverlay = document.getElementById('profile-overlay');
-
-export async function openProfileModal(event) {
-  try {
-    var authData = (await supabase.auth.getUser()).data;
-    var user = authData && authData.user;
-    if (user) {
-      var profileResult = await supabase.from('profiles').select('display_name').eq('id', user.id).single();
-      if (profileResult.data && profileResult.data.display_name)
-        cacheDisplayName(profileResult.data.display_name);
-    }
-  } catch (_) {}
-  document.getElementById('display-name-input').value = getDisplayName();
-  document.getElementById('current-pass-input').value = '';
-  document.getElementById('new-pass-input').value = '';
-  document.getElementById('confirm-pass-input').value = '';
-  document.getElementById('theme-select').value = getPreferredTheme();
-  var currencySelectEl = document.getElementById('currency-select');
-  if (currencySelectEl) currencySelectEl.value = state.currency || 'USD';
-  _lastFocusedTrigger = (event && event.currentTarget) || null;
-  profileOverlay.classList.remove('hidden');
-  trapFocus(profileOverlay);
-  var nameInput = document.getElementById('display-name-input');
-  if (nameInput) nameInput.focus();
-}
-
-export function closeProfileModal() {
-  releaseFocusTrap(profileOverlay);
-  profileOverlay.classList.add('hidden');
-  returnFocusToTrigger();
-}
-
 // -- SYNC STATUS INDICATOR
 export function setSyncStatus(status) {
   document.querySelectorAll('.save-status').forEach(function(el) {
@@ -1206,10 +1170,6 @@ export function openAchievementScreen() {
   }
 }
 
-export function closeAchievementScreen() {
-  showScreen("stats");
-}
-
 export function openManageScreen() {
   showScreen("manage");
 }
@@ -1308,10 +1268,6 @@ export function renderStatsScreen() {
 export function openStatsScreen() {
   renderStatsScreen();
   showScreen("stats");
-}
-
-export function closeStatsScreen() {
-  showScreen("history");
 }
 
 export function openSettingsScreen() {
