@@ -146,6 +146,13 @@ export function setCurrency(code) {
   state.currency = (code || "USD").toUpperCase();
 }
 
+// Returns the best available display name: live state first, then localStorage cache.
+// Single source of truth — replaces the duplicated `state.displayName || getDisplayName()`
+// expressions scattered across app.js and ui.js.
+export function getResolvedDisplayName() {
+  return state.displayName || getDisplayName();
+}
+
 export function getActiveMonth() {
   return state.months.find((m) => m.id === activeMonthId) || null;
 }
@@ -177,6 +184,17 @@ export function dbRowsToState(monthRows) {
     })),
   }));
   return { months };
+}
+
+// Returns { minDate, maxDate, lastDay, mm } for a month object (0-based month).
+// Centralises the repeated lastDay / mm / minDate / maxDate calculation
+// that previously appeared in 3 separate places across app.js and ui.js.
+export function getMonthDateRange(m) {
+  const lastDay = new Date(m.year, m.month + 1, 0).getDate();
+  const mm = String(m.month + 1).padStart(2, "0");
+  const minDate = `${m.year}-${mm}-01`;
+  const maxDate = `${m.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+  return { minDate, maxDate, lastDay, mm };
 }
 
 // Whether an ISO date string (YYYY-MM-DD) falls within the given month object

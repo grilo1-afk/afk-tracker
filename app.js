@@ -17,6 +17,8 @@ import {
   getLocalISODate,
   fmt,
   isDateInMonth,
+  getResolvedDisplayName,
+  getMonthDateRange,
 } from "./state.js";
 import {
   loadState,
@@ -1050,10 +1052,7 @@ btnSetBudget.addEventListener("click", async () => {
   addExpenseSection.classList.remove("hidden");
   renderPresetStrip();
   renderCategoryPicker();
-  const lastDay = new Date(m.year, m.month + 1, 0).getDate();
-  const mm = String(m.month + 1).padStart(2, "0");
-  const minDate = m.year + "-" + mm + "-01";
-  const maxDate = m.year + "-" + mm + "-" + String(lastDay).padStart(2, "0");
+  const { minDate, maxDate } = getMonthDateRange(m);
   expDateInput.min = minDate;
   expDateInput.max = maxDate;
   const todayIso = getLocalISODate();
@@ -1507,16 +1506,12 @@ function pushHash(hash) {
   if (window.location.hash !== hash) window.history.pushState(null, "", hash || "#home");
 }
 
-function _getDisplayName() {
-  return state.displayName || (typeof getDisplayName === "function" ? getDisplayName() : "");
-}
-
 function _navigateToHash(hash, isPopState) {
   const h = (hash || "#home").replace("#", "");
   const parts = h.split("/");
   const page = parts[0];
   const param = parts[1];
-  const name = _getDisplayName();
+  const name = getResolvedDisplayName();
   switch (page) {
     case "home": case "":
       setActiveMonthId(null); renderHistory(); updateAchievementsBadge();
