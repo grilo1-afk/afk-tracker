@@ -491,6 +491,11 @@ document.addEventListener("keydown", (e) => {
     rcOverlay.classList.add("hidden");
     return;
   }
+  const loOverlay = document.getElementById("logout-confirm-overlay");
+  if (loOverlay && !loOverlay.classList.contains("hidden")) {
+    loOverlay.classList.add("hidden");
+    return;
+  }
   // settings is a full screen now — Escape on settings goes home
   if (!document.getElementById("settings-screen").classList.contains("hidden")) {
     showScreen("history");
@@ -1574,7 +1579,7 @@ document.getElementById("btn-export-data").addEventListener("click", async () =>
 });
 
 // -- AUTH
-document.getElementById("btn-logout").addEventListener("click", async () => {
+async function _performLogout() {
   const btn = document.getElementById("btn-logout");
   if (btn) {
     btn.classList.add("btn--loading");
@@ -1589,12 +1594,37 @@ document.getElementById("btn-logout").addEventListener("click", async () => {
     setActiveMonthId(null);
     document.getElementById("username").value = "";
     document.getElementById("password").value = "";
+    // Clear hash so the next login always starts at home
+    window.history.replaceState(null, "", window.location.pathname);
     showScreen("login");
   } finally {
     if (btn) {
       btn.classList.remove("btn--loading");
       btn.disabled = false;
     }
+  }
+}
+
+// Show confirmation modal on logout button click
+document.getElementById("btn-logout").addEventListener("click", () => {
+  const overlay = document.getElementById("logout-confirm-overlay");
+  if (overlay) overlay.classList.remove("hidden");
+});
+
+document.getElementById("btn-logout-confirm").addEventListener("click", async () => {
+  const overlay = document.getElementById("logout-confirm-overlay");
+  if (overlay) overlay.classList.add("hidden");
+  await _performLogout();
+});
+
+document.getElementById("btn-logout-cancel").addEventListener("click", () => {
+  const overlay = document.getElementById("logout-confirm-overlay");
+  if (overlay) overlay.classList.add("hidden");
+});
+
+document.getElementById("logout-confirm-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("logout-confirm-overlay")) {
+    document.getElementById("logout-confirm-overlay").classList.add("hidden");
   }
 });
 
@@ -1638,6 +1668,12 @@ document.getElementById("btn-login").addEventListener("click", async () => {
       return;
     }
     await doLogin();
+    _showBottomNav();
+    setNavActive("home");
+    const loginHash = window.location.hash;
+    if (loginHash && loginHash !== "#home" && loginHash !== "#") {
+      _navigateToHash(loginHash, false);
+    }
   } catch (err) {
     showBanner(
       "login-error",
