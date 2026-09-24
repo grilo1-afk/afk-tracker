@@ -1,6 +1,4 @@
 import { supabase } from "./supabase-client.js";
-import { readPresets } from "./presets.js";
-import { readRecurring } from "./recurring.js";
 import {
   state,
   setState,
@@ -82,7 +80,6 @@ import {
   setSyncStatus,
   openAchievementScreen,
   openStatsScreen,
-  closeStatsScreen,
   renderStatsScreen,
   renderCharts,
   getAchievementCounts,
@@ -1390,9 +1387,6 @@ function _openSettings() {
   });
 }
 
-// Settings is now a screen — no close button or overlay click needed
-
-
 // -- UNIFIED SETTINGS SAVE
 document
   .getElementById("btn-profile-save")
@@ -1659,28 +1653,6 @@ document.getElementById("password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
-// -- ONE-TIME localStorage → Supabase MIGRATION
-async function _migrateLocalStorageData() {
-  if (state.presets.length === 0) {
-    const localPresets = readPresets();
-    for (const p of localPresets) {
-      const result = await dbAddPreset(p.desc, p.amount);
-      if (result.ok) state.presets.push(result.data);
-    }
-    if (localPresets.length > 0) {
-      renderPresetList();
-      renderPresetStrip();
-    }
-  }
-  if (state.recurring.length === 0) {
-    const localRecurring = readRecurring();
-    for (const r of localRecurring) {
-      const result = await dbAddRecurring(r.desc, r.amount);
-      if (result.ok) state.recurring.push(result.data);
-    }
-  }
-}
-
 // -- INIT
 function _showBottomNav() {
   const nav = document.getElementById("bottom-nav");
@@ -1741,7 +1713,6 @@ function _hideBottomNav() {
         renderHistory();
         updateAchievementsBadge();
         setSyncStatus(null);
-        await _migrateLocalStorageData();
       } catch (e) {
         console.error("Background sync failed:", e);
         setSyncStatus("stale");
@@ -1759,7 +1730,6 @@ function _hideBottomNav() {
           setNavActive("home");
         }
         updateAchievementsBadge();
-        await _migrateLocalStorageData();
       } catch (e) {
         console.error("init doLogin failed:", e);
         // doLogin() throws "SESSION_INVALID" after calling handleSessionInvalid()
