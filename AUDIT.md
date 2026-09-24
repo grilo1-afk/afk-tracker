@@ -15,6 +15,10 @@
 | Bug fix | URL hash not cleared on logout | `fix/login-logout-ux` | ✅ Merged |
 | Feature | Logout confirmation modal | `fix/login-logout-ux` | ✅ Merged |
 | Fix | Removed deleted files from `sw.js` SHELL_FILES; bumped cache v25→v26 | `fix/login-logout-ux` | ✅ Merged |
+| Step 2 | `getResolvedDisplayName()` + `getMonthDateRange()` in `state.js`; `_shortFmt()` in `ui.js`; fixes hardcoded `$` in chart labels | `refactor/step-2` | ✅ Merged |
+| Bug fix | Settings currency/theme now only apply on Save; theme previews then reverts on cancel | `fix/settings-deferred-apply` | ✅ Merged |
+| Feature | Success toast (top-right on desktop, below header on mobile) after Settings save | `fix/settings-deferred-apply` | ✅ Merged |
+| Fix | Frozen header on desktop via `position: fixed` container at `min-width: 481px` | `fix/settings-deferred-apply` | ✅ Merged |
 
 ---
 
