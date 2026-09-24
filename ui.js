@@ -623,7 +623,7 @@ export function openMonth(id) {
     var todayIso = getLocalISODate();
     // Default to today only if today actually falls within this month;
     // otherwise default to the 1st, so the field never opens pre-invalid.
-    expDateInput.value = (todayIso >= minDate && todayIso <= maxDate) ? todayIso : minDate;
+    expDateInput.value = (todayIso >= range.minDate && todayIso <= range.maxDate) ? todayIso : range.minDate;
     renderStats(m);
     renderExpenses(m);
   }

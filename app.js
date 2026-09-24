@@ -645,10 +645,11 @@ function renderCategorySettingsList() {
   });
 }
 
-document.getElementById("btn-category-new-confirm").addEventListener("click", async () => {
-  const input = document.getElementById("category-new-input");
-  const errEl = document.getElementById("err-category-inline");
-  const name = input.value.trim();
+// -- SHARED CATEGORY ADD HELPER
+// Validates name, checks for duplicates, persists to DB, updates state,
+// and re-renders both pickers. Calls onSuccess(newCategory) on success.
+async function _addCategory(name, errElId, onSuccess) {
+  const errEl = document.getElementById(errElId);
   if (!name) {
     if (errEl) errEl.textContent = "Enter a category name.";
     return;
@@ -664,12 +665,20 @@ document.getElementById("btn-category-new-confirm").addEventListener("click", as
     return;
   }
   state.categories.push(result.data);
-  _selectedCategoryId = result.data.id;
-  input.value = "";
-  document.getElementById("category-inline-add")?.classList.add("hidden");
-  document.getElementById("category-picker")?.classList.remove("hidden");
   renderCategoryPicker();
   renderCategorySettingsList();
+  if (onSuccess) onSuccess(result.data);
+}
+
+document.getElementById("btn-category-new-confirm").addEventListener("click", async () => {
+  const input = document.getElementById("category-new-input");
+  const name = input.value.trim();
+  await _addCategory(name, "err-category-inline", (newCat) => {
+    _selectedCategoryId = newCat.id;
+    input.value = "";
+    document.getElementById("category-inline-add")?.classList.add("hidden");
+    document.getElementById("category-picker")?.classList.remove("hidden");
+  });
 });
 
 document.getElementById("btn-category-new-cancel").addEventListener("click", () => {
@@ -682,26 +691,10 @@ document.getElementById("btn-category-new-cancel").addEventListener("click", () 
 
 document.getElementById("btn-add-category-settings").addEventListener("click", async () => {
   const input = document.getElementById("category-settings-input");
-  const errEl = document.getElementById("err-category-settings");
   const name = input.value.trim();
-  if (!name) {
-    if (errEl) errEl.textContent = "Enter a category name.";
-    return;
-  }
-  if (state.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-    if (errEl) errEl.textContent = "A category with that name already exists.";
-    return;
-  }
-  if (errEl) errEl.textContent = "";
-  const result = await dbAddCategory(name);
-  if (!result.ok) {
-    if (errEl) errEl.textContent = result.message;
-    return;
-  }
-  state.categories.push(result.data);
-  input.value = "";
-  renderCategorySettingsList();
-  renderCategoryPicker();
+  await _addCategory(name, "err-category-settings", () => {
+    input.value = "";
+  });
 });
 
 // -- RECURRING
