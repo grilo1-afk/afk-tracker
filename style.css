@@ -1154,12 +1154,57 @@ td.action-col {
   flex-direction: column;
   gap: 16px;
 }
+
+/* ── SUCCESS TOAST ── */
+/* Mobile: below the header; Desktop: at the very top (header is compact) */
+.success-toast {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top) + 8px);
+  right: 16px;
+  background: #1e2330;
+  border: 1px solid var(--success);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 300;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.success-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Mobile: push toast below the frozen header */
+@media (max-width: 480px) {
+  .success-toast {
+    top: calc(max(14px, env(safe-area-inset-top) + 8px) + 78px);
+  }
+}
 .settings-section-desc {
   font-size: 12px;
   color: #777;
   margin: 0 0 10px;
   line-height: 1.5;
 }
+/* Desktop: fixed-layout container (mirrors mobile) so the header stays frozen */
+@media (min-width: 481px) {
+  .container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 100dvh;
+    /* keep max-width + gold border from base rule */
+  }
+}
+
 /* Desktop: give screen-header its padding */
 .screen-header {
   padding: max(16px, env(safe-area-inset-top) + 8px) 24px 14px;

@@ -358,18 +358,14 @@ const btnAddExpense = document.getElementById("btn-add-expense");
 // -- UNDO TOAST
 document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteExpense);
 
-// -- THEME (applies immediately; persist happens on Settings Save)
+// -- THEME (preview on change; only persists on Settings Save)
 document.getElementById("theme-select").addEventListener("change", (e) => {
-  applyTheme(e.target.value);
+  applyTheme(e.target.value);       // preview only — reverted if user cancels
   _updateSettingsSaveBtn();
 });
 
-// -- CURRENCY (applies immediately; persist happens on Settings Save)
-document.getElementById("currency-select").addEventListener("change", (e) => {
-  const code = e.target.value;
-  setCurrency(code);
-  const m = getActiveMonth();
-  if (m && m.budget !== null) { renderStats(m); renderExpenses(m); }
+// -- CURRENCY (no preview — only applied on Settings Save)
+document.getElementById("currency-select").addEventListener("change", () => {
   _updateSettingsSaveBtn();
 });
 
@@ -500,6 +496,7 @@ document.addEventListener("keydown", (e) => {
   }
   // settings is a full screen now — Escape on settings goes home
   if (!document.getElementById("settings-screen").classList.contains("hidden")) {
+    _revertSettings();
     showScreen("history");
     setNavActive("home");
     return;
@@ -1358,6 +1355,16 @@ function _updateSettingsSaveBtn() {
   btn.disabled = !dirty;
 }
 
+// Revert any previewed-but-unsaved settings changes (currently: theme).
+// Called whenever the user exits settings without clicking Save.
+function _revertSettings() {
+  if (!_settingsSnapshot) return;
+  applyTheme(_settingsSnapshot.theme);
+  // Restore the select to match the reverted value
+  const themeSelect = document.getElementById("theme-select");
+  if (themeSelect) themeSelect.value = _settingsSnapshot.theme;
+}
+
 function _openSettings() {
   // Pre-populate all fields
   const nameInput = document.getElementById("display-name-input");
@@ -1416,6 +1423,11 @@ document
         state.displayName = newName;
         await renderWelcomeName();
       }
+      const newTheme = document.getElementById("theme-select")?.value;
+      const origTheme = _settingsSnapshot ? _settingsSnapshot.theme : getPreferredTheme();
+      if (newTheme && newTheme !== origTheme) {
+        applyTheme(newTheme); // persists to localStorage and applies to DOM
+      }
       const newCurrency = document.getElementById("currency-select")?.value;
       const origCurrency = _settingsSnapshot ? _settingsSnapshot.currency : (state.currency || "USD");
       if (newCurrency && newCurrency !== origCurrency) {
@@ -1463,8 +1475,19 @@ document
       }
       _settingsSnapshot = _snapshotSettings();
       _updateSettingsSaveBtn();
-      showScreen("history");
-      setNavActive("home");
+      // Show success toast then fade it out
+      const toast = document.getElementById("success-toast");
+      if (toast) {
+        toast.textContent = "✓ Settings saved";
+        toast.classList.remove("hidden");
+        requestAnimationFrame(() => toast.classList.add("visible"));
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(() => {
+          toast.classList.remove("visible");
+          setTimeout(() => toast.classList.add("hidden"), 220);
+        }, 2500);
+      }
+      // Stay on settings — no navigation needed
     } finally {
       btn.classList.remove("btn--loading");
       btn.disabled = false;
@@ -1506,12 +1529,19 @@ function pushHash(hash) {
   if (window.location.hash !== hash) window.history.pushState(null, "", hash || "#home");
 }
 
+function _isSettingsVisible() {
+  const s = document.getElementById("settings-screen");
+  return s && !s.classList.contains("hidden");
+}
+
 function _navigateToHash(hash, isPopState) {
   const h = (hash || "#home").replace("#", "");
   const parts = h.split("/");
   const page = parts[0];
   const param = parts[1];
   const name = getResolvedDisplayName();
+  // Revert any unsaved theme preview when navigating away from settings
+  if (page !== "settings" && _isSettingsVisible()) _revertSettings();
   switch (page) {
     case "home": case "":
       setActiveMonthId(null); renderHistory(); updateAchievementsBadge();
