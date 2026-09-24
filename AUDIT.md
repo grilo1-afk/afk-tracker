@@ -1,8 +1,20 @@
 
 # 🔍 Code Audit Report — AFK Tracker
 
-**Reviewed:** All source files in `afk-tracker/`  
+**Reviewed:** All source files in `afk-tracker/`
 **Scope:** `app.js`, `ui.js`, `state.js`, `api.js`, `auth.js`, `supabase-client.js`, `presets.js`, `recurring.js`, `sw.js`, `index.html`
+
+---
+
+## ✅ Completed Work
+
+| Step | Description | Branch | Status |
+|---|---|---|---|
+| Step 1 | Delete `presets.js`, `recurring.js`; remove dead exports from `ui.js`; remove `import { supabase }` from `ui.js`; remove stale migration code | `refactor/step-1` | ✅ Merged |
+| Bug fix | Bottom nav not shown after interactive login | `fix/login-logout-ux` | ✅ Merged |
+| Bug fix | URL hash not cleared on logout | `fix/login-logout-ux` | ✅ Merged |
+| Feature | Logout confirmation modal | `fix/login-logout-ux` | ✅ Merged |
+| Fix | Removed deleted files from `sw.js` SHELL_FILES; bumped cache v25→v26 | `fix/login-logout-ux` | ✅ Merged |
 
 ---
 
