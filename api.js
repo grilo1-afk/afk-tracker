@@ -274,7 +274,24 @@ export async function dbUpdateCurrency(code) {
   return { ok: true, data: undefined };
 }
 
-export async function dbUpdatePassword(newPassword) {
+export async function dbUpdatePassword(currentPassword, newPassword) {
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user || !user.email) {
+    return { ok: false, kind: "auth", message: "Your session has expired. Please log in again." };
+  }
+
+  // Re-authenticate with the current password before allowing the change —
+  // updateUser() alone only requires a live session, not proof of the old
+  // password, which is not enough for a security-sensitive action.
+  const { error: reauthError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (reauthError) {
+    return { ok: false, kind: "validation", message: "Current password is incorrect." };
+  }
+
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) {
     console.error("dbUpdatePassword:", error);

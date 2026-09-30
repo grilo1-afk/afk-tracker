@@ -134,6 +134,28 @@ function setupRealtimeSync() {
 let _realtimeFetchInFlight = false;
 let _realtimePendingFetch = false;
 
+// Patches state.months in place by id instead of replacing the array (and its
+// month objects) by reference. Code elsewhere holds onto month/expense object
+// references across an `await` (e.g. getActiveMonth() before a save) — a
+// wholesale replace would orphan those references and silently drop their
+// in-flight edits once the realtime refresh lands.
+function _mergeMonthsById(freshMonths) {
+  const freshById = new Map(freshMonths.map((m) => [m.id, m]));
+  for (let i = state.months.length - 1; i >= 0; i--) {
+    const existing = state.months[i];
+    const fresh = freshById.get(existing.id);
+    if (!fresh) {
+      state.months.splice(i, 1); // deleted server-side
+    } else {
+      Object.assign(existing, fresh);
+      freshById.delete(existing.id);
+    }
+  }
+  for (const fresh of freshById.values()) {
+    state.months.push(fresh); // new month created server-side
+  }
+}
+
 async function _handleRealtimeChange() {
   // Debounce: if a fetch is in-flight, queue one more but not multiple
   if (_realtimeFetchInFlight) {
@@ -143,7 +165,9 @@ async function _handleRealtimeChange() {
   _realtimeFetchInFlight = true;
   try {
     const fresh = await loadState();
-    setState(fresh);
+    _mergeMonthsById(fresh.months);
+    const { months, ...rest } = fresh;
+    setState(rest);
     setCurrency(state.currency);
     writeLocalCache(state);
     sortMonths();
@@ -233,7 +257,7 @@ async function deleteExpense(expId) {
   const idx = m.expenses.findIndex((e) => e.id === expId);
   if (idx === -1) return;
   const saved = { expense: m.expenses[idx], index: idx, monthId: m.id };
-  _lastDeleted = saved;
+  _lastDeleted = { kind: "expense", ...saved, undo: undoDeleteExpense };
   m.expenses.splice(idx, 1);
   renderStats(m);
   renderExpenses(m);
@@ -304,6 +328,74 @@ async function undoDeleteExpense() {
   }
 }
 
+// Arms a 4s undo window shared by the Category/Preset/Recurring delete
+// flows below — mirrors deleteExpense's "fire the delete immediately, undo
+// means re-creating it" pattern via the same toast/button as expense delete.
+function _armUndo(kind, message, data, undoFn) {
+  if (_undoTimer) clearTimeout(_undoTimer);
+  _lastDeleted = { kind, ...data, undo: undoFn };
+  showUndoToast(message);
+  _undoTimer = setTimeout(() => {
+    _undoTimer = null;
+    _lastDeleted = null;
+    hideUndoToast();
+  }, 4000);
+}
+
+async function undoDeleteCategory() {
+  if (!_lastDeleted || _lastDeleted.kind !== "category") return;
+  clearTimeout(_undoTimer);
+  _undoTimer = null;
+  const { name, wasSelected } = _lastDeleted;
+  _lastDeleted = null;
+  hideUndoToast();
+
+  const result = await dbAddCategory(name);
+  if (!result.ok) {
+    showBanner("login-error", "Could not restore category. Try again.");
+    return;
+  }
+  state.categories.push(result.data);
+  if (wasSelected) _selectedCategoryId = result.data.id;
+  renderCategoryPicker();
+  renderCategorySettingsList();
+}
+
+async function undoDeletePreset() {
+  if (!_lastDeleted || _lastDeleted.kind !== "preset") return;
+  clearTimeout(_undoTimer);
+  _undoTimer = null;
+  const { desc, amount } = _lastDeleted;
+  _lastDeleted = null;
+  hideUndoToast();
+
+  const result = await dbAddPreset(desc, amount);
+  if (!result.ok) {
+    showBanner("login-error", "Could not restore preset. Try again.");
+    return;
+  }
+  state.presets.push(result.data);
+  renderPresetList();
+  renderPresetStrip();
+}
+
+async function undoDeleteRecurring() {
+  if (!_lastDeleted || _lastDeleted.kind !== "recurring") return;
+  clearTimeout(_undoTimer);
+  _undoTimer = null;
+  const { desc, amount } = _lastDeleted;
+  _lastDeleted = null;
+  hideUndoToast();
+
+  const result = await dbAddRecurring(desc, amount);
+  if (!result.ok) {
+    showBanner("login-error", "Could not restore recurring expense. Try again.");
+    return;
+  }
+  state.recurring.push(result.data);
+  renderRecurringList();
+}
+
 // Register delete callback so ui.js can call it without importing app.js
 registerDeleteExpenseCb(deleteExpense);
 
@@ -356,7 +448,9 @@ const expDateInput = document.getElementById("exp-date");
 const btnAddExpense = document.getElementById("btn-add-expense");
 
 // -- UNDO TOAST
-document.getElementById("btn-undo-delete").addEventListener("click", undoDeleteExpense);
+document.getElementById("btn-undo-delete").addEventListener("click", () => {
+  if (_lastDeleted && typeof _lastDeleted.undo === "function") _lastDeleted.undo();
+});
 
 // -- THEME (preview on change; only persists on Settings Save)
 document.getElementById("theme-select").addEventListener("change", (e) => {
@@ -410,7 +504,8 @@ pickerOverlay.addEventListener("click", (e) => {
 
 document
   .getElementById("btn-pick-confirm")
-  .addEventListener("click", async () => {
+  .addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
     const m = parseInt(pickMonthSel.value, 10);
     const y = parseInt(pickYearSel.value, 10);
     const name = MONTH_NAMES[m] + " " + y;
@@ -419,32 +514,39 @@ document
       if (el) el.textContent = name + " already exists.";
       return;
     }
-    const result = await dbAddMonth(y, m + 1, name, () =>
-      handleSessionInvalid("SESSION_INVALID"),
-    );
-    if (!result) return; // null = no session (onAuthError already called)
-    if (!result.ok) {
-      const el = document.getElementById("pick-error");
-      if (el) el.textContent = result.message;
-      return;
-    }
-    state.months.push({
-      id: result.data,
-      name,
-      year: y,
-      month: m,
-      budget: null,
-      expenses: [],
-    });
-    sortMonths();
-    closeMonthPicker();
-    renderHistory();
-    updateAchievementsBadge();
-    openMonth(result.data);
-    renderPresetStrip();
-    renderCategoryPicker();
-    if (state.recurring.length > 0) {
-      _openRecurringModal(result.data, { year: y, month: m }, state.recurring);
+    btn.classList.add("btn--loading");
+    btn.disabled = true;
+    try {
+      const result = await dbAddMonth(y, m + 1, name, () =>
+        handleSessionInvalid("SESSION_INVALID"),
+      );
+      if (!result) return; // null = no session (onAuthError already called)
+      if (!result.ok) {
+        const el = document.getElementById("pick-error");
+        if (el) el.textContent = result.message;
+        return;
+      }
+      state.months.push({
+        id: result.data,
+        name,
+        year: y,
+        month: m,
+        budget: null,
+        expenses: [],
+      });
+      sortMonths();
+      closeMonthPicker();
+      renderHistory();
+      updateAchievementsBadge();
+      openMonth(result.data);
+      renderPresetStrip();
+      renderCategoryPicker();
+      if (state.recurring.length > 0) {
+        _openRecurringModal(result.data, { year: y, month: m }, state.recurring);
+      }
+    } finally {
+      btn.classList.remove("btn--loading");
+      btn.disabled = false;
     }
   });
 
@@ -633,10 +735,12 @@ function renderCategorySettingsList() {
           if (errEl) errEl.textContent = result.message;
           return;
         }
+        const wasSelected = _selectedCategoryId === cat.id;
         state.categories = state.categories.filter((c) => c.id !== cat.id);
-        if (_selectedCategoryId === cat.id) _selectedCategoryId = null;
+        if (wasSelected) _selectedCategoryId = null;
         renderCategorySettingsList();
         renderCategoryPicker();
+        _armUndo("category", "Category deleted", { name: cat.name, wasSelected }, undoDeleteCategory);
       });
     }
     row.appendChild(label);
@@ -648,7 +752,7 @@ function renderCategorySettingsList() {
 // -- SHARED CATEGORY ADD HELPER
 // Validates name, checks for duplicates, persists to DB, updates state,
 // and re-renders both pickers. Calls onSuccess(newCategory) on success.
-async function _addCategory(name, errElId, onSuccess) {
+async function _addCategory(name, errElId, onSuccess, btn) {
   const errEl = document.getElementById(errElId);
   if (!name) {
     if (errEl) errEl.textContent = "Enter a category name.";
@@ -659,18 +763,23 @@ async function _addCategory(name, errElId, onSuccess) {
     return;
   }
   if (errEl) errEl.textContent = "";
-  const result = await dbAddCategory(name);
-  if (!result.ok) {
-    if (errEl) errEl.textContent = result.message;
-    return;
+  if (btn) { btn.classList.add("btn--loading"); btn.disabled = true; }
+  try {
+    const result = await dbAddCategory(name);
+    if (!result.ok) {
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    state.categories.push(result.data);
+    renderCategoryPicker();
+    renderCategorySettingsList();
+    if (onSuccess) onSuccess(result.data);
+  } finally {
+    if (btn) { btn.classList.remove("btn--loading"); btn.disabled = false; }
   }
-  state.categories.push(result.data);
-  renderCategoryPicker();
-  renderCategorySettingsList();
-  if (onSuccess) onSuccess(result.data);
 }
 
-document.getElementById("btn-category-new-confirm").addEventListener("click", async () => {
+document.getElementById("btn-category-new-confirm").addEventListener("click", async (e) => {
   const input = document.getElementById("category-new-input");
   const name = input.value.trim();
   await _addCategory(name, "err-category-inline", (newCat) => {
@@ -678,7 +787,7 @@ document.getElementById("btn-category-new-confirm").addEventListener("click", as
     input.value = "";
     document.getElementById("category-inline-add")?.classList.add("hidden");
     document.getElementById("category-picker")?.classList.remove("hidden");
-  });
+  }, e.currentTarget);
 });
 
 document.getElementById("btn-category-new-cancel").addEventListener("click", () => {
@@ -689,12 +798,12 @@ document.getElementById("btn-category-new-cancel").addEventListener("click", () 
   document.getElementById("category-picker")?.classList.remove("hidden");
 });
 
-document.getElementById("btn-add-category-settings").addEventListener("click", async () => {
+document.getElementById("btn-add-category-settings").addEventListener("click", async (e) => {
   const input = document.getElementById("category-settings-input");
   const name = input.value.trim();
   await _addCategory(name, "err-category-settings", () => {
     input.value = "";
-  });
+  }, e.currentTarget);
 });
 
 // -- RECURRING
@@ -738,7 +847,9 @@ function renderRecurringList() {
         if (liveIdx === -1) state.recurring.splice(idx, 0, saved);
         renderRecurringList();
         showBanner("login-error", result.message);
+        return;
       }
+      _armUndo("recurring", "Recurring expense deleted", { desc: saved.desc, amount: saved.amount }, undoDeleteRecurring);
     });
     row.appendChild(label);
     row.appendChild(amount);
@@ -747,7 +858,8 @@ function renderRecurringList() {
   });
 }
 
-document.getElementById("btn-add-recurring").addEventListener("click", async () => {
+document.getElementById("btn-add-recurring").addEventListener("click", async (e) => {
+  const btn      = e.currentTarget;
   const descEl   = document.getElementById("recurring-desc-input");
   const amountEl = document.getElementById("recurring-amount-input");
   const errEl    = document.getElementById("err-recurring");
@@ -758,28 +870,35 @@ document.getElementById("btn-add-recurring").addEventListener("click", async () 
     return;
   }
   if (errEl) errEl.textContent = "";
-  const tmpId = `tmp-${crypto.randomUUID()}`;
-  state.recurring.push({ id: tmpId, desc, amount });
-  descEl.value = "";
-  amountEl.value = "";
-  renderRecurringList();
-  const result = await dbAddRecurring(desc, amount);
-  if (!result.ok) {
-    // Re-resolve by id — state may have been refreshed by realtime
-    const liveIdx = state.recurring.findIndex((x) => x.id === tmpId);
-    if (liveIdx !== -1) state.recurring.splice(liveIdx, 1);
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+  try {
+    const tmpId = `tmp-${crypto.randomUUID()}`;
+    state.recurring.push({ id: tmpId, desc, amount });
+    descEl.value = "";
+    amountEl.value = "";
     renderRecurringList();
-    if (errEl) errEl.textContent = result.message;
-    return;
+    const result = await dbAddRecurring(desc, amount);
+    if (!result.ok) {
+      // Re-resolve by id — state may have been refreshed by realtime
+      const liveIdx = state.recurring.findIndex((x) => x.id === tmpId);
+      if (liveIdx !== -1) state.recurring.splice(liveIdx, 1);
+      renderRecurringList();
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    // Replace tmp id with real db id
+    const liveItem = state.recurring.find((x) => x.id === tmpId);
+    if (liveItem) {
+      liveItem.id = result.data.id;
+      liveItem.desc = result.data.desc;
+      liveItem.amount = result.data.amount;
+    }
+    renderRecurringList();
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
   }
-  // Replace tmp id with real db id
-  const liveItem = state.recurring.find((x) => x.id === tmpId);
-  if (liveItem) {
-    liveItem.id = result.data.id;
-    liveItem.desc = result.data.desc;
-    liveItem.amount = result.data.amount;
-  }
-  renderRecurringList();
 });
 
 function _openRecurringModal(monthId, monthObj, items) {
@@ -816,9 +935,10 @@ function _openRecurringModal(monthId, monthObj, items) {
     checklist.appendChild(row);
   });
 
-  overlay._monthId     = monthId;
-  overlay._expenseDate = expenseDate;
-  overlay._items       = items;
+  overlay._monthId      = monthId;
+  overlay._expenseDate  = expenseDate;
+  overlay._items        = items;
+  overlay._committedIds = new Set(); // tracks rows already added, across retries
 
   overlay.classList.remove("hidden");
 }
@@ -844,15 +964,22 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
   const monthId     = overlay._monthId;
   const expenseDate = overlay._expenseDate;
   const items       = overlay._items;
+  if (!overlay._committedIds) overlay._committedIds = new Set();
+  const committedIds = overlay._committedIds;
 
-  const checked = [];
+  // Skip rows already committed in a previous attempt so retrying after a
+  // partial failure doesn't resubmit (and duplicate) them.
+  const pending = [];
   const rows = checklist.querySelectorAll(".recurring-check-row");
   rows.forEach((row, i) => {
     const cb = row.querySelector('input[type="checkbox"]');
-    if (cb && cb.checked && items[i]) checked.push(items[i]);
+    const item = items[i];
+    if (cb && cb.checked && item && !committedIds.has(item.id)) {
+      pending.push({ item, cb, row });
+    }
   });
 
-  if (checked.length === 0) {
+  if (pending.length === 0) {
     overlay.classList.add("hidden");
     return;
   }
@@ -862,7 +989,7 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
   if (errEl) errEl.textContent = "";
 
   try {
-    for (const item of checked) {
+    for (const { item, cb, row } of pending) {
       const result = await dbAddExpense(
         monthId,
         item.desc,
@@ -876,6 +1003,9 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
         if (m) { renderStats(m); renderExpenses(m); }
         return;
       }
+      committedIds.add(item.id);
+      cb.disabled = true;
+      row.style.opacity = "0.5";
       const m = getActiveMonth();
       if (m) {
         m.expenses.push({
@@ -965,7 +1095,9 @@ function renderPresetList() {
         renderPresetList();
         renderPresetStrip();
         showBanner("login-error", result.message);
+        return;
       }
+      _armUndo("preset", "Preset deleted", { desc: saved.desc, amount: saved.amount }, undoDeletePreset);
     });
     row.appendChild(label);
     row.appendChild(amount);
@@ -974,7 +1106,8 @@ function renderPresetList() {
   });
 }
 
-document.getElementById("btn-add-preset").addEventListener("click", async () => {
+document.getElementById("btn-add-preset").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
   const descEl = document.getElementById("preset-desc-input");
   const amountEl = document.getElementById("preset-amount-input");
   const errEl = document.getElementById("err-preset");
@@ -985,29 +1118,36 @@ document.getElementById("btn-add-preset").addEventListener("click", async () => 
     return;
   }
   if (errEl) errEl.textContent = "";
-  const tmpId = `tmp-${crypto.randomUUID()}`;
-  state.presets.push({ id: tmpId, desc, amount });
-  descEl.value = "";
-  amountEl.value = "";
-  renderPresetList();
-  renderPresetStrip();
-  const result = await dbAddPreset(desc, amount);
-  if (!result.ok) {
-    const liveIdx = state.presets.findIndex((x) => x.id === tmpId);
-    if (liveIdx !== -1) state.presets.splice(liveIdx, 1);
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+  try {
+    const tmpId = `tmp-${crypto.randomUUID()}`;
+    state.presets.push({ id: tmpId, desc, amount });
+    descEl.value = "";
+    amountEl.value = "";
     renderPresetList();
     renderPresetStrip();
-    if (errEl) errEl.textContent = result.message;
-    return;
+    const result = await dbAddPreset(desc, amount);
+    if (!result.ok) {
+      const liveIdx = state.presets.findIndex((x) => x.id === tmpId);
+      if (liveIdx !== -1) state.presets.splice(liveIdx, 1);
+      renderPresetList();
+      renderPresetStrip();
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    const liveItem = state.presets.find((x) => x.id === tmpId);
+    if (liveItem) {
+      liveItem.id = result.data.id;
+      liveItem.desc = result.data.desc;
+      liveItem.amount = result.data.amount;
+    }
+    renderPresetList();
+    renderPresetStrip();
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
   }
-  const liveItem = state.presets.find((x) => x.id === tmpId);
-  if (liveItem) {
-    liveItem.id = result.data.id;
-    liveItem.desc = result.data.desc;
-    liveItem.amount = result.data.amount;
-  }
-  renderPresetList();
-  renderPresetStrip();
 });
 
 // -- NAVIGATION
@@ -1101,7 +1241,10 @@ valInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") addExpense();
 });
 
+let _addExpenseInFlight = false;
+
 async function addExpense() {
+  if (_addExpenseInFlight) return; // guards the Enter-key path too, not just the button
   const m = getActiveMonth();
   if (!m) return;
   const desc = descInput.value.trim();
@@ -1137,43 +1280,52 @@ async function addExpense() {
   }
   if (!valid) return;
 
-  // Optimistic: push with tmp id, render and clear form immediately
-  const tmpId = `tmp-${crypto.randomUUID()}`;
-  const optimisticExpense = { id: tmpId, desc, val: Math.round(val * 100), date: dateVal, createdAt: null, categoryId: _selectedCategoryId };
-  m.expenses.push(optimisticExpense);
-  renderStats(m);
-  renderExpenses(m);
-  descInput.value = "";
-  valInput.value = "";
-  descInput.focus();
+  _addExpenseInFlight = true;
+  btnAddExpense.classList.add("btn--loading");
+  btnAddExpense.disabled = true;
+  try {
+    // Optimistic: push with tmp id, render and clear form immediately
+    const tmpId = `tmp-${crypto.randomUUID()}`;
+    const optimisticExpense = { id: tmpId, desc, val: Math.round(val * 100), date: dateVal, createdAt: null, categoryId: _selectedCategoryId };
+    m.expenses.push(optimisticExpense);
+    renderStats(m);
+    renderExpenses(m);
+    descInput.value = "";
+    valInput.value = "";
+    descInput.focus();
 
-  const monthId = m.id;
-  const result = await dbAddExpense(monthId, desc, val, dateVal, _selectedCategoryId);
-  // Re-resolve after the await — state.months may have been replaced by a
-  // realtime refresh while dbAddExpense was in flight.
-  const liveM = state.months.find((x) => x.id === monthId);
+    const monthId = m.id;
+    const result = await dbAddExpense(monthId, desc, val, dateVal, _selectedCategoryId);
+    // Re-resolve after the await — state.months may have been replaced by a
+    // realtime refresh while dbAddExpense was in flight.
+    const liveM = state.months.find((x) => x.id === monthId);
 
-  if (!result.ok) {
-    // Rollback: remove the optimistic expense
+    if (!result.ok) {
+      // Rollback: remove the optimistic expense
+      if (liveM) {
+        const tmpIdx = liveM.expenses.findIndex((e) => e.id === tmpId);
+        if (tmpIdx !== -1) liveM.expenses.splice(tmpIdx, 1);
+        renderStats(liveM);
+        renderExpenses(liveM);
+      }
+      showBanner("login-error", result.message);
+      return;
+    }
+    // Success: replace tmp id with real row data
     if (liveM) {
-      const tmpIdx = liveM.expenses.findIndex((e) => e.id === tmpId);
-      if (tmpIdx !== -1) liveM.expenses.splice(tmpIdx, 1);
-      renderStats(liveM);
-      renderExpenses(liveM);
+      const saved = liveM.expenses.find((e) => e.id === tmpId);
+      if (saved) {
+        saved.id = result.data.id;
+        saved.createdAt = result.data.created_at;
+      }
     }
-    showBanner("login-error", result.message);
-    return;
+    _selectedCategoryId = null;
+    renderCategoryPicker();
+  } finally {
+    _addExpenseInFlight = false;
+    btnAddExpense.classList.remove("btn--loading");
+    btnAddExpense.disabled = false;
   }
-  // Success: replace tmp id with real row data
-  if (liveM) {
-    const saved = liveM.expenses.find((e) => e.id === tmpId);
-    if (saved) {
-      saved.id = result.data.id;
-      saved.createdAt = result.data.created_at;
-    }
-  }
-  _selectedCategoryId = null;
-  renderCategoryPicker();
 }
 
 // -- EXPENSE EDIT MODAL
@@ -1246,22 +1398,26 @@ document
       dbUpdateExpense(exp.id, newDesc, newVal, newDate),
       dbUpdateExpenseCategory(exp.id, _editSelectedCategoryId),
     ]);
-    const result = descResult.ok ? catResult : descResult;
-    if (!result.ok) {
-      // Rollback — re-resolve both month and expense after the await
+    if (!descResult.ok || !catResult.ok) {
+      // Rollback only the field group(s) whose write actually failed — the
+      // other write already succeeded server-side and shouldn't be undone.
       const liveM = state.months.find((x) => x.id === monthId);
       const liveExp = liveM && liveM.expenses.find((e) => e.id === expId);
       if (liveExp) {
-        liveExp.desc = prevDesc;
-        liveExp.val = prevVal;
-        liveExp.date = prevDate;
-        liveExp.categoryId = prevCatId;
+        if (!descResult.ok) {
+          liveExp.desc = prevDesc;
+          liveExp.val = prevVal;
+          liveExp.date = prevDate;
+        }
+        if (!catResult.ok) {
+          liveExp.categoryId = prevCatId;
+        }
       }
       if (liveM) {
         renderStats(liveM);
         renderExpenses(liveM);
       }
-      showBanner("login-error", result.message);
+      showBanner("login-error", !descResult.ok ? descResult.message : catResult.message);
     }
   });
 
@@ -1449,7 +1605,7 @@ document
         if (!cp) { showFieldError(cpEl, "err-current-pass", "Current password is required."); return; }
         if (np !== cf) { showFieldError(cfEl, "err-confirm-pass", "Passwords do not match."); return; }
         if (np.length < 8) { showFieldError(npEl, "err-new-pass", "Minimum 8 characters."); return; }
-        const r = await dbUpdatePassword(np);
+        const r = await dbUpdatePassword(cp, np);
         if (!r.ok) { showFieldError(cpEl, "err-current-pass", r.message); return; }
         [cpEl, npEl, cfEl].forEach((el) => { el.value = ""; el.classList.remove("is-invalid"); });
         ["err-current-pass", "err-new-pass", "err-confirm-pass"].forEach((id) => {

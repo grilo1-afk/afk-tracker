@@ -426,6 +426,20 @@ button.btn-danger.btn--loading::after {
   }
 }
 
+/* ── GLOBAL DISABLED STATE ── */
+/* Excludes .btn--loading, which already has its own spinner treatment above. */
+button:disabled:not(.btn--loading) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Top-of-screen error banner */
 .error-banner {
   background: rgba(224, 82, 82, 0.12);
@@ -586,6 +600,9 @@ button.btn-danger.btn--loading::after {
 }
 .badge-current {
   display: none; /* replaced by .month-card--current left-border accent */
+}
+.month-card--current {
+  border-left: 3px solid var(--gold);
 }
 .empty-history {
   text-align: center;
@@ -935,6 +952,15 @@ button.btn-danger.btn--loading::after {
   letter-spacing: 0.5px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+/* .btn-exp-action's compact sizing is meant for secondary controls; when it's
+   combined with .btn-primary-action (e.g. #btn-add-expense) the higher-
+   specificity compound selector below wins regardless of declaration order,
+   so the primary CTA keeps its full-size button treatment. */
+.btn-exp-action.btn-primary-action {
+  height: auto;
+  min-height: 44px;
+  font-size: 15px;
 }
 table {
   width: 100%;
@@ -1949,10 +1975,6 @@ td.action-col {
   }
   .month-card-name {
     font-size: 13px;
-  }
-  /* .badge-current is shown on mobile via a left-border accent instead */
-  .month-card--current {
-    border-left: 3px solid var(--gold);
   }
   .category-col {
     display: none;

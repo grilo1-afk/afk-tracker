@@ -86,8 +86,40 @@ export function clearFieldError(inputEl, spanId) {
 }
 
 export function parseMoneyInput(rawValue) {
-  const normalized = String(rawValue).trim().replace(",", ".");
-  const val = parseFloat(normalized);
+  const trimmed = String(rawValue).trim();
+  if (!trimmed) return NaN;
+
+  const negative = trimmed.charAt(0) === "-";
+  const digits = trimmed.replace(/[^0-9.,]/g, "");
+
+  const lastDot = digits.lastIndexOf(".");
+  const lastComma = digits.lastIndexOf(",");
+
+  // Decide which of '.'/',' (if any) is the decimal separator, so
+  // "1,234.56" (US) and "1.234,56" (BR) both resolve to 1234.56 instead of
+  // one separator blindly overwriting the other and truncating the value.
+  let decimalSep = null;
+  if (lastDot !== -1 && lastComma !== -1) {
+    decimalSep = lastDot > lastComma ? "." : ",";
+  } else if (lastDot !== -1 || lastComma !== -1) {
+    const sep = lastDot !== -1 ? "." : ",";
+    const sepCount = digits.split(sep).length - 1;
+    const digitsAfterLast = digits.length - digits.lastIndexOf(sep) - 1;
+    // A single separator followed by exactly 3 digits reads as a thousands
+    // group ("1,234" / "1.234"), not a decimal point.
+    const isThousandsGroup = sepCount > 1 || digitsAfterLast === 3;
+    decimalSep = isThousandsGroup ? null : sep;
+  }
+
+  let normalized;
+  if (decimalSep) {
+    const thousandsSep = decimalSep === "." ? "," : ".";
+    normalized = digits.split(thousandsSep).join("").replace(decimalSep, ".");
+  } else {
+    normalized = digits.replace(/[.,]/g, "");
+  }
+
+  const val = parseFloat((negative ? "-" : "") + normalized);
   return Number.isFinite(val) ? val : NaN;
 }
 
@@ -522,7 +554,16 @@ export function renderHistory() {
       var clickable = document.createElement('div');
       clickable.className = 'month-card-clickable month-card-info';
       clickable.dataset.id = m.id;
+      clickable.setAttribute('role', 'button');
+      clickable.setAttribute('tabindex', '0');
+      clickable.setAttribute('aria-label', 'Open ' + m.name);
       clickable.addEventListener('click', function() { openMonth(m.id); });
+      clickable.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          openMonth(m.id);
+        }
+      });
 
       var nameDiv = document.createElement('div');
       nameDiv.className = 'month-card-name';
