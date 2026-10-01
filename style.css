@@ -1929,11 +1929,12 @@ td.action-col {
 .achievement-popup-box {
   text-align: center;
   position: relative;
+  padding-top: 40px; /* clears the absolutely-positioned close button */
 }
 .achievement-popup-close-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
 }
 .achievement-popup-body {
   display: flex;
