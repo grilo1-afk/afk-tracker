@@ -86,6 +86,9 @@ import {
   renderStatsScreen,
   renderCharts,
   getAchievementCounts,
+  checkNewAchievements,
+  closeAchievementPopup,
+  resetAchievementPopup,
   registerOpenAchievementScreenCb,
   setChartPeriod,
   openManageScreen,
@@ -173,6 +176,11 @@ async function _handleRealtimeChange() {
     setCurrency(state.currency);
     writeLocalCache(state);
     sortMonths();
+
+    // Unconditional, unlike the per-screen renders below — an achievement
+    // earned via another device/session should still pop up even if the
+    // user isn't currently looking at the history screen.
+    updateAchievementsBadge();
 
     // Only re-render the screen that is currently visible to avoid disrupting
     // any in-progress form entry on other screens.
@@ -265,6 +273,7 @@ registerAuthCallbacks({
   renderHistory,
   renderWelcomeName,
   sortMonths,
+  resetAchievementPopup,
 });
 
 // Wire the achievements teaser click on the stats screen back to openAchievementScreen
@@ -279,6 +288,7 @@ function updateAchievementsBadge() {
   const { earned, total } = getAchievementCounts();
   const badge = document.getElementById("achievements-badge");
   if (badge) badge.textContent = earned + "/" + total;
+  checkNewAchievements();
 }
 
 // -- UNDO STATE
@@ -328,6 +338,7 @@ async function deleteExpense(expId) {
     return;
   }
 
+  updateAchievementsBadge();
   _undoTimer = setTimeout(() => {
     _undoTimer = null;
     _lastDeleted = null;
@@ -370,6 +381,7 @@ async function undoDeleteExpense() {
     renderStats(m);
     renderExpenses(m);
   }
+  updateAchievementsBadge();
 }
 
 // Arms a 4s undo window shared by the Category/Preset/Recurring delete
@@ -1019,6 +1031,13 @@ document.getElementById("recurring-modal-overlay").addEventListener("click", (e)
     document.getElementById("recurring-modal-overlay").classList.add("hidden");
 });
 
+// -- ACHIEVEMENT UNLOCKED POPUP
+document.getElementById("btn-achievement-popup-close").addEventListener("click", closeAchievementPopup);
+document.getElementById("btn-achievement-popup-ok").addEventListener("click", closeAchievementPopup);
+document.getElementById("achievement-popup-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("achievement-popup-overlay")) closeAchievementPopup();
+});
+
 document.getElementById("btn-recurring-add-selected").addEventListener("click", async () => {
   const overlay   = document.getElementById("recurring-modal-overlay");
   const checklist = document.getElementById("recurring-checklist");
@@ -1066,6 +1085,7 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
         if (errEl) errEl.textContent = `Failed to add "${item.desc}": ${result.message}`;
         const m = getActiveMonth();
         if (m) { renderStats(m); renderExpenses(m); }
+        updateAchievementsBadge(); // earlier items in this batch may have already committed
         return;
       }
       committedIds.add(item.id);
@@ -1086,6 +1106,7 @@ document.getElementById("btn-recurring-add-selected").addEventListener("click", 
     const m = getActiveMonth();
     if (m) { renderStats(m); renderExpenses(m); }
     overlay.classList.add("hidden");
+    updateAchievementsBadge();
   } finally {
     btn.classList.remove("btn--loading");
     btn.disabled = false;
@@ -1243,6 +1264,8 @@ btnSetBudget.addEventListener("click", async () => {
       renderExpenses(liveM);
     }
     _showAppError(result.message);
+  } else {
+    updateAchievementsBadge();
   }
 });
 
@@ -1366,6 +1389,7 @@ async function addExpense() {
     }
     _selectedCategoryId = null;
     renderCategoryPicker();
+    updateAchievementsBadge();
   } finally {
     _addExpenseInFlight = false;
     btnAddExpense.classList.remove("btn--loading");
@@ -1464,6 +1488,7 @@ document
       }
       _showAppError(!descResult.ok ? descResult.message : catResult.message);
     }
+    if (descResult.ok) updateAchievementsBadge();
   });
 
 // -- DELETE MONTH
@@ -1808,6 +1833,7 @@ async function _performLogout() {
     clearSession();
     setState({ displayName: null, months: [] });
     setActiveMonthId(null);
+    resetAchievementPopup();
     document.getElementById("username").value = "";
     document.getElementById("password").value = "";
     // Clear hash so the next login always starts at home

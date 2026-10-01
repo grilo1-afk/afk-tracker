@@ -448,6 +448,33 @@
       </div>
     </div>
 
+    <!-- ACHIEVEMENT UNLOCKED POPUP -->
+    <div id="achievement-popup-overlay" class="modal-overlay hidden">
+      <div class="modal-box achievement-popup-box" role="dialog" aria-modal="true" aria-labelledby="achievement-popup-title">
+        <div class="modal-header">
+          <h3>Achievement Unlocked!</h3>
+          <button
+            type="button"
+            id="btn-achievement-popup-close"
+            class="btn-icon modal-close-btn"
+            title="Close"
+            aria-label="Close"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="achievement-popup-body">
+          <img id="achievement-popup-icon" class="achievement-sticker achievement-popup-sticker" alt="" />
+          <div id="achievement-popup-title" class="achievement-title"></div>
+          <span id="achievement-popup-tier" class="achievement-tier"></span>
+          <div id="achievement-popup-desc" class="achievement-desc"></div>
+        </div>
+        <div class="modal-actions" style="margin-top: 16px">
+          <button id="btn-achievement-popup-ok">Nice!</button>
+        </div>
+      </div>
+    </div>
+
     <!-- DELETE MONTH CONFIRMATION MODAL -->
     <div id="delete-month-overlay" class="modal-overlay hidden">
       <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-month-name">

@@ -11,6 +11,7 @@ import {
   getResolvedDisplayName,
   getMonthDateRange,
   CURRENCY_LOCALES,
+  getCurrentUserId,
 } from "./state.js";
 
 // -- SCREEN ROUTING
@@ -1162,6 +1163,104 @@ const ACHIEVEMENTS = [
     earned: (s) => s.months.some((m) => m.expenses.some((e) => e.val >= 10000)),
   },
 ];
+
+// -- ACHIEVEMENT UNLOCKED POPUP
+
+function _seenAchievementsKey() {
+  const uid = getCurrentUserId();
+  return uid ? `afk_seen_achievements:${uid}` : null;
+}
+
+function _readSeenAchievements() {
+  const key = _seenAchievementsKey();
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? new Set(JSON.parse(raw)) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _writeSeenAchievements(idSet) {
+  const key = _seenAchievementsKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify([...idSet]));
+  } catch (_) {
+    /* non-fatal */
+  }
+}
+
+let _achievementPopupQueue = [];
+let _achievementPopupShowing = false;
+
+// Diffs the currently-earned achievement set against what this user has
+// already been shown and, for anything new, enqueues a popup. On the very
+// first call for a user (no seen-set in localStorage yet) it seeds the seen
+// set from whatever is already earned instead of popping anything, so
+// shipping this feature doesn't retroactively surprise existing users with
+// every badge they already have.
+export function checkNewAchievements() {
+  const seen = _readSeenAchievements();
+  const earnedNow = ACHIEVEMENTS.filter((a) => a.earned(state));
+
+  if (seen === null) {
+    _writeSeenAchievements(new Set(earnedNow.map((a) => a.id)));
+    return;
+  }
+
+  const newlyEarned = earnedNow.filter((a) => !seen.has(a.id));
+  if (newlyEarned.length === 0) return;
+
+  for (const a of newlyEarned) seen.add(a.id);
+  _writeSeenAchievements(seen);
+
+  _achievementPopupQueue.push(...newlyEarned);
+  _showNextAchievementPopup();
+}
+
+function _showNextAchievementPopup() {
+  if (_achievementPopupShowing) return;
+  const next = _achievementPopupQueue.shift();
+  if (!next) return;
+  _achievementPopupShowing = true;
+  _renderAchievementPopup(next);
+}
+
+function _renderAchievementPopup(a) {
+  const overlay = document.getElementById("achievement-popup-overlay");
+  if (!overlay) return;
+  const iconEl = document.getElementById("achievement-popup-icon");
+  const titleEl = document.getElementById("achievement-popup-title");
+  const tierEl = document.getElementById("achievement-popup-tier");
+  const descEl = document.getElementById("achievement-popup-desc");
+
+  iconEl.src = "images/achievement-icons/" + a.sticker;
+  iconEl.alt = a.title;
+  titleEl.textContent = a.title;
+  tierEl.textContent = a.tier;
+  tierEl.className = "achievement-tier achievement-tier--" + a.tier.toLowerCase();
+  descEl.textContent = typeof a.desc === "function" ? a.desc() : a.desc;
+
+  overlay.classList.remove("hidden");
+}
+
+export function closeAchievementPopup() {
+  const overlay = document.getElementById("achievement-popup-overlay");
+  if (overlay) overlay.classList.add("hidden");
+  _achievementPopupShowing = false;
+  _showNextAchievementPopup();
+}
+
+// Called on logout so a queued/visible popup from one account never bleeds
+// into the next account that logs in on the same device.
+export function resetAchievementPopup() {
+  _achievementPopupQueue = [];
+  _achievementPopupShowing = false;
+  const overlay = document.getElementById("achievement-popup-overlay");
+  if (overlay) overlay.classList.add("hidden");
+}
 
 function _buildAchievementCard(a, isEarned) {
   const card = document.createElement("div");

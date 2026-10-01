@@ -17,6 +17,7 @@ let _showBanner = null;
 let _renderHistory = null;
 let _renderWelcomeName = null;
 let _sortMonths = null;
+let _resetAchievementPopup = null;
 
 export function registerAuthCallbacks({
   showScreen,
@@ -24,12 +25,14 @@ export function registerAuthCallbacks({
   renderHistory,
   renderWelcomeName,
   sortMonths,
+  resetAchievementPopup,
 }) {
   _showScreen = showScreen;
   _showBanner = showBanner;
   _renderHistory = renderHistory;
   _renderWelcomeName = renderWelcomeName;
   _sortMonths = sortMonths;
+  _resetAchievementPopup = resetAchievementPopup;
 }
 
 export function handleSessionInvalid(errorCode) {
@@ -37,6 +40,7 @@ export function handleSessionInvalid(errorCode) {
   setCurrentUserId(null);
   setState({ displayName: null, months: [] });
   setActiveMonthId(null);
+  _resetAchievementPopup && _resetAchievementPopup();
   document.getElementById("username").value = "";
   document.getElementById("password").value = "";
   _showScreen && _showScreen("login");
