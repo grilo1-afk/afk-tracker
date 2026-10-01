@@ -1230,14 +1230,30 @@ let _achievementPopupShowing = false;
 // set from whatever is already earned instead of popping anything, so
 // shipping this feature doesn't retroactively surprise existing users with
 // every badge they already have.
+//
+// Also prunes the seen-set: if an achievement was previously seen but is no
+// longer earned (e.g. the user deleted the qualifying month), it is removed
+// from the seen-set so the popup can fire again if that achievement is
+// re-earned later.
 export function checkNewAchievements() {
   const seen = _readSeenAchievements();
   const earnedNow = ACHIEVEMENTS.filter((a) => a.earned(state));
+  const earnedNowIds = new Set(earnedNow.map((a) => a.id));
 
   if (seen === null) {
-    _writeSeenAchievements(new Set(earnedNow.map((a) => a.id)));
+    _writeSeenAchievements(earnedNowIds);
     return;
   }
+
+  // Prune: remove any seen id that is no longer earned so it can re-fire
+  let pruned = false;
+  for (const id of seen) {
+    if (!earnedNowIds.has(id)) {
+      seen.delete(id);
+      pruned = true;
+    }
+  }
+  if (pruned) _writeSeenAchievements(seen);
 
   const newlyEarned = earnedNow.filter((a) => !seen.has(a.id));
   if (newlyEarned.length === 0) return;
