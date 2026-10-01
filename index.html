@@ -451,18 +451,16 @@
     <!-- ACHIEVEMENT UNLOCKED POPUP -->
     <div id="achievement-popup-overlay" class="modal-overlay hidden">
       <div class="modal-box achievement-popup-box" role="dialog" aria-modal="true" aria-labelledby="achievement-popup-title">
-        <div class="modal-header">
-          <h3>Achievement Unlocked!</h3>
-          <button
-            type="button"
-            id="btn-achievement-popup-close"
-            class="btn-icon modal-close-btn"
-            title="Close"
-            aria-label="Close"
-          >
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          id="btn-achievement-popup-close"
+          class="btn-icon achievement-popup-close-btn"
+          title="Close"
+          aria-label="Close"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <h3 style="margin-bottom: 16px;">Achievement Unlocked!</h3>
         <div class="achievement-popup-body">
           <img id="achievement-popup-icon" class="achievement-sticker achievement-popup-sticker" alt="" />
           <div id="achievement-popup-title" class="achievement-title"></div>

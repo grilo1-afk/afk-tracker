@@ -1045,6 +1045,8 @@ const ACHIEVEMENTS = [
     tier: "Silver",
     sticker: "10.png",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 10,
+    progress: (s) => Math.min(s.months.reduce((t, m) => t + m.expenses.length, 0), 10),
+    max: 10,
   },
   {
     id: "fifty_purchases",
@@ -1053,6 +1055,8 @@ const ACHIEVEMENTS = [
     tier: "Gold",
     sticker: "15.png",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 50,
+    progress: (s) => Math.min(s.months.reduce((t, m) => t + m.expenses.length, 0), 50),
+    max: 50,
   },
   {
     id: "hundred_purchases",
@@ -1061,6 +1065,8 @@ const ACHIEVEMENTS = [
     tier: "Legendary",
     sticker: "1.gif",
     earned: (s) => s.months.reduce((t, m) => t + m.expenses.length, 0) >= 100,
+    progress: (s) => Math.min(s.months.reduce((t, m) => t + m.expenses.length, 0), 100),
+    max: 100,
   },
   {
     id: "under_budget",
@@ -1087,6 +1093,13 @@ const ACHIEVEMENTS = [
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
     }).length >= 3,
+    progress: (s) => Math.min(s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length, 3),
+    max: 3,
   },
   {
     id: "six_under_budget",
@@ -1100,6 +1113,13 @@ const ACHIEVEMENTS = [
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
     }).length >= 6,
+    progress: (s) => Math.min(s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length, 6),
+    max: 6,
   },
   {
     id: "twelve_under_budget",
@@ -1113,6 +1133,13 @@ const ACHIEVEMENTS = [
       const spent = m.expenses.reduce((t, e) => t + e.val, 0);
       return spent <= m.budget;
     }).length >= 12,
+    progress: (s) => Math.min(s.months.filter((m) => {
+      if (!_isPastMonth(m)) return false;
+      if (m.budget === null || m.budget <= 0) return false;
+      const spent = m.expenses.reduce((t, e) => t + e.val, 0);
+      return spent <= m.budget;
+    }).length, 12),
+    max: 12,
   },
   {
     id: "zero_spend_month",
@@ -1129,6 +1156,8 @@ const ACHIEVEMENTS = [
     tier: "Legendary",
     sticker: "3.gif",
     earned: (s) => s.months.filter((m) => _isPastMonth(m) && m.budget !== null && m.budget > 0 && m.expenses.length === 0).length >= 6,
+    progress: (s) => Math.min(s.months.filter((m) => _isPastMonth(m) && m.budget !== null && m.budget > 0 && m.expenses.length === 0).length, 6),
+    max: 6,
   },
   {
     id: "small_spender",
@@ -1291,6 +1320,32 @@ function _buildAchievementCard(a, isEarned) {
   info.appendChild(titleEl);
   info.appendChild(tierEl);
   info.appendChild(descEl);
+
+  // Progress tracker for counter-based achievements (only shown when not yet earned)
+  if (!isEarned && a.progress && a.max) {
+    const current = a.progress(state);
+    const pct = Math.round((current / a.max) * 100);
+
+    const progressWrap = document.createElement("div");
+    progressWrap.className = "ach-card-progress-wrap";
+
+    const progressLabel = document.createElement("div");
+    progressLabel.className = "ach-card-progress-label";
+    progressLabel.textContent = current + " / " + a.max;
+
+    const barTrack = document.createElement("div");
+    barTrack.className = "ach-card-progress-track";
+
+    const barFill = document.createElement("div");
+    barFill.className = "ach-card-progress-fill";
+    barFill.style.width = pct + "%";
+
+    barTrack.appendChild(barFill);
+    progressWrap.appendChild(progressLabel);
+    progressWrap.appendChild(barTrack);
+    info.appendChild(progressWrap);
+  }
+
   card.appendChild(info);
 
   return card;
