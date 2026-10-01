@@ -10,6 +10,7 @@ import {
   getLocalISODate,
   getResolvedDisplayName,
   getMonthDateRange,
+  CURRENCY_LOCALES,
 } from "./state.js";
 
 // -- SCREEN ROUTING
@@ -302,7 +303,7 @@ var _chartPeriod = 12; // 6 | 12 | 'all'
 // Values >= $1000 are abbreviated with 'k' (e.g. $1.2k, $12k).
 function _shortFmt(cents) {
   var currency = state.currency || 'USD';
-  var locale = { BRL: 'pt-BR', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP', CAD: 'en-CA', AUD: 'en-AU', MXN: 'es-MX' }[currency] || 'en-US';
+  var locale = CURRENCY_LOCALES[currency] || 'en-US';
   var dollars = cents / 100;
   if (cents >= 100000) {
     var k = dollars / 1000;
@@ -634,6 +635,24 @@ var displayPurchaseCount = document.getElementById('display-purchase-count');
 var displayAvgPurchase = document.getElementById('display-avg-purchase');
 var displayMaxPurchase = document.getElementById('display-max-purchase');
 
+// Toggles the budget-setup-box / stats / add-expense sections based on
+// whether the month's budget is set. Shared by openMonth() (initial load)
+// and the realtime refresh handler in app.js, which used to skip this check
+// entirely — leaving a stale budget-setup prompt visible after a budget was
+// set from another session.
+export function syncBudgetSetupVisibility(m) {
+  if (m.budget === null) {
+    budgetSetupBox.classList.remove('hidden');
+    statsSection.classList.add('hidden');
+    addExpenseSection.classList.add('hidden');
+    if (statsSecondary) statsSecondary.classList.add('hidden');
+  } else {
+    budgetSetupBox.classList.add('hidden');
+    statsSection.classList.remove('hidden');
+    addExpenseSection.classList.remove('hidden');
+  }
+}
+
 export function openMonth(id) {
   setActiveMonthId(id);
   var m = getActiveMonth();
@@ -648,16 +667,10 @@ export function openMonth(id) {
   if (valEl) { valEl.value = ''; clearFieldError(valEl, 'err-exp-val'); }
   clearFieldError(expDateInput, 'err-exp-date');
 
+  syncBudgetSetupVisibility(m);
   if (m.budget === null) {
-    budgetSetupBox.classList.remove('hidden');
-    statsSection.classList.add('hidden');
-    addExpenseSection.classList.add('hidden');
-    if (statsSecondary) statsSecondary.classList.add('hidden');
     document.getElementById('budget-input').value = '';
   } else {
-    budgetSetupBox.classList.add('hidden');
-    statsSection.classList.remove('hidden');
-    addExpenseSection.classList.remove('hidden');
     var range = getMonthDateRange(m);
     expDateInput.min = range.minDate;
     expDateInput.max = range.maxDate;

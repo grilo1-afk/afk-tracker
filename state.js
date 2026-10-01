@@ -121,7 +121,7 @@ export function getLocalISODate() {
   return `${year}-${month}-${day}`;
 }
 
-const CURRENCY_LOCALES = {
+export const CURRENCY_LOCALES = {
   BRL: "pt-BR",
   EUR: "de-DE",
   GBP: "en-GB",
@@ -164,6 +164,12 @@ export function getCurrentMonthObj() {
   return state.months.find((m) => m.year === year && m.month === month) || null;
 }
 
+// Presets/recurring store dollars; expenses/months store cents. Converts the
+// former to the latter's integer-cents representation.
+export function dollarsToCents(dollars) {
+  return Math.round(parseFloat(dollars) * 100);
+}
+
 // -- DB ROW → UI STATE MAPPER
 // months.month in DB is 1-based; UI expects 0-based.
 // budget = null in DB means "not set yet"; 0 is a valid deliberate budget.
@@ -173,11 +179,11 @@ export function dbRowsToState(monthRows) {
     name: m.name,
     year: m.year,
     month: m.month - 1,
-    budget: m.budget !== null ? Math.round(parseFloat(m.budget) * 100) : null,
+    budget: m.budget !== null ? dollarsToCents(m.budget) : null,
     expenses: (m.expenses || []).map((e) => ({
       id: e.id,
       desc: e.description,
-      val: Math.round(parseFloat(e.amount) * 100),
+      val: dollarsToCents(e.amount),
       date: e.expense_date,
       createdAt: e.created_at,
       categoryId: e.category_id || null,

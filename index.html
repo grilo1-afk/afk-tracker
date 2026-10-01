@@ -272,7 +272,7 @@
           <div class="expense-form-row">
             <div class="exp-field exp-desc">
               <label for="desc">Description</label>
-              <input type="text" id="desc" placeholder="e.g. Premium Pass" aria-describedby="err-exp-desc" />
+              <input type="text" id="desc" placeholder="e.g. Premium Pass" aria-describedby="err-exp-desc" maxlength="200" />
               <span class="field-error" id="err-exp-desc"></span>
             </div>
             <div class="exp-field exp-amount">
@@ -405,6 +405,7 @@
             id="edit-exp-desc"
             placeholder="e.g. Premium Pass"
             aria-describedby="err-edit-exp-desc"
+            maxlength="200"
           />
           <span class="field-error" id="err-edit-exp-desc"></span>
         </div>
@@ -468,6 +469,11 @@
 
     <!-- SUCCESS TOAST (top-right, used for settings save confirmation) -->
     <div id="success-toast" class="success-toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- APP ERROR BANNER (top-centered, always in the DOM regardless of which
+         screen is active — unlike #login-error, which only renders while the
+         login screen itself is visible) -->
+    <div id="app-error-banner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="logout-confirm-overlay" class="modal-overlay hidden">

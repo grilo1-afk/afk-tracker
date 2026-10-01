@@ -19,6 +19,7 @@ import {
   isDateInMonth,
   getResolvedDisplayName,
   getMonthDateRange,
+  dollarsToCents,
 } from "./state.js";
 import {
   loadState,
@@ -90,6 +91,7 @@ import {
   openManageScreen,
   openSettingsScreen,
   renderAppHeader,
+  syncBudgetSetupVisibility,
 } from "./ui.js";
 
 // -- REALTIME SYNC
@@ -193,6 +195,18 @@ async function _handleRealtimeChange() {
       if (m) {
         renderStats(m);
         renderExpenses(m);
+        syncBudgetSetupVisibility(m);
+      } else if (activeMonthId) {
+        // The month that was open just got deleted from another session —
+        // leaving the stale expense list on screen would make every action
+        // on it (Add Expense, Set Budget, ...) a silent no-op.
+        setActiveMonthId(null);
+        pushHash("#home");
+        renderHistory();
+        updateAchievementsBadge();
+        showScreen("history");
+        setNavActive("home");
+        _showToast("This month was deleted", true);
       }
     }
   } catch (e) {
@@ -212,6 +226,36 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js");
   });
+}
+
+// Transient top-right toast (fixed position, fades in/out) for feedback that
+// isn't tied to a specific form field — success or error, `isError` swaps it
+// to the danger color scheme. Reuses the #success-toast element/animation
+// that used to be built inline just for the Settings-save confirmation.
+function _showToast(message, isError) {
+  const toast = document.getElementById("success-toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.toggle("toast--error", !!isError);
+  toast.classList.remove("hidden");
+  requestAnimationFrame(() => toast.classList.add("visible"));
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.classList.add("hidden"), 220);
+  }, 2500);
+}
+
+// Error feedback for every screen except the login screen itself — that one
+// keeps using showBanner("login-error", ...) via #login-error, which is
+// nested inside #login-screen and intentionally cleared by the next login
+// attempt, not a timeout. #app-error-banner lives outside every screen's DOM
+// subtree, so it stays visible no matter which screen the error happened on.
+let _appErrorBannerTimer = null;
+function _showAppError(message) {
+  showBanner("app-error-banner", message);
+  clearTimeout(_appErrorBannerTimer);
+  _appErrorBannerTimer = setTimeout(() => clearBanner("app-error-banner"), 5000);
 }
 
 // -- WIRE AUTH CALLBACKS (breaks circular dep)
@@ -280,7 +324,7 @@ async function deleteExpense(expId) {
     _undoTimer = null;
     _lastDeleted = null;
     hideUndoToast();
-    showBanner("login-error", result.message);
+    _showAppError(result.message);
     return;
   }
 
@@ -302,7 +346,7 @@ async function undoDeleteExpense() {
   // Expense is already gone from DB — undo means re-creating it
   const result = await dbAddExpense(monthId, expense.desc, expense.val / 100, expense.date, expense.categoryId || null);
   if (!result.ok) {
-    showBanner("login-error", "Could not restore expense. Try again.");
+    _showAppError("Could not restore expense. Try again.");
     return;
   }
 
@@ -352,7 +396,7 @@ async function undoDeleteCategory() {
 
   const result = await dbAddCategory(name);
   if (!result.ok) {
-    showBanner("login-error", "Could not restore category. Try again.");
+    _showAppError("Could not restore category. Try again.");
     return;
   }
   state.categories.push(result.data);
@@ -371,7 +415,7 @@ async function undoDeletePreset() {
 
   const result = await dbAddPreset(desc, amount);
   if (!result.ok) {
-    showBanner("login-error", "Could not restore preset. Try again.");
+    _showAppError("Could not restore preset. Try again.");
     return;
   }
   state.presets.push(result.data);
@@ -389,7 +433,7 @@ async function undoDeleteRecurring() {
 
   const result = await dbAddRecurring(desc, amount);
   if (!result.ok) {
-    showBanner("login-error", "Could not restore recurring expense. Try again.");
+    _showAppError("Could not restore recurring expense. Try again.");
     return;
   }
   state.recurring.push(result.data);
@@ -806,6 +850,53 @@ document.getElementById("btn-add-category-settings").addEventListener("click", a
   }, e.currentTarget);
 });
 
+// -- SHARED PRESET/RECURRING ADD HELPER
+// Presets and recurring items are added the same way: push an optimistic
+// tmp-id row, persist, then either resolve the tmp id to the real one or
+// roll back on failure. Only the target array/db-call/re-render differ.
+const _PRESET_RECURRING_KINDS = {
+  preset: {
+    items: () => state.presets,
+    add: dbAddPreset,
+    render: () => { renderPresetList(); renderPresetStrip(); },
+  },
+  recurring: {
+    items: () => state.recurring,
+    add: dbAddRecurring,
+    render: () => { renderRecurringList(); },
+  },
+};
+
+async function _addPresetOrRecurring(kind, desc, amount, errEl, btn) {
+  const cfg = _PRESET_RECURRING_KINDS[kind];
+  btn.classList.add("btn--loading");
+  btn.disabled = true;
+  try {
+    const tmpId = `tmp-${crypto.randomUUID()}`;
+    cfg.items().push({ id: tmpId, desc, amount });
+    cfg.render();
+    const result = await cfg.add(desc, amount);
+    if (!result.ok) {
+      const items = cfg.items();
+      const liveIdx = items.findIndex((x) => x.id === tmpId);
+      if (liveIdx !== -1) items.splice(liveIdx, 1);
+      cfg.render();
+      if (errEl) errEl.textContent = result.message;
+      return;
+    }
+    const liveItem = cfg.items().find((x) => x.id === tmpId);
+    if (liveItem) {
+      liveItem.id = result.data.id;
+      liveItem.desc = result.data.desc;
+      liveItem.amount = result.data.amount;
+    }
+    cfg.render();
+  } finally {
+    btn.classList.remove("btn--loading");
+    btn.disabled = false;
+  }
+}
+
 // -- RECURRING
 
 function renderRecurringList() {
@@ -828,7 +919,7 @@ function renderRecurringList() {
     label.textContent = item.desc;
     const amount = document.createElement("span");
     amount.className = "preset-row-amount";
-    amount.textContent = fmt(Math.round(parseFloat(item.amount) * 100));
+    amount.textContent = fmt(dollarsToCents(item.amount));
     const del = document.createElement("button");
     del.type = "button";
     del.className = "btn-danger btn-sm";
@@ -846,7 +937,7 @@ function renderRecurringList() {
         const liveIdx = state.recurring.findIndex((x) => x.id === itemId);
         if (liveIdx === -1) state.recurring.splice(idx, 0, saved);
         renderRecurringList();
-        showBanner("login-error", result.message);
+        _showAppError(result.message);
         return;
       }
       _armUndo("recurring", "Recurring expense deleted", { desc: saved.desc, amount: saved.amount }, undoDeleteRecurring);
@@ -870,35 +961,9 @@ document.getElementById("btn-add-recurring").addEventListener("click", async (e)
     return;
   }
   if (errEl) errEl.textContent = "";
-  btn.classList.add("btn--loading");
-  btn.disabled = true;
-  try {
-    const tmpId = `tmp-${crypto.randomUUID()}`;
-    state.recurring.push({ id: tmpId, desc, amount });
-    descEl.value = "";
-    amountEl.value = "";
-    renderRecurringList();
-    const result = await dbAddRecurring(desc, amount);
-    if (!result.ok) {
-      // Re-resolve by id — state may have been refreshed by realtime
-      const liveIdx = state.recurring.findIndex((x) => x.id === tmpId);
-      if (liveIdx !== -1) state.recurring.splice(liveIdx, 1);
-      renderRecurringList();
-      if (errEl) errEl.textContent = result.message;
-      return;
-    }
-    // Replace tmp id with real db id
-    const liveItem = state.recurring.find((x) => x.id === tmpId);
-    if (liveItem) {
-      liveItem.id = result.data.id;
-      liveItem.desc = result.data.desc;
-      liveItem.amount = result.data.amount;
-    }
-    renderRecurringList();
-  } finally {
-    btn.classList.remove("btn--loading");
-    btn.disabled = false;
-  }
+  descEl.value = "";
+  amountEl.value = "";
+  await _addPresetOrRecurring("recurring", desc, amount, errEl, btn);
 });
 
 function _openRecurringModal(monthId, monthObj, items) {
@@ -928,7 +993,7 @@ function _openRecurringModal(monthId, monthObj, items) {
     labelEl.textContent = item.desc;
     const amountEl = document.createElement("span");
     amountEl.className = "recurring-check-amount";
-    amountEl.textContent = fmt(Math.round(parseFloat(item.amount) * 100));
+    amountEl.textContent = fmt(dollarsToCents(item.amount));
     row.appendChild(checkbox);
     row.appendChild(labelEl);
     row.appendChild(amountEl);
@@ -1042,7 +1107,7 @@ function renderPresetStrip() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "preset-pill";
-    btn.textContent = `${p.desc}  ${fmt(Math.round(parseFloat(p.amount) * 100))}`;
+    btn.textContent = `${p.desc}  ${fmt(dollarsToCents(p.amount))}`;
     btn.addEventListener("click", () => {
       descInput.value = p.desc;
       valInput.value = parseFloat(p.amount).toFixed(2);
@@ -1075,7 +1140,7 @@ function renderPresetList() {
     label.textContent = p.desc;
     const amount = document.createElement("span");
     amount.className = "preset-row-amount";
-    amount.textContent = fmt(Math.round(parseFloat(p.amount) * 100));
+    amount.textContent = fmt(dollarsToCents(p.amount));
     const del = document.createElement("button");
     del.type = "button";
     del.className = "btn-danger btn-sm";
@@ -1094,7 +1159,7 @@ function renderPresetList() {
         if (liveIdx === -1) state.presets.splice(idx, 0, saved);
         renderPresetList();
         renderPresetStrip();
-        showBanner("login-error", result.message);
+        _showAppError(result.message);
         return;
       }
       _armUndo("preset", "Preset deleted", { desc: saved.desc, amount: saved.amount }, undoDeletePreset);
@@ -1118,36 +1183,9 @@ document.getElementById("btn-add-preset").addEventListener("click", async (e) =>
     return;
   }
   if (errEl) errEl.textContent = "";
-  btn.classList.add("btn--loading");
-  btn.disabled = true;
-  try {
-    const tmpId = `tmp-${crypto.randomUUID()}`;
-    state.presets.push({ id: tmpId, desc, amount });
-    descEl.value = "";
-    amountEl.value = "";
-    renderPresetList();
-    renderPresetStrip();
-    const result = await dbAddPreset(desc, amount);
-    if (!result.ok) {
-      const liveIdx = state.presets.findIndex((x) => x.id === tmpId);
-      if (liveIdx !== -1) state.presets.splice(liveIdx, 1);
-      renderPresetList();
-      renderPresetStrip();
-      if (errEl) errEl.textContent = result.message;
-      return;
-    }
-    const liveItem = state.presets.find((x) => x.id === tmpId);
-    if (liveItem) {
-      liveItem.id = result.data.id;
-      liveItem.desc = result.data.desc;
-      liveItem.amount = result.data.amount;
-    }
-    renderPresetList();
-    renderPresetStrip();
-  } finally {
-    btn.classList.remove("btn--loading");
-    btn.disabled = false;
-  }
+  descEl.value = "";
+  amountEl.value = "";
+  await _addPresetOrRecurring("preset", desc, amount, errEl, btn);
 });
 
 // -- NAVIGATION
@@ -1204,7 +1242,7 @@ btnSetBudget.addEventListener("click", async () => {
       renderStats(liveM);
       renderExpenses(liveM);
     }
-    showBanner("login-error", result.message);
+    _showAppError(result.message);
   }
 });
 
@@ -1290,6 +1328,11 @@ async function addExpense() {
     m.expenses.push(optimisticExpense);
     renderStats(m);
     renderExpenses(m);
+    // Keep the typed text around in case the save fails and it needs to
+    // go back in the fields — the optimistic list entry isn't the only
+    // thing the user would otherwise have to retype.
+    const descRaw = descInput.value;
+    const valRaw = valInput.value;
     descInput.value = "";
     valInput.value = "";
     descInput.focus();
@@ -1308,7 +1351,9 @@ async function addExpense() {
         renderStats(liveM);
         renderExpenses(liveM);
       }
-      showBanner("login-error", result.message);
+      descInput.value = descRaw;
+      valInput.value = valRaw;
+      _showAppError(result.message);
       return;
     }
     // Success: replace tmp id with real row data
@@ -1417,7 +1462,7 @@ document
         renderStats(liveM);
         renderExpenses(liveM);
       }
-      showBanner("login-error", !descResult.ok ? descResult.message : catResult.message);
+      _showAppError(!descResult.ok ? descResult.message : catResult.message);
     }
   });
 
@@ -1451,7 +1496,7 @@ document
       setState({ months: restored, displayName: state.displayName });
       renderHistory();
       updateAchievementsBadge();
-      showBanner("login-error", result.message);
+      _showAppError(result.message);
     }
   });
 document
@@ -1583,7 +1628,15 @@ document
         setCurrency(newCurrency);
         const m = getActiveMonth();
         if (m && m.budget !== null) { renderStats(m); renderExpenses(m); }
-        await dbUpdateCurrency(newCurrency);
+        const r = await dbUpdateCurrency(newCurrency);
+        if (!r.ok) {
+          // Revert the optimistic currency change — otherwise it silently
+          // reverts on next load anyway, but with no explanation now.
+          setCurrency(origCurrency);
+          if (m && m.budget !== null) { renderStats(m); renderExpenses(m); }
+          _showToast("Could not update currency. Try again.", true);
+          return;
+        }
       }
       if (offsetRaw !== (_settingsSnapshot ? _settingsSnapshot.offset : "")) {
         const offsetVal = parseMoneyInput(offsetRaw);
@@ -1624,18 +1677,7 @@ document
       }
       _settingsSnapshot = _snapshotSettings();
       _updateSettingsSaveBtn();
-      // Show success toast then fade it out
-      const toast = document.getElementById("success-toast");
-      if (toast) {
-        toast.textContent = "✓ Settings saved";
-        toast.classList.remove("hidden");
-        requestAnimationFrame(() => toast.classList.add("visible"));
-        clearTimeout(toast._hideTimer);
-        toast._hideTimer = setTimeout(() => {
-          toast.classList.remove("visible");
-          setTimeout(() => toast.classList.add("hidden"), 220);
-        }, 2500);
-      }
+      _showToast("✓ Settings saved");
       // Stay on settings — no navigation needed
     } finally {
       btn.classList.remove("btn--loading");

@@ -267,7 +267,8 @@ button {
   transition:
     background-color 0.2s,
     transform 0.15s,
-    box-shadow 0.15s;
+    box-shadow 0.15s,
+    filter 0.1s;
   text-transform: uppercase;
   letter-spacing: 1px;
   min-height: 44px;
@@ -279,8 +280,12 @@ button:hover {
   box-shadow: 0 4px 12px rgba(232, 184, 75, 0.35);
 }
 button:active {
-  transform: translateY(0);
+  /* filter (not background-color) so every variant — solid, outline,
+     transparent — gets a visible pressed-down darken regardless of its
+     own background. */
+  transform: translateY(0) scale(0.96);
   box-shadow: none;
+  filter: brightness(0.85);
 }
 button.btn-sm {
   width: auto;
@@ -450,6 +455,26 @@ textarea:disabled {
   padding: 10px 14px;
   margin-bottom: 14px;
   text-align: center;
+}
+
+/* Fixed/floating variant: sits outside every screen's DOM subtree so it's
+   visible no matter which screen is active, unlike #login-error (which is
+   nested inside #login-screen and invisible once that screen is hidden). */
+#app-error-banner {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top) + 8px);
+  left: 16px;
+  right: 16px;
+  max-width: 420px;
+  margin: 0 auto;
+  z-index: 300;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: _toast-in 0.2s ease-out;
+}
+@media (max-width: 480px) {
+  #app-error-banner {
+    top: calc(max(14px, env(safe-area-inset-top) + 8px) + 78px);
+  }
 }
 
 .hidden {
@@ -1205,6 +1230,10 @@ td.action-col {
 .success-toast.visible {
   opacity: 1;
   transform: translateY(0);
+}
+.success-toast.toast--error {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* Mobile: push toast below the frozen header */
